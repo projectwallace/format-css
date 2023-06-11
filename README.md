@@ -19,6 +19,11 @@ let old_css = "/* Your old CSS here */";
 let new_css = format(old_css);
 ```
 
+Need more examples?
+
+- [StackBlitz example using CommonJS](https://stackblitz.com/edit/stackblitz-starters-phchci?file=index.js)
+- [StackBlitz example using ES Modules](https://stackblitz.com/edit/stackblitz-starters-hrhsed?file=index.js)
+
 ## Formatting rules
 
 1. Every **AtRule** starts on a new line
