@@ -2,7 +2,198 @@ import { test } from 'uvu'
 import * as assert from 'uvu/assert'
 import { format } from './index.js'
 
-test('format.rule', () => {
+test('AtRules and Rules start on a new line', () => {
+	let actual = format(`
+		selector { property: value; }
+		@media (min-width: 1000px) {
+			selector { property: value; }
+		}
+		selector { property: value; }
+		@layer test {
+			selector { property: value; }
+		}
+	`)
+	let expected = `selector {
+	property: value;
+}
+
+@media (min-width: 1000px) {
+	selector {
+		property: value;
+	}
+}
+
+selector {
+	property: value;
+}
+
+@layer test {
+	selector {
+		property: value;
+	}
+}`
+
+	assert.equal(actual, expected)
+})
+
+test('Atrule blocks are surrounded by {} with correct spacing and indentation', () => {
+	let actual = format(`
+		@media (min-width:1000px){selector{property:value}}
+
+		@media (min-width:1000px)
+		{
+			selector
+			{
+				property:value
+			}
+}`)
+	let expected = `@media (min-width:1000px) {
+	selector {
+		property: value;
+	}
+}
+
+@media (min-width:1000px) {
+	selector {
+		property: value;
+	}
+}`
+
+	assert.equal(actual, expected)
+})
+
+test('Does not do AtRule prelude formatting', () => {
+	let actual = format(`@media (min-width:1000px){}`)
+	let expected = `@media (min-width:1000px) {}
+`
+
+	assert.equal(actual, expected)
+})
+
+test('Selectors are placed on a new line, separated by commas', () => {
+	let actual = format(`
+		selector1,
+			selector1a,
+			selector1b,
+				selector1aa,
+		selector2,
+
+		selector3 {
+		}
+	`)
+	let expected = `selector1,
+selector1a,
+selector1b,
+selector1aa,
+selector2,
+selector3 {}
+`
+
+	assert.equal(actual, expected)
+})
+
+test('Declarations end with a semicolon (;)', () => {
+	let actual = format(`
+		@font-face {
+			src: url('test');
+			font-family: Test;
+		}
+
+		css {
+			property1: value2;
+			property2: value2;
+
+			& .nested {
+				property1: value2;
+				property2: value2
+			}
+		}
+
+		@media (min-width: 1000px) {
+			@layer test {
+				css {
+					property1: value1
+				}
+			}
+		}
+	`)
+	let expected = `@font-face {
+	src: url('test');
+	font-family: Test;
+}
+
+css {
+	property1: value2;
+	property2: value2;
+	& .nested {
+		property1: value2;
+		property2: value2;
+	}
+}
+
+@media (min-width: 1000px) {
+	@layer test {
+		css {
+			property1: value1;
+		}
+	}
+}`
+
+	assert.equal(actual, expected)
+})
+
+test('An empty line is rendered in between Rules', () => {
+	let actual = format(`
+		rule1 { property: value }
+		rule2 { property: value }
+	`)
+	let expected = `rule1 {
+	property: value;
+}
+
+rule2 {
+	property: value;
+}`
+	assert.equal(actual, expected)
+})
+
+test('single empty line after a rule, before atrule', () => {
+	let actual = format(`
+		rule1 { property: value }
+		@media (min-width: 1000px) {
+			rule2 { property: value }
+		}
+	`)
+	let expected = `rule1 {
+	property: value;
+}
+
+@media (min-width: 1000px) {
+	rule2 {
+		property: value;
+	}
+}`
+	assert.equal(actual, expected)
+})
+
+test('single empty line in between atrules', () => {
+	let actual = format(`
+		@layer test1;
+		@media (min-width: 1000px) {
+			rule2 { property: value }
+		}
+	`)
+	let expected = `@layer test1;
+
+@media (min-width: 1000px) {
+	rule2 {
+		property: value;
+	}
+}`
+	assert.equal(actual, expected)
+})
+
+test('css nesting chaos', () => {
 	let actual = format(`
 /**
  * Comment!
@@ -42,8 +233,7 @@ test { a: 1}
 
 ;;;;;;;;;;;;;;;;;;;
 `)
-	let expected = `
-no-layer-1,
+	let expected = `no-layer-1,
 no-layer-2 {
 	color: red;
 	font-size: 1rem;
@@ -135,10 +325,7 @@ test {
 	src: url(some-url.woff2);
 }
 
-;;;;;;;;;;;;;;;;;;;
-
-
-`.trimStart()
+;;;;;;;;;;;;;;;;;;;`
 	assert.equal(actual, expected);
 });
 

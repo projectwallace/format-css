@@ -87,7 +87,9 @@ function print_selector(node, indent_level, css) {
  * @returns {string} A formatted Block
  */
 function print_block(node, indent_level, css) {
-	if (node.children.size === 0) {
+	let children = node.children
+
+	if (children.size === 0) {
 		return ' {}\n'
 	}
 
@@ -95,7 +97,7 @@ function print_block(node, indent_level, css) {
 
 	indent_level++
 
-	for (let child of node.children) {
+	for (let child of children) {
 		if (child.type === 'Declaration') {
 			buffer += print_declaration(child, indent_level, css)
 		} else if (child.type === 'Rule') {
@@ -106,7 +108,7 @@ function print_block(node, indent_level, css) {
 			buffer += print_unknown(child, indent_level, css)
 		}
 
-		if (child !== node.children.last) {
+		if (child !== children.last) {
 			if (child.type === 'Declaration') {
 				buffer += '\n'
 			} else {
@@ -134,9 +136,11 @@ function print_atrule(node, indent_level, css) {
 	let buffer = indent(indent_level)
 	buffer += '@' + node.name
 
+	// @font-face has no prelude
 	if (node.prelude) {
 		buffer += ' ' + substr(node.prelude, css)
 	}
+
 	if (node.block && node.block.type === 'Block') {
 		buffer += print_block(node.block, indent_level, css)
 	} else {
@@ -164,7 +168,7 @@ function print_declaration(node, indent_level, css) {
  * @returns {string} A formatted unknown CSS string
  */
 function print_unknown(node, indent_level, css) {
-	return indent(indent_level) + substr(node, css) + '\n'
+	return indent(indent_level) + substr(node, css).trim()
 }
 
 /**
@@ -175,18 +179,20 @@ function print_unknown(node, indent_level, css) {
  */
 function print(node, indent_level = 0, css) {
 	let buffer = ''
+	let children = node.children
 
-	for (let child of node.children) {
+	for (let child of children) {
 		if (child.type === 'Rule') {
 			buffer += print_rule(child, indent_level, css)
-			buffer += '\n'
 		} else if (child.type === 'Atrule') {
 			buffer += print_atrule(child, indent_level, css)
-			buffer += '\n'
 		} else {
 			buffer += print_unknown(child, indent_level, css)
 		}
-		buffer += '\n'
+
+		if (child !== children.last) {
+			buffer += '\n\n'
+		}
 	}
 
 	return buffer
