@@ -1,6 +1,6 @@
 # format-css
 
-Lightweight and fast library to format CSS with some very basic [rules](#formatting-rules). Our design goal is to format CSS in such a way that it's easy to inspect. Bundle size and runtime speed are more important than versality and extensibility.
+Lightweight and fast library to format CSS with some very basic [rules](#formatting-rules). Our design goal is to format CSS in such a way that it's easy to inspect. Bundle size and runtime speed are more important than versatility and extensibility.
 
 ![Example input-output of this formatter](https://github.com/projectwallace/format-css/assets/1536852/ce160fd3-fa11-4d90-9432-22567ee1d851)
 
