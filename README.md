@@ -1,2 +1,37 @@
 # format-css
-Lightweight and fast Prettier-alternative to format CSS
+
+Lightweight and fastlibrary to format CSS with some very basic rules.
+
+![Example input-output of this formatter](https://github.com/projectwallace/format-css/assets/1536852/ce160fd3-fa11-4d90-9432-22567ee1d851)
+
+## Installation
+
+```
+npm install @projectwallace/format-css
+```
+
+## Usage
+
+```js
+import { format } from "@projectwallace/format-css";
+
+let old_css = "/* Your old CSS here */";
+let new_css = format(old_css);
+```
+
+## Formatting rules
+
+1. Every **AtRule** starts on a new line
+1. Every **Rule** starts on a new line
+1. Every **Selector** starts on a new line
+1. A comma is placed after every **Selector** that’s not the last in the **SelectorList**
+1. Every **Block** is indented with 1 tab more than the previous indentation level
+1. Every **Declaration** starts on a new line
+1. Every **Declaration** ends with a semicolon (;)
+1. An empty line is placed after a **Block**, unless it’s the last in the surrounding **Block**
+1. Unknown syntax is rendered as-is
+
+## Acknowledgements
+
+- Thanks to [CSSTree](https://github.com/csstree/csstree) for providing the necessary parser and the interfaces for our CSS Types (the **bold** elements in the list above)
+- Thanks to [Prettier](https://prettier.io) and countless others for prior art
