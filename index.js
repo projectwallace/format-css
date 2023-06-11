@@ -199,8 +199,9 @@ function print(node, indent_level = 0, css) {
 }
 
 /**
- * @param {string} css
- * @returns {string} Formatted CSS
+ * Take a string of CSS (minified or not) and format it with some simple rules
+ * @param {string} css The original CSS
+ * @returns {string} The newly formatted CSS
  */
 export function format(css) {
 	let ast = parse(css, {

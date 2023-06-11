@@ -7,6 +7,7 @@
     "require": "./dist/format.cjs",
     "default": "./dist/format.modern.js"
   },
+  "types": "./dist/index.d.ts",
   "main": "./dist/format.cjs",
   "module": "./dist/format.module.js",
   "unpkg": "./dist/format.umd.js",
