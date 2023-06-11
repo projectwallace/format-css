@@ -13,18 +13,12 @@ jobs:
   test:
     name: Unit tests
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version:
-          - 18
-
     steps:
       - uses: actions/checkout@v3
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js 18
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 18
           cache: "npm"
       - run: npm install --ignore-scripts --no-audit
       - run: npm test
