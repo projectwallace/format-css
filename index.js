@@ -31,11 +31,11 @@ function substr(node, css) {
 function print_rule(node, indent_level, css) {
 	let buffer = ''
 
-	if (node.prelude && node.prelude.type === 'SelectorList') {
+	if (node.prelude !== null && node.prelude.type === 'SelectorList') {
 		buffer += print_selectorlist(node.prelude, indent_level, css)
 	}
 
-	if (node.block && node.block.type === 'Block') {
+	if (node.block !== null && node.block.type === 'Block') {
 		buffer += print_block(node.block, indent_level, css)
 	}
 
@@ -89,20 +89,28 @@ function print_selector(node, indent_level, css) {
 function print_block(node, indent_level, css) {
 	let children = node.children
 
-	if (children.size === 0) {
-		return ' {}\n'
+	if (children.isEmpty) {
+		return ' {}'
 	}
 
 	let buffer = ' {\n'
 
 	indent_level++
 
+	let prev_type
+
 	for (let child of children) {
 		if (child.type === 'Declaration') {
 			buffer += print_declaration(child, indent_level, css)
 		} else if (child.type === 'Rule') {
+			if (prev_type !== undefined && prev_type === 'Declaration') {
+				buffer += '\n'
+			}
 			buffer += print_rule(child, indent_level, css)
 		} else if (child.type === 'Atrule') {
+			if (prev_type !== undefined && prev_type === 'Declaration') {
+				buffer += '\n'
+			}
 			buffer += print_atrule(child, indent_level, css)
 		} else {
 			buffer += print_unknown(child, indent_level, css)
@@ -115,6 +123,8 @@ function print_block(node, indent_level, css) {
 				buffer += '\n\n'
 			}
 		}
+
+		prev_type = child.type
 	}
 
 	indent_level--

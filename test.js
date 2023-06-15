@@ -64,8 +64,7 @@ test('Atrule blocks are surrounded by {} with correct spacing and indentation', 
 
 test('Does not do AtRule prelude formatting', () => {
 	let actual = format(`@media (min-width:1000px){}`)
-	let expected = `@media (min-width:1000px) {}
-`
+	let expected = `@media (min-width:1000px) {}`
 
 	assert.equal(actual, expected)
 })
@@ -86,8 +85,7 @@ selector1a,
 selector1b,
 selector1aa,
 selector2,
-selector3 {}
-`
+selector3 {}`
 
 	assert.equal(actual, expected)
 })
@@ -125,6 +123,7 @@ test('Declarations end with a semicolon (;)', () => {
 css {
 	property1: value2;
 	property2: value2;
+
 	& .nested {
 		property1: value2;
 		property2: value2;
@@ -313,11 +312,9 @@ no-layer-2 {
 
 	@layer test {}
 
-
 	@supports (min-width: 1px) {
 		@layer deep {
 			layer-deep {}
-
 		}
 	}
 }
@@ -328,7 +325,6 @@ test {
 
 @layer components {
 	@layer alert {}
-
 
 	@layer table {
 		@layer tbody, thead;
@@ -358,7 +354,6 @@ test {
 
 @layer components.breadcrumb {
 	layer-components-breadcrumb {}
-
 }
 
 @font-face {
@@ -369,5 +364,68 @@ test {
 ;;;;;;;;;;;;;;;;;;;`
 	assert.equal(actual, expected);
 });
+
+test('newline between last declaration and nested ruleset', () => {
+	let actual = format(`
+		test {
+			property1: value1;
+			& > item {
+				property2: value2;
+				& + another {
+					property3: value3;
+				}
+			}
+		}
+	`)
+	let expected = `test {
+	property1: value1;
+
+	& > item {
+		property2: value2;
+
+		& + another {
+			property3: value3;
+		}
+	}
+}`
+	assert.equal(actual, expected)
+})
+
+test('newline between last declaration and nested atrule', () => {
+	let actual = format(`
+		test {
+			property1: value1;
+			@media all {
+				property2: value2;
+			}
+		}
+	`)
+	let expected = `test {
+	property1: value1;
+
+	@media all {
+		property2: value2;
+	}
+}`
+	assert.equal(actual, expected)
+})
+
+test('no trailing newline on empty nested rule', () => {
+	let actual = format(`
+		@layer test {
+			empty {}
+		}
+	`)
+	let expected = `@layer test {
+	empty {}
+}`
+	assert.equal(actual, expected)
+})
+
+test('empty input', () => {
+	let actual = format(` `)
+	let expected = ``
+	assert.equal(actual, expected)
+})
 
 test.run();
