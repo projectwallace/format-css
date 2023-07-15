@@ -15,10 +15,26 @@ function indent(size) {
  * @returns A portion of the CSS
  */
 function substr(node, css) {
-	if (node.loc) {
-		return css.substring(node.loc.start.offset, node.loc.end.offset)
+	if (node.loc === null) return ''
+	let str = css.substring(node.loc.start.offset, node.loc.end.offset)
+
+	// Single-line node, most common case
+	if (node.loc.start.line === node.loc.end.line) {
+		return str
 	}
-	return ''
+
+	// Multi-line nodes, not common
+	return str.split('\n').map(part => part.trim()).join(' ')
+}
+
+/**
+ * @param {import('css-tree').CssNode} node
+ * @param {string} css
+ * @returns A portion of the CSS
+ */
+function substr_raw(node, css) {
+	if (node.loc === null) return ''
+	return css.substring(node.loc.start.offset, node.loc.end.offset)
 }
 
 /**
@@ -178,7 +194,7 @@ function print_declaration(node, indent_level, css) {
  * @returns {string} A formatted unknown CSS string
  */
 function print_unknown(node, indent_level, css) {
-	return indent(indent_level) + substr(node, css).trim()
+	return indent(indent_level) + substr_raw(node, css).trim()
 }
 
 /**
