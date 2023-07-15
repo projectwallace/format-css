@@ -428,4 +428,28 @@ test('empty input', () => {
 	assert.equal(actual, expected)
 })
 
+test('formats multiline tokens on a single line', () => {
+	let actual = format(`
+a {
+  background: linear-gradient(
+    red,
+  10% blue,
+20% green,100% yellow);
+}
+
+a.b
+ .c .d
+   .e .f {
+color: green }
+	`)
+	let expected = `a {
+	background: linear-gradient( red, 10% blue, 20% green,100% yellow);
+}
+
+a.b .c .d .e .f {
+	color: green;
+}`
+	assert.equal(actual, expected)
+})
+
 test.run();
