@@ -25,5 +25,14 @@
   },
   "files": [
     "dist"
+  ],
+  "keywords": [
+    "css",
+    "formatter",
+    "format",
+    "print",
+    "pretifier",
+    "pretty",
+    "prettier"
   ]
 }
