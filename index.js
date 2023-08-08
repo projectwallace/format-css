@@ -38,7 +38,6 @@ function substr_raw(node, css) {
 }
 
 /**
- *
  * @param {import('css-tree').Rule} node
  * @param {number} indent_level
  * @param {string} css
@@ -47,8 +46,12 @@ function substr_raw(node, css) {
 function print_rule(node, indent_level, css) {
 	let buffer = ''
 
-	if (node.prelude !== null && node.prelude.type === 'SelectorList') {
-		buffer += print_selectorlist(node.prelude, indent_level, css)
+	if (node.prelude !== null) {
+		if (node.prelude.type === 'SelectorList') {
+			buffer += print_selectorlist(node.prelude, indent_level, css)
+		} else {
+			buffer += print_unknown(node.prelude, indent_level, css)
+		}
 	}
 
 	if (node.block !== null && node.block.type === 'Block') {
@@ -86,14 +89,96 @@ function print_selectorlist(node, indent_level, css) {
 }
 
 /**
- *
+ * @param {import('css-tree').Selector} node
+ * @param {string} css
+ */
+function print_simple_selector(node, css) {
+	let buffer = ''
+
+	if (node.children) {
+		for (let child of node.children) {
+			switch (child.type) {
+				case 'Combinator': {
+					// putting spaces around `child.name`, unless the combinator is ' '
+					buffer += ' '
+					if (child.name !== ' ') {
+						buffer += child.name + ' '
+					}
+					break
+				}
+				case 'PseudoClassSelector': {
+					buffer += ':' + child.name
+
+					if (child.children) {
+						buffer += '(' + print_simple_selector(child, css) + ')'
+					}
+					break
+				}
+				case 'SelectorList': {
+					for (let grandchild of child.children) {
+						buffer += print_simple_selector(grandchild, css)
+
+						if (grandchild !== child.children.last) {
+							buffer += ', '
+						}
+					}
+					break
+				}
+				case 'Nth': {
+					if (child.nth) {
+						if (child.nth.type === 'AnPlusB') {
+							let a = child.nth.a
+							let b = child.nth.b
+							let hasA = a !== null
+							let hasB = b !== null
+
+							if (hasA) {
+								buffer += a + 'n'
+							}
+
+							if (hasA && hasB) {
+								buffer += ' '
+							}
+
+							if (hasB) {
+								// When (1n + x) but not (1n - x)
+								if (hasA && !b.startsWith('-')) {
+									buffer += '+ '
+								}
+
+								buffer += b
+							}
+						} else {
+							// For odd/even or maybe other identifiers later on
+							buffer += substr(child.nth, css)
+						}
+					}
+
+					if (child.selector !== null) {
+						// `of .selector`
+						buffer += ' of ' + print_simple_selector(child.selector, css)
+					}
+					break
+				}
+				default: {
+					buffer += substr(child, css)
+					break
+				}
+			}
+		}
+	}
+
+	return buffer
+}
+
+/**
  * @param {import('css-tree').Selector} node
  * @param {number} indent_level
  * @param {string} css
  * @returns {string} A formatted Selector
  */
 function print_selector(node, indent_level, css) {
-	return indent(indent_level) + substr(node, css)
+	return indent(indent_level) + print_simple_selector(node, css)
 }
 
 /**
@@ -146,8 +231,7 @@ function print_block(node, indent_level, css) {
 	indent_level--
 
 	buffer += '\n'
-	buffer += indent(indent_level)
-	buffer += '}'
+	buffer += indent(indent_level) + '}'
 
 	return buffer
 }
@@ -159,8 +243,7 @@ function print_block(node, indent_level, css) {
  * @returns {string} A formatted Atrule
  */
 function print_atrule(node, indent_level, css) {
-	let buffer = indent(indent_level)
-	buffer += '@' + node.name
+	let buffer = indent(indent_level) + '@' + node.name
 
 	// @font-face has no prelude
 	if (node.prelude) {
@@ -198,7 +281,7 @@ function print_unknown(node, indent_level, css) {
 }
 
 /**
- * @param {import('css-tree').Stylesheet} node
+ * @param {import('css-tree').StyleSheet} node
  * @param {number} indent_level
  * @param {string} css
  * @returns {string} A formatted Stylesheet
