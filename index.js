@@ -124,6 +124,39 @@ function print_simple_selector(node, css) {
 					}
 					break
 				}
+				case 'Nth': {
+					if (child.nth) {
+						if (child.nth.type === 'AnPlusB') {
+							let a = child.nth.a
+							let b = child.nth.b
+							let hasA = a !== null
+							let hasB = b !== null
+
+							if (hasA) {
+								buffer += a + 'n'
+							}
+
+							if (hasA && hasB) {
+								buffer += ' '
+							}
+
+							if (hasB) {
+								if (!b.startsWith('-') && hasA) {
+									buffer += '+ '
+								}
+
+								buffer += b
+							}
+						} else {
+							// For odd/even or maybe other identifiers later on
+							buffer += substr(child.nth, css)
+						}
+					}
+					if (child.selector) {
+						buffer += ' of ' + print_simple_selector(child.selector, css)
+					}
+					break
+				}
 				default: {
 					buffer += substr(child, css)
 					break
