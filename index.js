@@ -141,7 +141,8 @@ function print_simple_selector(node, css) {
 							}
 
 							if (hasB) {
-								if (!b.startsWith('-') && hasA) {
+								// When (1n + x) but not (1n - x)
+								if (hasA && !b.startsWith('-')) {
 									buffer += '+ '
 								}
 
@@ -152,7 +153,9 @@ function print_simple_selector(node, css) {
 							buffer += substr(child.nth, css)
 						}
 					}
-					if (child.selector) {
+
+					if (child.selector !== null) {
+						// `of .selector`
 						buffer += ' of ' + print_simple_selector(child.selector, css)
 					}
 					break
@@ -175,10 +178,7 @@ function print_simple_selector(node, css) {
  * @returns {string} A formatted Selector
  */
 function print_selector(node, indent_level, css) {
-	let buffer = indent(indent_level)
-	buffer += print_simple_selector(node, css)
-
-	return buffer
+	return indent(indent_level) + print_simple_selector(node, css)
 }
 
 /**
@@ -231,8 +231,7 @@ function print_block(node, indent_level, css) {
 	indent_level--
 
 	buffer += '\n'
-	buffer += indent(indent_level)
-	buffer += '}'
+	buffer += indent(indent_level) + '}'
 
 	return buffer
 }
@@ -244,8 +243,7 @@ function print_block(node, indent_level, css) {
  * @returns {string} A formatted Atrule
  */
 function print_atrule(node, indent_level, css) {
-	let buffer = indent(indent_level)
-	buffer += '@' + node.name
+	let buffer = indent(indent_level) + '@' + node.name
 
 	// @font-face has no prelude
 	if (node.prelude) {
@@ -283,7 +281,7 @@ function print_unknown(node, indent_level, css) {
 }
 
 /**
- * @param {import('css-tree').Stylesheet} node
+ * @param {import('css-tree').StyleSheet} node
  * @param {number} indent_level
  * @param {string} css
  * @returns {string} A formatted Stylesheet
