@@ -38,7 +38,6 @@ function substr_raw(node, css) {
 }
 
 /**
- *
  * @param {import('css-tree').Rule} node
  * @param {number} indent_level
  * @param {string} css
@@ -47,8 +46,12 @@ function substr_raw(node, css) {
 function print_rule(node, indent_level, css) {
 	let buffer = ''
 
-	if (node.prelude !== null && node.prelude.type === 'SelectorList') {
-		buffer += print_selectorlist(node.prelude, indent_level, css)
+	if (node.prelude !== null) {
+		if (node.prelude.type === 'SelectorList') {
+			buffer += print_selectorlist(node.prelude, indent_level, css)
+		} else {
+			buffer += print_unknown(node.prelude, indent_level, css)
+		}
 	}
 
 	if (node.block !== null && node.block.type === 'Block') {
@@ -86,14 +89,63 @@ function print_selectorlist(node, indent_level, css) {
 }
 
 /**
- *
+ * @param {import('css-tree').Selector} node
+ * @param {string} css
+ */
+function print_simple_selector(node, css) {
+	let buffer = ''
+
+	if (node.children) {
+		for (let child of node.children) {
+			switch (child.type) {
+				case 'Combinator': {
+					// putting spaces around `child.name`, unless the combinator is ' '
+					buffer += ' '
+					if (child.name !== ' ') {
+						buffer += child.name + ' '
+					}
+					break
+				}
+				case 'PseudoClassSelector': {
+					buffer += ':' + child.name
+
+					if (child.children) {
+						buffer += '(' + print_simple_selector(child, css) + ')'
+					}
+					break
+				}
+				case 'SelectorList': {
+					for (let grandchild of child.children) {
+						buffer += print_simple_selector(grandchild, css)
+
+						if (grandchild !== child.children.last) {
+							buffer += ', '
+						}
+					}
+					break
+				}
+				default: {
+					buffer += substr(child, css)
+					break
+				}
+			}
+		}
+	}
+
+	return buffer
+}
+
+/**
  * @param {import('css-tree').Selector} node
  * @param {number} indent_level
  * @param {string} css
  * @returns {string} A formatted Selector
  */
 function print_selector(node, indent_level, css) {
-	return indent(indent_level) + substr(node, css)
+	let buffer = indent(indent_level)
+	buffer += print_simple_selector(node, css)
+
+	return buffer
 }
 
 /**

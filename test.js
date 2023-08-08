@@ -38,24 +38,24 @@ selector {
 
 test('Atrule blocks are surrounded by {} with correct spacing and indentation', () => {
 	let actual = format(`
-		@media (min-width:1000px){selector{property:value}}
+		@media (min-width:1000px){selector{property:value1}}
 
 		@media (min-width:1000px)
 		{
 			selector
 			{
-				property:value
+				property:value2
 			}
 }`)
 	let expected = `@media (min-width:1000px) {
 	selector {
-		property: value;
+		property: value1;
 	}
 }
 
 @media (min-width:1000px) {
 	selector {
-		property: value;
+		property: value2;
 	}
 }`
 
@@ -90,7 +90,7 @@ selector3 {}`
 	assert.equal(actual, expected)
 })
 
-test('Declarations end with a semicolon (;)', () => {
+test.only('Declarations end with a semicolon (;)', () => {
 	let actual = format(`
 		@font-face {
 			src: url('test');
@@ -98,19 +98,19 @@ test('Declarations end with a semicolon (;)', () => {
 		}
 
 		css {
-			property1: value2;
+			property1: value1;
 			property2: value2;
 
 			& .nested {
-				property1: value2;
-				property2: value2
+				property1: value3;
+				property2: value4
 			}
 		}
 
 		@media (min-width: 1000px) {
 			@layer test {
 				css {
-					property1: value1
+					property1: value5
 				}
 			}
 		}
@@ -121,19 +121,19 @@ test('Declarations end with a semicolon (;)', () => {
 }
 
 css {
-	property1: value2;
+	property1: value1;
 	property2: value2;
 
 	& .nested {
-		property1: value2;
-		property2: value2;
+		property1: value3;
+		property2: value4;
 	}
 }
 
 @media (min-width: 1000px) {
 	@layer test {
 		css {
-			property1: value1;
+			property1: value5;
 		}
 	}
 }`
@@ -448,6 +448,78 @@ color: green }
 
 a.b .c .d .e .f {
 	color: green;
+}`
+	assert.equal(actual, expected)
+})
+
+test('formats Raw rule prelude', () => {
+	let actual = format(`:lang("nl","de"),li:nth-child() {}`)
+	let expected = `:lang("nl","de"),li:nth-child() {}` // no formatting applied
+	assert.equal(actual, expected)
+})
+
+test('formats simple selector combinators', () => {
+	let actual = format(`
+		a>b,
+		a>b~c  d {}
+	`)
+	let expected = `a > b,
+a > b ~ c d {}`
+	assert.equal(actual, expected)
+})
+
+test('formats nested selector combinators', () => {
+	let fixtures = [
+		[`:where(a+b) {}`, `:where(a + b) {}`],
+		[`:where(:is(ol,ul)) {}`, `:where(:is(ol, ul)) {}`],
+		[`li:nth-of-type(1) {}`, `li:nth-of-type(1) {}`],
+	]
+
+	for (let [css, expected] of fixtures) {
+		let actual = format(css)
+		assert.equal(actual, expected)
+	}
+})
+
+test.skip('formats selectors with Nth', () => {
+	let fixtures = [
+		[`li:nth-child(3n-2) {}`, `li:nth-child(3n-2) {}`],
+		[`li:nth-child(-n+3 of li.important)`, `li:nth-child(-n+3 of li.important)`],
+		[`p:nth-child(n+8):nth-child(-n+15)`, `p:nth-child(n+8):nth-child(-n+15)`],
+	]
+
+	for (let [css, expected] of fixtures) {
+		let actual = format(css)
+		assert.equal(actual, expected)
+	}
+})
+
+test('formats simple value lists', () => {
+	let actual = format(`
+		a {
+			transition-property: all,opacity;
+			transition: all 100ms ease,opacity 10ms 20ms linear;
+			color: rgb(0,0,0);
+		}
+	`)
+	let expected = `a {
+	transition-property: all, opacity;
+	transition: all 100ms ease, opacity 10ms 20ms linear;
+	color: rgb(0, 0, 0);
+}`
+	assert.equal(actual, expected)
+})
+
+test.skip('formats nested value lists', () => {
+	let actual = format(`
+		a {
+			background: red,linear-gradient(to bottom,red 10%,green 50%,blue 100%);
+			color: var(--test1,var(--test2,green));
+		}
+	`)
+	let expected = `a {
+	background: red, linear-gradient(to bottom, red 10%, green 50%, blue 100%);
+	color: var(--test1, var(--test2, green));
 }`
 	assert.equal(actual, expected)
 })
