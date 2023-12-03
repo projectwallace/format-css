@@ -270,6 +270,11 @@ function print_declaration(node, indent_level, css) {
 	return indent(indent_level) + node.property.toLowerCase() + ': ' + print_value(node.value, indent_level, css).trim() + ';'
 }
 
+/**
+ * @param {import('css-tree').List} children
+ * @param {number} indent_level
+ * @param {string} css
+ */
 function print_list(children, indent_level, css) {
 	let buffer = ''
 
