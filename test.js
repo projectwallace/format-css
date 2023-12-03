@@ -117,7 +117,7 @@ test('Declarations end with a semicolon (;)', () => {
 	`)
 	let expected = `@font-face {
 	src: url('test');
-	font-family: Test;
+	font-family: test;
 }
 
 css {
@@ -277,7 +277,7 @@ test { a: 1}
 no-layer-2 {
 	color: red;
 	font-size: 1rem;
-	COLOR: green;
+	color: green;
 }
 
 @layer components, deep;
@@ -443,7 +443,7 @@ a.b
 color: green }
 	`)
 	let expected = `a {
-	background: linear-gradient( red, 10% blue, 20% green,100% yellow);
+	background: linear-gradient(red, 10% blue, 20% green, 100% yellow);
 }
 
 a.b .c .d .e .f {
@@ -499,32 +499,54 @@ test('formats selectors with Nth', () => {
 	}
 })
 
-test.skip('formats simple value lists', () => {
+test('formats simple value lists', () => {
 	let actual = format(`
 		a {
 			transition-property: all,opacity;
 			transition: all 100ms ease,opacity 10ms 20ms linear;
+			transition: all   100ms   ease;
+			ANIMATION: COLOR 123MS EASE-OUT;
 			color: rgb(0,0,0);
+			color: HSL(0%,10%,50%);
+			content: 'Test';
+			background-image: url("EXAMPLE.COM");
 		}
 	`)
 	let expected = `a {
 	transition-property: all, opacity;
 	transition: all 100ms ease, opacity 10ms 20ms linear;
+	transition: all 100ms ease;
+	animation: color 123ms ease-out;
 	color: rgb(0, 0, 0);
+	color: hsl(0%, 10%, 50%);
+	content: 'Test';
+	background-image: url("EXAMPLE.COM");
 }`
 	assert.equal(actual, expected)
 })
 
-test.skip('formats nested value lists', () => {
+test('formats nested value lists', () => {
 	let actual = format(`
 		a {
 			background: red,linear-gradient(to bottom,red 10%,green 50%,blue 100%);
-			color: var(--test1,var(--test2,green));
 		}
 	`)
 	let expected = `a {
 	background: red, linear-gradient(to bottom, red 10%, green 50%, blue 100%);
+}`
+	assert.equal(actual, expected)
+})
+
+test('formats nested var()', () => {
+	let actual = format(`
+		a {
+			color: var(--test1,var(--test2,green));
+			color: var(--test3,rgb(0,0,0));
+		}
+	`)
+	let expected = `a {
 	color: var(--test1, var(--test2, green));
+	color: var(--test3, rgb(0, 0, 0));
 }`
 	assert.equal(actual, expected)
 })

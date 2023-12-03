@@ -246,7 +246,7 @@ function print_atrule(node, indent_level, css) {
 	let buffer = indent(indent_level) + '@' + node.name
 
 	// @font-face has no prelude
-	if (node.prelude) {
+	if (node.prelude !== null) {
 		buffer += ' ' + substr(node.prelude, css)
 	}
 
@@ -267,7 +267,58 @@ function print_atrule(node, indent_level, css) {
  * @returns {string} A formatted Declaration
  */
 function print_declaration(node, indent_level, css) {
-	return indent(indent_level) + node.property + ': ' + substr(node.value, css) + ';'
+	return indent(indent_level) + node.property.toLowerCase() + ': ' + print_value(node.value, indent_level, css).trim() + ';'
+}
+
+function print_list(children, indent_level, css) {
+	let buffer = ''
+
+	for (let node of children) {
+		if (node !== children.first && node.type !== 'Operator') {
+			buffer += ' '
+		}
+
+		if (node.type === 'Identifier') {
+			// TODO: new CSS keywork NaN should not be lowercased
+			buffer += node.name.toLowerCase()
+		} else if (node.type === 'Function') {
+			buffer += print_function(node, 0, css)
+		} else if (node.type === 'Dimension') {
+			buffer += node.value + node.unit.toLowerCase()
+		} else if (node.type === 'Value') {
+			// Values can be inside var() as fallback
+			// var(--prop, VALUE)
+			buffer += print_value(node, 0, css)
+		} else {
+			buffer += print_unknown(node, 0, css)
+		}
+	}
+	return buffer
+}
+
+/**
+ * @param {import('css-tree').Value | import('css-tree').Raw} node
+ * @param {number} indent_level
+ * @param {string} css
+ */
+function print_value(node, indent_level, css) {
+	if (node.type === 'Raw') {
+		return print_unknown(node, 0, css)
+	}
+
+	return print_list(node.children, 0, css)
+}
+
+/**
+ * @param {import('css-tree').FunctionNode} node
+ * @param {number} indent_level
+ * @param {string} css
+ */
+function print_function(node, indent_level, css) {
+	let buffer = node.name.toLowerCase() + '('
+	buffer += print_list(node.children, 0, css)
+	buffer += ')'
+	return buffer
 }
 
 /**
@@ -316,8 +367,8 @@ export function format(css) {
 	let ast = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
-		parseCustomProperty: false,
-		parseValue: false,
+		parseCustomProperty: true,
+		parseValue: true,
 	})
 	return print(ast, 0, css)
 }
