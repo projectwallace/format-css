@@ -17,7 +17,7 @@ function indent(size) {
 function substr(node, css) {
 	let loc = node.loc
 
-	if (loc === null) return ''
+	if (!loc) return ''
 
 	let start = loc.start
 	let end = loc.end
@@ -38,7 +38,7 @@ function substr(node, css) {
  * @returns A portion of the CSS
  */
 function substr_raw(node, css) {
-	if (node.loc === null) return ''
+	if (!node.loc) return ''
 	return css.substring(node.loc.start.offset, node.loc.end.offset)
 }
 
@@ -88,7 +88,7 @@ function print_selectorlist(node, indent_level, css) {
 }
 
 /**
- * @param {import('css-tree').Selector} node
+ * @param {import('css-tree').Selector|import('css-tree').PseudoClassSelector} node
  * @param {string} css
  */
 function print_simple_selector(node, css) {
@@ -128,20 +128,18 @@ function print_simple_selector(node, css) {
 						if (child.nth.type === 'AnPlusB') {
 							let a = child.nth.a
 							let b = child.nth.b
-							let hasA = a !== null
-							let hasB = b !== null
 
-							if (hasA) {
+							if (a !== null) {
 								buffer += a + 'n'
 							}
 
-							if (hasA && hasB) {
+							if (a !== null && b !== null) {
 								buffer += ' '
 							}
 
-							if (hasB) {
+							if (b !== null) {
 								// When (1n + x) but not (1n - x)
-								if (hasA && !b.startsWith('-')) {
+								if (a !== null && !b.startsWith('-')) {
 									buffer += '+ '
 								}
 
@@ -279,7 +277,7 @@ function print_prelude(node, indent_level, css) {
 }
 
 /**
- * @param {import('css-tree').Declation} node
+ * @param {import('css-tree').Declaration} node
  * @param {number} indent_level
  * @param {string} css
  * @returns {string} A formatted Declaration
@@ -312,6 +310,13 @@ function print_list(children, indent_level, css) {
 			// Values can be inside var() as fallback
 			// var(--prop, VALUE)
 			buffer += print_value(node, 0, css)
+		} else if (node.type === 'Operator') {
+			// Put extra spacing around + - / *
+			// but not before a comma
+			if (node.value !== ',') {
+				buffer += ' '
+			}
+			buffer += substr(node, css)
 		} else {
 			buffer += substr(node, css)
 		}
