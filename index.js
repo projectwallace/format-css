@@ -270,7 +270,7 @@ function print_atrule(node, indent_level, css) {
 function print_prelude(node, indent_level, css) {
 	let buffer = substr(node, css)
 	return buffer
-		.replace(/([:,])/g, '$1 ') // force whitespace after colon or comma
+		.replace(/\s*([:,])/g, '$1 ') // force whitespace after colon or comma
 		.replace(/\(\s+/g, '(') // remove whitespace after (
 		.replace(/\s+\)/g, ')') // remove whitespace before )
 		.replace(/\s+/g, ' ') // collapse multiple whitespaces into one

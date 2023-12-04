@@ -59,6 +59,7 @@ Atrules('AtRule prelude formatting', () => {
 		[`@media all{}`, `@media all {}`],
 		[`@media all   and print{}`, `@media all and print {}`],
 		[`@media (min-width:1000px){}`, `@media (min-width: 1000px) {}`],
+		[`@media (min-width : 1000px) {}`, `@media (min-width: 1000px) {}`],
 		[`@media all and (transform-3d) {}`, `@media all and (transform-3d) {}`],
 		[`@media all and (transform-3d), (-webkit-transform-3d) {}`, `@media all and (transform-3d), (-webkit-transform-3d) {}`],
 		[`@media screen or print {}`, `@media screen or print {}`],
