@@ -103,10 +103,12 @@ Values('does not break font shorthand', () => {
 	let actual = format(`a {
 		font: 2em/2 sans-serif;
 		font: 2em/ 2 sans-serif;
+		font: 2em    /     2 sans-serif;
 	}`)
 	let expected = `a {
-	font: 2em / 2 sans-serif;
-	font: 2em / 2 sans-serif;
+	font: 2em/2 sans-serif;
+	font: 2em/2 sans-serif;
+	font: 2em/2 sans-serif;
 }`
 	assert.is(actual, expected)
 })
@@ -118,7 +120,7 @@ Values('formats whitespace around operators (*/+-) correctly', () => {
 	font-size: calc(2em + 2px)
 }`)
 	let expected = `a {
-	font: 2em / 2 sans-serif;
+	font: 2em/2 sans-serif;
 	font-size: calc(2em / 2);
 	font-size: calc(2em + 2px);
 }`

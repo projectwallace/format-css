@@ -283,7 +283,15 @@ function print_prelude(node, indent_level, css) {
  * @returns {string} A formatted Declaration
  */
 function print_declaration(node, indent_level, css) {
-	return indent(indent_level) + node.property.toLowerCase() + ': ' + print_value(node.value, indent_level, css).trim()
+	let property = node.property.toLowerCase()
+	let value = print_value(node.value, indent_level, css).trim()
+
+	// Special case for `font` shorthand: remove whitespace around /
+	if (property === 'font') {
+		value = value.replace(/\s*\/\s*/, '/')
+	}
+
+	return indent(indent_level) + property + ': ' + value
 }
 
 /**
