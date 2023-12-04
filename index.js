@@ -398,7 +398,7 @@ function print(node, indent_level = 0, css) {
 export function format(css) {
 	let ast = parse(css, {
 		positions: true,
-		parseAtrulePrelude: true,
+		parseAtrulePrelude: false,
 		parseCustomProperty: true,
 		parseValue: true,
 	})
