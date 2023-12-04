@@ -325,11 +325,7 @@ function print_list(children, indent_level, css) {
  * @param {string} css
  */
 function print_dimension(node, indent_level, css) {
-	let buffer = node.value
-	if (node.unit) {
-		buffer += node.unit.toLowerCase()
-	}
-	return buffer
+	return node.value + node.unit.toLowerCase()
 }
 
 /**
