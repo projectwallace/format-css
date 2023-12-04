@@ -15,16 +15,21 @@ function indent(size) {
  * @returns A portion of the CSS
  */
 function substr(node, css) {
-	if (node.loc === null) return ''
-	let str = css.substring(node.loc.start.offset, node.loc.end.offset)
+	let loc = node.loc
+
+	if (loc === null) return ''
+
+	let start = loc.start
+	let end = loc.end
+	let str = css.substring(start.offset, end.offset)
 
 	// Single-line node, most common case
-	if (node.loc.start.line === node.loc.end.line) {
+	if (start.line === end.line) {
 		return str
 	}
 
 	// Multi-line nodes, not common
-	return str.split('\n').map(part => part.trim()).join(' ')
+	return str.replace(/\s+/g, ' ')
 }
 
 /**
@@ -44,14 +49,12 @@ function substr_raw(node, css) {
  * @returns {string} A formatted Rule
  */
 function print_rule(node, indent_level, css) {
-	let buffer = ''
+	let buffer
 
-	if (node.prelude !== null) {
-		if (node.prelude.type === 'SelectorList') {
-			buffer += print_selectorlist(node.prelude, indent_level, css)
-		} else {
-			buffer += print_unknown(node.prelude, indent_level, css)
-		}
+	if (node.prelude.type === 'SelectorList') {
+		buffer = print_selectorlist(node.prelude, indent_level, css)
+	} else {
+		buffer = print_unknown(node.prelude, indent_level, css)
 	}
 
 	if (node.block !== null && node.block.type === 'Block') {
@@ -71,10 +74,6 @@ function print_selectorlist(node, indent_level, css) {
 	let buffer = ''
 
 	for (let selector of node.children) {
-		if (selector !== node.children.first) {
-			buffer += '\n'
-		}
-
 		if (selector.type === 'Selector') {
 			buffer += print_selector(selector, indent_level, css)
 		} else {
@@ -82,7 +81,7 @@ function print_selectorlist(node, indent_level, css) {
 		}
 
 		if (selector !== node.children.last) {
-			buffer += ','
+			buffer += `,\n`
 		}
 	}
 	return buffer
@@ -202,14 +201,14 @@ function print_block(node, indent_level, css) {
 
 	for (let child of children) {
 		if (child.type === 'Declaration') {
-			buffer += print_declaration(child, indent_level, css)
+			buffer += print_declaration(child, indent_level, css) + ';'
 		} else if (child.type === 'Rule') {
-			if (prev_type !== undefined && prev_type === 'Declaration') {
+			if (prev_type === 'Declaration') {
 				buffer += '\n'
 			}
 			buffer += print_rule(child, indent_level, css)
 		} else if (child.type === 'Atrule') {
-			if (prev_type !== undefined && prev_type === 'Declaration') {
+			if (prev_type === 'Declaration') {
 				buffer += '\n'
 			}
 			buffer += print_atrule(child, indent_level, css)
@@ -218,10 +217,10 @@ function print_block(node, indent_level, css) {
 		}
 
 		if (child !== children.last) {
-			if (child.type === 'Declaration') {
+			buffer += '\n'
+
+			if (child.type !== 'Declaration') {
 				buffer += '\n'
-			} else {
-				buffer += '\n\n'
 			}
 		}
 
@@ -243,21 +242,40 @@ function print_block(node, indent_level, css) {
  * @returns {string} A formatted Atrule
  */
 function print_atrule(node, indent_level, css) {
-	let buffer = indent(indent_level) + '@' + node.name
+	let buffer = indent(indent_level) + '@' + node.name.toLowerCase()
 
 	// @font-face has no prelude
 	if (node.prelude !== null) {
-		buffer += ' ' + substr(node.prelude, css)
+		buffer += ' ' + print_prelude(node.prelude, 0, css)
 	}
 
-	if (node.block && node.block.type === 'Block') {
-		buffer += print_block(node.block, indent_level, css)
-	} else {
+	if (node.block === null) {
 		// `@import url(style.css);` has no block, neither does `@layer layer1;`
 		buffer += ';'
+	} else if (node.block.type === 'Block') {
+		buffer += print_block(node.block, indent_level, css)
 	}
 
 	return buffer
+}
+
+/**
+ * Pretty-printing atrule preludes takes an insane amount of rules,
+ * so we're opting for a couple of 'good-enough' string replacements
+ * here to force some nice formatting.
+ * Should be OK perf-wise, since the amount of atrules in most
+ * stylesheets are limited, so this won't be called too often.
+ * @param {import('css-tree').AtrulePrelude | import('css-tree').Raw} node
+ * @param {number} indent_level
+ * @param {string} css
+ */
+function print_prelude(node, indent_level, css) {
+	let buffer = substr(node, css)
+	return buffer
+		.replace(/([:,])/g, '$1 ') // force whitespace after colon or comma
+		.replace(/\(\s+/g, '(') // remove whitespace after (
+		.replace(/\s+\)/g, ')') // remove whitespace before )
+		.replace(/\s+/g, ' ') // collapse multiple whitespaces into one
 }
 
 /**
@@ -267,7 +285,7 @@ function print_atrule(node, indent_level, css) {
  * @returns {string} A formatted Declaration
  */
 function print_declaration(node, indent_level, css) {
-	return indent(indent_level) + node.property.toLowerCase() + ': ' + print_value(node.value, indent_level, css).trim() + ';'
+	return indent(indent_level) + node.property.toLowerCase() + ': ' + print_value(node.value, indent_level, css).trim()
 }
 
 /**
@@ -289,14 +307,27 @@ function print_list(children, indent_level, css) {
 		} else if (node.type === 'Function') {
 			buffer += print_function(node, 0, css)
 		} else if (node.type === 'Dimension') {
-			buffer += node.value + node.unit.toLowerCase()
+			buffer += print_dimension(node, 0, css)
 		} else if (node.type === 'Value') {
 			// Values can be inside var() as fallback
 			// var(--prop, VALUE)
 			buffer += print_value(node, 0, css)
 		} else {
-			buffer += print_unknown(node, 0, css)
+			buffer += substr(node, css)
 		}
+	}
+	return buffer
+}
+
+/**
+ * @param {import('css-tree').Dimension} node
+ * @param {number} indent_level
+ * @param {string} css
+ */
+function print_dimension(node, indent_level, css) {
+	let buffer = node.value
+	if (node.unit) {
+		buffer += node.unit.toLowerCase()
 	}
 	return buffer
 }
@@ -371,7 +402,7 @@ function print(node, indent_level = 0, css) {
 export function format(css) {
 	let ast = parse(css, {
 		positions: true,
-		parseAtrulePrelude: false,
+		parseAtrulePrelude: true,
 		parseCustomProperty: true,
 		parseValue: true,
 	})
