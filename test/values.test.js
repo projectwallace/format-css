@@ -99,6 +99,16 @@ a {
 	assert.equal(actual, expected);
 });
 
+Values('does not break font shorthand', () => {
+	let actual = format(`a {
+		font: 2em/2 sans-serif;
+	}`)
+	let expected = `a {
+		font: 2em/2 sans-serif;
+	}`
+	assert.is(actual, expected)
+})
+
 Values.skip('formats whitespace around */+- correctly', () => {
 	let actual = format(`a {
 	font: 2em/2 sans-serif;
