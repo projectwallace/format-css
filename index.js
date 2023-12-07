@@ -283,7 +283,12 @@ function print_prelude(node, indent_level, css) {
  * @returns {string} A formatted Declaration
  */
 function print_declaration(node, indent_level, css) {
-	let property = node.property.toLowerCase()
+	let property = node.property
+
+	if (!property.startsWith('--')) {
+		property = property.toLowerCase()
+	}
+
 	let value = print_value(node.value, indent_level, css).trim()
 
 	// Special case for `font` shorthand: remove whitespace around /
@@ -308,8 +313,7 @@ function print_list(children, indent_level, css) {
 		}
 
 		if (node.type === 'Identifier') {
-			// TODO: new CSS keywork NaN should not be lowercased
-			buffer += node.name.toLowerCase()
+			buffer += node.name
 		} else if (node.type === 'Function') {
 			buffer += print_function(node, 0, css)
 		} else if (node.type === 'Dimension') {

@@ -5,7 +5,7 @@ import { format } from "../index.js";
 let Stylesheet = suite("Stylesheet");
 
 Stylesheet("empty input", () => {
-	let actual = format(` `);
+	let actual = format(``);
 	let expected = ``;
 	assert.equal(actual, expected);
 });
