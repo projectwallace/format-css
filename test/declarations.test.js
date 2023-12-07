@@ -31,7 +31,7 @@ Declarations("Declarations end with a semicolon (;)", () => {
 	`);
 	let expected = `@font-face {
 	src: url('test');
-	font-family: test;
+	font-family: Test;
 }
 
 css {
@@ -62,5 +62,15 @@ Declarations("lowercases properties", () => {
 }`;
 	assert.is(actual, expected);
 });
+
+Declarations('does not lowercase custom properties', () => {
+	let actual = format(`a {
+		--myVar: 1;
+	}`)
+	let expected = `a {
+	--myVar: 1;
+}`
+	assert.is(actual, expected)
+})
 
 Declarations.run();
