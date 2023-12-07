@@ -1,3 +1,4 @@
+// @ts-expect-error CSSTree imports are always troublesome
 import parse from 'css-tree/parser'
 
 /**
@@ -17,7 +18,7 @@ function indent(size) {
 function substr(node, css) {
 	let loc = node.loc
 
-	if (!loc) return ''
+	if (loc === undefined) return ''
 
 	let start = loc.start
 	let end = loc.end
@@ -38,8 +39,9 @@ function substr(node, css) {
  * @returns A portion of the CSS
  */
 function substr_raw(node, css) {
-	if (!node.loc) return ''
-	return css.substring(node.loc.start.offset, node.loc.end.offset)
+	let loc = node.loc
+	if (!loc) return ''
+	return css.substring(loc.start.offset, loc.end.offset)
 }
 
 /**
@@ -114,10 +116,11 @@ function print_simple_selector(node, css) {
 					break
 				}
 				case 'SelectorList': {
-					for (let grandchild of child.children) {
-						buffer += print_simple_selector(grandchild, css)
+					for (let selector of child.children) {
+						// @ts-expect-error This is being problematic, but I don't know hot to fix it
+						buffer += print_simple_selector(selector, css)
 
-						if (grandchild !== child.children.last) {
+						if (selector !== child.children.last) {
 							buffer += ', '
 						}
 					}
@@ -153,7 +156,17 @@ function print_simple_selector(node, css) {
 
 					if (child.selector !== null) {
 						// `of .selector`
-						buffer += ' of ' + print_simple_selector(child.selector, css)
+						buffer += ' of '
+
+						let items = child.selector.children
+						for (let selector of items) {
+							if (selector.type === 'Selector') {
+								if (selector !== items.first) {
+									buffer += ', '
+								}
+								buffer += print_simple_selector(selector, css)
+							}
+						}
 					}
 					break
 				}

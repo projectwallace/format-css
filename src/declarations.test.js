@@ -1,6 +1,6 @@
 import { suite } from "uvu";
 import * as assert from "uvu/assert";
-import { format } from "../index.js";
+import { format } from "./index.js";
 
 let Declarations = suite("Declarations");
 

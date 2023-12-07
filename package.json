@@ -2,7 +2,7 @@
   "name": "@projectwallace/format-css",
   "version": "1.0.6",
   "type": "module",
-  "source": "index.js",
+  "source": "src/index.js",
   "exports": {
     "require": "./dist/format.cjs",
     "default": "./dist/format.modern.js"
@@ -13,11 +13,13 @@
   "unpkg": "./dist/format.umd.js",
   "scripts": {
     "build": "microbundle",
-    "test": "uvu"
+    "test": "uvu",
+    "check": "tsc -p src/index.js --noEmit"
   },
   "devDependencies": {
     "@types/css-tree": "^2.3.4",
     "microbundle": "^0.15.1",
+    "typescript": "^5.3.2",
     "uvu": "^0.5.6"
   },
   "dependencies": {

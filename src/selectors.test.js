@@ -1,6 +1,6 @@
 import { suite } from "uvu";
 import * as assert from "uvu/assert";
-import { format } from "../index.js";
+import { format } from "./index.js";
 
 let Selectors = suite("Selectors");
 
@@ -81,6 +81,10 @@ Selectors("formats selectors with Nth", () => {
 		[
 			`li:nth-child(-n+3 of li.important) {}`,
 			`li:nth-child(-1n + 3 of li.important) {}`,
+		],
+		[
+			`li:nth-child(3n of ol li,ul li) {}`,
+			`li:nth-child(3n of ol li, ul li) {}`
 		],
 		[
 			`p:nth-child(n+8):nth-child(-n+15) {}`,
