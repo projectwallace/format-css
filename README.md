@@ -47,4 +47,4 @@ Need more examples?
 
 - [Format CSS online](https://www.projectwallace.com/prettify-css?utm_source=github&utm_medium=wallace_format_css_related_projects) - See this minifier in action online!
 - [CSS Analyzer](https://github.com/projectwallace/css-analyzer) - The best CSS analyzer that powers all analysis on [projectwallace.com](https://www.projectwallace.com?utm_source=github&utm_medium=wallace_format_css_related_projects)
-- [Minify CSS](https://github.com/projectwallace/format-css) The exact opposite of this library: fast, small, zero-config CSS minifier.
+- [Minify CSS](https://github.com/projectwallace/minify-css) The exact opposite of this library: fast, small, zero-config CSS minifier.
