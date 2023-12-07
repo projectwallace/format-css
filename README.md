@@ -35,7 +35,7 @@ Need more examples?
 1. Every **Block** is indented with 1 tab more than the previous indentation level
 1. Every **Declaration** starts on a new line
 1. Every **Declaration** ends with a semicolon (;)
-1. An empty line is placed after a **Block**, unless it’s the last in the surrounding **Block**
+1. An empty line is placed after a **Block** unless it’s the last in the surrounding **Block**
 1. Multiline tokens like **Selectors, Values, etc.** are rendered on a single line
 1. Unknown syntax is rendered as-is, with multi-line formatting kept intact
 
