@@ -1,6 +1,7 @@
 {
   "name": "@projectwallace/format-css",
   "version": "1.0.6",
+  "description": "Fast, small, zero-config library to format CSS with basic rules.",
   "type": "module",
   "source": "index.js",
   "exports": {
