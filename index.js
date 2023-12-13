@@ -323,7 +323,7 @@ function print_list(children, indent_level, css) {
 			// var(--prop, VALUE)
 			buffer += print_value(node, 0, css)
 		} else if (node.type === 'Operator') {
-			// Put extra spacing around + - / *
+			// Put extra spacing before + - / *
 			// but not before a comma
 			if (node.value !== ',') {
 				buffer += ' '
