@@ -1,5 +1,7 @@
 import parse from 'css-tree/parser'
 
+const NEWLINE = '\n'
+
 /**
  * Indent a string
  * @param {number} size
@@ -81,7 +83,7 @@ function print_selectorlist(node, indent_level, css) {
 		}
 
 		if (selector !== node.children.last) {
-			buffer += `,\n`
+			buffer += `,` + NEWLINE
 		}
 	}
 	return buffer
@@ -191,7 +193,7 @@ function print_block(node, indent_level, css) {
 		return ' {}'
 	}
 
-	let buffer = ' {\n'
+	let buffer = ' {' + NEWLINE
 
 	indent_level++
 
@@ -200,25 +202,25 @@ function print_block(node, indent_level, css) {
 	for (let child of children) {
 		if (child.type === 'Declaration') {
 			buffer += print_declaration(child, indent_level, css) + ';'
-		} else if (child.type === 'Rule') {
-			if (prev_type === 'Declaration') {
-				buffer += '\n'
-			}
-			buffer += print_rule(child, indent_level, css)
-		} else if (child.type === 'Atrule') {
-			if (prev_type === 'Declaration') {
-				buffer += '\n'
-			}
-			buffer += print_atrule(child, indent_level, css)
 		} else {
-			buffer += print_unknown(child, indent_level, css)
+			if (prev_type === 'Declaration') {
+				buffer += NEWLINE
+			}
+
+			if (child.type === 'Rule') {
+				buffer += print_rule(child, indent_level, css)
+			} else if (child.type === 'Atrule') {
+				buffer += print_atrule(child, indent_level, css)
+			} else {
+				buffer += print_unknown(child, indent_level, css)
+			}
 		}
 
 		if (child !== children.last) {
-			buffer += '\n'
+			buffer += NEWLINE
 
 			if (child.type !== 'Declaration') {
-				buffer += '\n'
+				buffer += NEWLINE
 			}
 		}
 
@@ -227,7 +229,7 @@ function print_block(node, indent_level, css) {
 
 	indent_level--
 
-	buffer += '\n'
+	buffer += NEWLINE
 	buffer += indent(indent_level) + '}'
 
 	return buffer
@@ -400,7 +402,7 @@ function print(node, indent_level = 0, css) {
 		}
 
 		if (child !== children.last) {
-			buffer += '\n\n'
+			buffer += NEWLINE + NEWLINE
 		}
 	}
 
