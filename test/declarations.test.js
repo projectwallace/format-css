@@ -73,4 +73,16 @@ Declarations('does not lowercase custom properties', () => {
 	assert.is(actual, expected)
 })
 
+Declarations.skip('preserves comments', () => {
+	let actual = format(`a {
+		/* comment */color: green;
+		color/* comment */: green;
+	}`)
+	let expected = `a {
+	/* comment */color: green;
+	color/* comment */: green;
+}`
+	assert.is(actual, expected)
+})
+
 Declarations.run();

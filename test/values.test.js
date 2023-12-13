@@ -169,4 +169,26 @@ Values('lowercases dimensions', () => {
 	assert.is(actual, expected)
 })
 
+Values.skip('preserves comments', () => {
+	let actual = format(`
+		a {
+			color: /** comment */red;
+			color: red/* comment */;
+			background-image: linear-gradient(/* comment */red, green);
+			background-image: linear-gradient(red/* comment */, green);
+			background-image: linear-gradient(red, green/* comment */);
+			background-image: linear-gradient(red, green)/* comment */
+		}
+	`)
+	let expected = `a {
+	color: /* comment */red;
+	color: red/* comment */;
+	background-image: linear-gradient(/* comment */red, green);
+	background-image: linear-gradient(red/* comment */, green);
+	background-image: linear-gradient(red, green/* comment */);
+	background-image: linear-gradient(red, green)/* comment */
+}`
+	assert.is(actual, expected)
+})
+
 Values.run();

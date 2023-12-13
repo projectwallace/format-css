@@ -161,4 +161,25 @@ Atrules('Empty atrule braces are placed on the same line', () => {
 	assert.is(actual, expected)
 })
 
+Atrules.skip('preserves comments', () => {
+	let actual = format(`
+		@media /* comment */ all {}
+		@media all /* comment */ {}
+		@media (min-width: 1000px /* comment */) {}
+		@media (/* comment */ min-width: 1000px) {}
+		@layer /* comment */ {}
+	`)
+	let expected = `@media /* comment */ all {}
+
+@media all /* comment */ {}
+
+@media (min-width: 1000px /* comment */) {}
+
+@media (/* comment */ min-width: 1000px) {}
+
+@layer /* comment */ {}
+`
+	assert.is(actual, expected)
+})
+
 Atrules.run();
