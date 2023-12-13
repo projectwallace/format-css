@@ -20,5 +20,9 @@ jobs:
         with:
           node-version: 18
           cache: "npm"
-      - run: npm install --ignore-scripts --no-audit
-      - run: npm test
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit
+      - name: Run unit tests
+        run: npm test
+      - name: Test types
+        run: npm run check
