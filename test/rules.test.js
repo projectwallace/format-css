@@ -135,7 +135,7 @@ Rules("formats Raw rule prelude", () => {
 	assert.equal(actual, expected);
 });
 
-Rules('formats nested rules with selectors containing & and more', () => {
+Rules('formats nested rules with selectors starting with', () => {
 	let actual = format(`
 		selector {
 			& > item {
@@ -151,28 +151,66 @@ Rules('formats nested rules with selectors containing & and more', () => {
 	assert.equal(actual, expected);
 })
 
-Rules("formats nested rules with a selector starting with & and containing an attribute selector", () => {
+Rules("formats nested rules with a selector starting with &", () => {
 	let actual = format(`
 		selector {
-			& [data-theme] { color: red; }
+			& a { color: red; }
 		}
 	`)
 	let expected = `selector {
-	& [data-theme] {
+	& a {
 		color: red;
 	}
 }`;
 	assert.equal(actual, expected);
 })
 
-Rules("formats nested rules with a selector starting with & and containing an attribute selector", () => {
+Rules("formats nested rules with a selector with a &", () => {
 	let actual = format(`
 		selector {
-			[data-theme] & { color:red }
+			a & { color:red }
 		}
 	`)
 	let expected = `selector {
-	[data-theme] & {
+	a & {
+		color: red;
+	}
+}`;
+	assert.equal(actual, expected);
+})
+
+Rules("formats nested rules with a selector without a &", () => {
+	let actual = format(`
+		selector {
+			a { color:red }
+		}
+	`)
+	let expected = `selector {
+	a {
+		color: red;
+	}
+}`;
+	assert.equal(actual, expected);
+})
+
+Rules("formats nested rules with a selector starting with a selector combinator", () => {
+	let actual = format(`
+		selector {
+			> a { color:red }
+			~ a { color:red }
+			+ a { color:red }
+		}
+	`)
+	let expected = `selector {
+	> a {
+		color: red;
+	}
+
+	~ a {
+		color: red;
+	}
+
+	+ a {
 		color: red;
 	}
 }`;
