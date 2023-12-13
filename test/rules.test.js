@@ -135,4 +135,48 @@ Rules("formats Raw rule prelude", () => {
 	assert.equal(actual, expected);
 });
 
+Rules('formats nested rules with selectors containing & and more', () => {
+	let actual = format(`
+		selector {
+			& > item {
+				property: value;
+			}
+		}
+	`);
+	let expected = `selector {
+	& > item {
+		property: value;
+	}
+}`;
+	assert.equal(actual, expected);
+})
+
+Rules("formats nested rules with a selector starting with & and containing an attribute selector", () => {
+	let actual = format(`
+		selector {
+			& [data-theme] { color: red; }
+		}
+	`)
+	let expected = `selector {
+	& [data-theme] {
+		color: red;
+	}
+}`;
+	assert.equal(actual, expected);
+})
+
+Rules("formats nested rules with a selector starting with & and containing an attribute selector", () => {
+	let actual = format(`
+		selector {
+			[data-theme] & { color:red }
+		}
+	`)
+	let expected = `selector {
+	[data-theme] & {
+		color: red;
+	}
+}`;
+	assert.equal(actual, expected);
+})
+
 Rules.run();

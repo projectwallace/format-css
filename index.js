@@ -54,7 +54,7 @@ function substr_raw(node, css) {
 function print_rule(node, indent_level, css) {
 	let buffer
 
-	if (node.prelude.type === 'SelectorList') {
+	if (node.prelude !== undefined && node.prelude.type === 'SelectorList') {
 		buffer = print_selectorlist(node.prelude, indent_level, css)
 	} else {
 		buffer = print_unknown(node.prelude, indent_level, css)
