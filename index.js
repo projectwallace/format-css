@@ -1,3 +1,4 @@
+// @ts-expect-error Typing of css-tree is incomplete
 import parse from 'css-tree/parser'
 
 const NEWLINE = '\n'
@@ -117,7 +118,9 @@ function print_simple_selector(node, css) {
 				}
 				case 'SelectorList': {
 					for (let grandchild of child.children) {
-						buffer += print_simple_selector(grandchild, css)
+						if (grandchild.type === 'Selector') {
+							buffer += print_simple_selector(grandchild, css)
+						}
 
 						if (grandchild !== child.children.last) {
 							buffer += ', '
@@ -155,6 +158,7 @@ function print_simple_selector(node, css) {
 
 					if (child.selector !== null) {
 						// `of .selector`
+						// @ts-expect-error Typing of child.selector is SelectorList, which doesn't seem to be correct
 						buffer += ' of ' + print_simple_selector(child.selector, css)
 					}
 					break
@@ -302,7 +306,7 @@ function print_declaration(node, indent_level, css) {
 }
 
 /**
- * @param {import('css-tree').List} children
+ * @param {import('css-tree').List<import('css-tree').CssNode>} children
  * @param {number} indent_level
  * @param {string} css
  */
@@ -383,13 +387,14 @@ function print_unknown(node, indent_level, css) {
 }
 
 /**
- * @param {import('css-tree').StyleSheet} node
+ * @param {import('css-tree').CssNode} node
  * @param {number} indent_level
  * @param {string} css
  * @returns {string} A formatted Stylesheet
  */
 function print(node, indent_level = 0, css) {
 	let buffer = ''
+	// @ts-expect-error Property 'children' does not exist on type 'AnPlusB', but we're never using that
 	let children = node.children
 
 	for (let child of children) {

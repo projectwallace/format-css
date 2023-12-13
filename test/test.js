@@ -10,6 +10,13 @@ Stylesheet("empty input", () => {
 	assert.equal(actual, expected);
 });
 
+Stylesheet('handles invalid input', () => {
+	let actual = format(`;`)
+	let expected = `;`
+
+	assert.equal(actual, expected)
+})
+
 Stylesheet("handles comments", () => {
 	let actual = format(`
 .async-hide {
