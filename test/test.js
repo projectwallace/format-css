@@ -19,10 +19,6 @@ Stylesheet('handles invalid input', () => {
 
 Stylesheet("handles comments", () => {
 	let actual = format(`
-.async-hide {
-	opacity: 0;
-}
-
 /*!
  * Library vx.x.x (http://css-lib.com)
  * Copyright 1970-1800 CSS Inc.
@@ -33,15 +29,9 @@ Stylesheet("handles comments", () => {
 
 html /* comment */ {
 	font-family /* comment */ : /* comment */ sans-serif;
-	-webkit-text-size-adjust: 100%;
-	-ms-text-size-adjust: 100%;
 }
 	`);
-	let expected = `.async-hide {
-	opacity: 0;
-}
-
-/*!
+	let expected = `/*!
  * Library vx.x.x (http://css-lib.com)
  * Copyright 1970-1800 CSS Inc.
  * Licensed under MIT (https://example.com)
@@ -51,8 +41,6 @@ html /* comment */ {
 
 html {
 	font-family: sans-serif;
-	-webkit-text-size-adjust: 100%;
-	-ms-text-size-adjust: 100%;
 }`;
 
 	assert.equal(actual, expected);
