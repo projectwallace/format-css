@@ -15,11 +15,13 @@
   "scripts": {
     "build": "microbundle",
     "test": "uvu",
-    "check": "tsc"
+    "check": "tsc",
+    "lint": "oxlint -D perf"
   },
   "devDependencies": {
     "@types/css-tree": "^2.3.4",
     "microbundle": "^0.15.1",
+    "oxlint": "^0.2.8",
     "typescript": "^5.3.3",
     "uvu": "^0.5.6"
   },
