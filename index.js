@@ -371,7 +371,14 @@ function print_value(node, css) {
  * @param {string} css
  */
 function print_function(node, css) {
-	let buffer = node.name.toLowerCase() + '('
+	let name = node.name
+	let buffer = name
+
+	if (/[A-Z]/.test(name)) {
+		buffer = name.toLowerCase()
+	}
+
+	buffer += '('
 	buffer += print_list(node.children, css)
 	buffer += ')'
 	return buffer
