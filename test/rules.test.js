@@ -135,4 +135,86 @@ Rules("formats Raw rule prelude", () => {
 	assert.equal(actual, expected);
 });
 
+Rules('formats nested rules with selectors starting with', () => {
+	let actual = format(`
+		selector {
+			& > item {
+				property: value;
+			}
+		}
+	`);
+	let expected = `selector {
+	& > item {
+		property: value;
+	}
+}`;
+	assert.equal(actual, expected);
+})
+
+Rules("formats nested rules with a selector starting with &", () => {
+	let actual = format(`
+		selector {
+			& a { color: red; }
+		}
+	`)
+	let expected = `selector {
+	& a {
+		color: red;
+	}
+}`;
+	assert.equal(actual, expected);
+})
+
+Rules.skip("Relaxed nesting: formats nested rules with a selector with a &", () => {
+	let actual = format(`
+		selector {
+			a & { color:red }
+		}
+	`)
+	let expected = `selector {
+	a & {
+		color: red;
+	}
+}`;
+	assert.equal(actual, expected);
+})
+
+Rules.skip("Relaxed nesting: formats nested rules with a selector without a &", () => {
+	let actual = format(`
+		selector {
+			a { color:red }
+		}
+	`)
+	let expected = `selector {
+	a {
+		color: red;
+	}
+}`;
+	assert.equal(actual, expected);
+})
+
+Rules.skip("Relaxed nesting: formats nested rules with a selector starting with a selector combinator", () => {
+	let actual = format(`
+		selector {
+			> a { color:red }
+			~ a { color:red }
+			+ a { color:red }
+		}
+	`)
+	let expected = `selector {
+	> a {
+		color: red;
+	}
+
+	~ a {
+		color: red;
+	}
+
+	+ a {
+		color: red;
+	}
+}`;
+	assert.equal(actual, expected);
+})
+
 Rules.run();

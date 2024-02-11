@@ -138,6 +138,12 @@ Atrules('lowercases the atrule name', () => {
 	assert.is(actual, expected)
 })
 
+Atrules('does not lowercase the atrule value', () => {
+	let actual = format('@keyframes TEST {}')
+	let expected = '@keyframes TEST {}'
+	assert.is(actual, expected)
+})
+
 Atrules('Atrules w/o Block are terminated with a semicolon', () => {
 	let actual = format(`
 		@layer test;
@@ -158,6 +164,26 @@ Atrules('Empty atrule braces are placed on the same line', () => {
 	let expected = `@media all {}
 
 @supports (display: grid) {}`
+	assert.is(actual, expected)
+})
+
+Atrules('new-fangled comparators (width > 1000px)', () => {
+	let actual = format(`
+		@container (width>1000px) {}
+		@media (width>1000px) {}
+		@media (width=>1000px) {}
+		@media (width<=1000px) {}
+		@media (200px<width<1000px) {}
+	`)
+	let expected = `@container (width > 1000px) {}
+
+@media (width > 1000px) {}
+
+@media (width => 1000px) {}
+
+@media (width <= 1000px) {}
+
+@media (200px < width < 1000px) {}`
 	assert.is(actual, expected)
 })
 
