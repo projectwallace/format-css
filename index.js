@@ -31,7 +31,7 @@ function substr(node, css) {
 		return str
 	}
 
-	// Multi-line nodes, not common
+	// Multi-line nodes, less common
 	return str.replace(/\s+/g, ' ')
 }
 
@@ -275,10 +275,12 @@ function print_atrule(node, indent_level, css) {
  */
 function print_prelude(node, indent_level, css) {
 	let buffer = substr(node, css)
+
 	return buffer
 		.replace(/\s*([:,])/g, '$1 ') // force whitespace after colon or comma
-		.replace(/\(\s+/g, '(') // remove whitespace after (
-		.replace(/\s+\)/g, ')') // remove whitespace before )
+		.replace(/\s*(=>|<=)\s*/g, ' $1 ') // force whitespace around => and <=
+		.replace(/(?<!<=)(?<!=>)(?<!<= )([<>])(?![<= ])(?![=> ])(?![ =>])/g, ' $1 ')
+		.replace(/\(\s+|\s+\)/g, match => match.trim())
 		.replace(/\s+/g, ' ') // collapse multiple whitespaces into one
 }
 

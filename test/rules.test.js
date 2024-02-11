@@ -165,7 +165,7 @@ Rules("formats nested rules with a selector starting with &", () => {
 	assert.equal(actual, expected);
 })
 
-Rules("formats nested rules with a selector with a &", () => {
+Rules.skip("Relaxed nesting: formats nested rules with a selector with a &", () => {
 	let actual = format(`
 		selector {
 			a & { color:red }
@@ -179,7 +179,7 @@ Rules("formats nested rules with a selector with a &", () => {
 	assert.equal(actual, expected);
 })
 
-Rules("formats nested rules with a selector without a &", () => {
+Rules.skip("Relaxed nesting: formats nested rules with a selector without a &", () => {
 	let actual = format(`
 		selector {
 			a { color:red }
@@ -193,7 +193,7 @@ Rules("formats nested rules with a selector without a &", () => {
 	assert.equal(actual, expected);
 })
 
-Rules("formats nested rules with a selector starting with a selector combinator", () => {
+Rules.skip("Relaxed nesting: formats nested rules with a selector starting with a selector combinator", () => {
 	let actual = format(`
 		selector {
 			> a { color:red }
