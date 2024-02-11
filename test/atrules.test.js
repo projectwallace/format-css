@@ -2,9 +2,9 @@ import { suite } from 'uvu'
 import * as assert from 'uvu/assert'
 import { format } from '../index.js'
 
-let Atrules = suite('Atrules')
+let test = suite('Atrules')
 
-Atrules('AtRules start on a new line', () => {
+test('AtRules start on a new line', () => {
 	let actual = format(`
 		@media (min-width: 1000px) {
 			selector { property: value; }
@@ -28,7 +28,7 @@ Atrules('AtRules start on a new line', () => {
 	assert.equal(actual, expected)
 })
 
-Atrules('Atrule blocks are surrounded by {} with correct spacing and indentation', () => {
+test('Atrule blocks are surrounded by {} with correct spacing and indentation', () => {
 	let actual = format(`
 		@media (min-width:1000px){selector{property:value1}}
 
@@ -54,7 +54,7 @@ Atrules('Atrule blocks are surrounded by {} with correct spacing and indentation
 	assert.equal(actual, expected)
 })
 
-Atrules('AtRule prelude formatting', () => {
+test('AtRule prelude formatting', () => {
 	let fixtures = [
 		[`@media all{}`, `@media all {}`],
 		[`@media all   and print{}`, `@media all and print {}`],
@@ -77,7 +77,7 @@ Atrules('AtRule prelude formatting', () => {
 	}
 })
 
-Atrules('single empty line after a rule, before atrule', () => {
+test('single empty line after a rule, before atrule', () => {
 	let actual = format(`
 		rule1 { property: value }
 		@media (min-width: 1000px) {
@@ -96,7 +96,7 @@ Atrules('single empty line after a rule, before atrule', () => {
 	assert.equal(actual, expected)
 })
 
-Atrules('single empty line in between atrules', () => {
+test('single empty line in between atrules', () => {
 	let actual = format(`
 		@layer test1;
 		@media (min-width: 1000px) {
@@ -113,7 +113,7 @@ Atrules('single empty line in between atrules', () => {
 	assert.equal(actual, expected)
 })
 
-Atrules('newline between last declaration and nested atrule', () => {
+test('newline between last declaration and nested atrule', () => {
 	let actual = format(`
 		test {
 			property1: value1;
@@ -132,19 +132,19 @@ Atrules('newline between last declaration and nested atrule', () => {
 	assert.equal(actual, expected)
 })
 
-Atrules('lowercases the atrule name', () => {
+test('lowercases the atrule name', () => {
 	let actual = format(`@LAYER test {}`)
 	let expected = `@layer test {}`
 	assert.is(actual, expected)
 })
 
-Atrules('does not lowercase the atrule value', () => {
+test('does not lowercase the atrule value', () => {
 	let actual = format('@keyframes TEST {}')
 	let expected = '@keyframes TEST {}'
 	assert.is(actual, expected)
 })
 
-Atrules('Atrules w/o Block are terminated with a semicolon', () => {
+test('Atrules w/o Block are terminated with a semicolon', () => {
 	let actual = format(`
 		@layer test;
 		@import url('test');
@@ -155,7 +155,7 @@ Atrules('Atrules w/o Block are terminated with a semicolon', () => {
 	assert.is(actual, expected)
 })
 
-Atrules('Empty atrule braces are placed on the same line', () => {
+test('Empty atrule braces are placed on the same line', () => {
 	let actual = format(`@media all {
 
 	}
@@ -167,7 +167,7 @@ Atrules('Empty atrule braces are placed on the same line', () => {
 	assert.is(actual, expected)
 })
 
-Atrules('new-fangled comparators (width > 1000px)', () => {
+test('new-fangled comparators (width > 1000px)', () => {
 	let actual = format(`
 		@container (width>1000px) {}
 		@media (width>1000px) {}
@@ -187,7 +187,7 @@ Atrules('new-fangled comparators (width > 1000px)', () => {
 	assert.is(actual, expected)
 })
 
-Atrules.skip('preserves comments', () => {
+test.skip('preserves comments', () => {
 	let actual = format(`
 		@media /* comment */ all {}
 		@media all /* comment */ {}
@@ -208,4 +208,4 @@ Atrules.skip('preserves comments', () => {
 	assert.is(actual, expected)
 })
 
-Atrules.run();
+test.run();

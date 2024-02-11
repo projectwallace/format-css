@@ -2,9 +2,9 @@ import { suite } from "uvu";
 import * as assert from "uvu/assert";
 import { format } from "../index.js";
 
-let Rules = suite("Rules");
+let test = suite("Rules");
 
-Rules("AtRules and Rules start on a new line", () => {
+test("AtRules and Rules start on a new line", () => {
 	let actual = format(`
 		selector { property: value; }
 		@media (min-width: 1000px) {
@@ -38,7 +38,7 @@ selector {
 	assert.equal(actual, expected);
 });
 
-Rules("An empty line is rendered in between Rules", () => {
+test("An empty line is rendered in between Rules", () => {
 	let actual = format(`
 		rule1 { property: value }
 		rule2 { property: value }
@@ -53,7 +53,7 @@ rule2 {
 	assert.equal(actual, expected);
 });
 
-Rules("single empty line after a rule, before atrule", () => {
+test("single empty line after a rule, before atrule", () => {
 	let actual = format(`
 		rule1 { property: value }
 		@media (min-width: 1000px) {
@@ -72,7 +72,7 @@ Rules("single empty line after a rule, before atrule", () => {
 	assert.equal(actual, expected);
 });
 
-Rules("newline between last declaration and nested ruleset", () => {
+test("newline between last declaration and nested ruleset", () => {
 	let actual = format(`
 		test {
 			property1: value1;
@@ -98,7 +98,7 @@ Rules("newline between last declaration and nested ruleset", () => {
 	assert.equal(actual, expected);
 });
 
-Rules("newline between last declaration and nested atrule", () => {
+test("newline between last declaration and nested atrule", () => {
 	let actual = format(`
 		test {
 			property1: value1;
@@ -117,7 +117,7 @@ Rules("newline between last declaration and nested atrule", () => {
 	assert.equal(actual, expected);
 });
 
-Rules("no trailing newline on empty nested rule", () => {
+test("no trailing newline on empty nested rule", () => {
 	let actual = format(`
 		@layer test {
 			empty {}
@@ -129,13 +129,13 @@ Rules("no trailing newline on empty nested rule", () => {
 	assert.equal(actual, expected);
 });
 
-Rules("formats Raw rule prelude", () => {
+test("formats Raw rule prelude", () => {
 	let actual = format(`:lang("nl","de"),li:nth-child() {}`);
 	let expected = `:lang("nl","de"),li:nth-child() {}`; // no formatting applied
 	assert.equal(actual, expected);
 });
 
-Rules('formats nested rules with selectors starting with', () => {
+test('formats nested rules with selectors starting with', () => {
 	let actual = format(`
 		selector {
 			& > item {
@@ -151,7 +151,7 @@ Rules('formats nested rules with selectors starting with', () => {
 	assert.equal(actual, expected);
 })
 
-Rules("formats nested rules with a selector starting with &", () => {
+test("formats nested rules with a selector starting with &", () => {
 	let actual = format(`
 		selector {
 			& a { color: red; }
@@ -165,7 +165,7 @@ Rules("formats nested rules with a selector starting with &", () => {
 	assert.equal(actual, expected);
 })
 
-Rules.skip("Relaxed nesting: formats nested rules with a selector with a &", () => {
+test.skip("Relaxed nesting: formats nested rules with a selector with a &", () => {
 	let actual = format(`
 		selector {
 			a & { color:red }
@@ -179,7 +179,7 @@ Rules.skip("Relaxed nesting: formats nested rules with a selector with a &", () 
 	assert.equal(actual, expected);
 })
 
-Rules.skip("Relaxed nesting: formats nested rules with a selector without a &", () => {
+test.skip("Relaxed nesting: formats nested rules with a selector without a &", () => {
 	let actual = format(`
 		selector {
 			a { color:red }
@@ -193,7 +193,7 @@ Rules.skip("Relaxed nesting: formats nested rules with a selector without a &", 
 	assert.equal(actual, expected);
 })
 
-Rules.skip("Relaxed nesting: formats nested rules with a selector starting with a selector combinator", () => {
+test.skip("Relaxed nesting: formats nested rules with a selector starting with a selector combinator", () => {
 	let actual = format(`
 		selector {
 			> a { color:red }
@@ -217,4 +217,4 @@ Rules.skip("Relaxed nesting: formats nested rules with a selector starting with 
 	assert.equal(actual, expected);
 })
 
-Rules.run();
+test.run();

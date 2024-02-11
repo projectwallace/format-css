@@ -2,9 +2,9 @@ import { suite } from "uvu";
 import * as assert from "uvu/assert";
 import { format } from "../index.js";
 
-let Values = suite("Values");
+let test = suite("Values");
 
-Values('collapses abundant whitespace', () => {
+test('collapses abundant whitespace', () => {
 	let actual = format(`a {
 		transition: all   100ms   ease;
 		color: rgb(  0  ,  0   ,  0  );
@@ -16,7 +16,7 @@ Values('collapses abundant whitespace', () => {
 	assert.is(actual, expected)
 })
 
-Values("formats simple value lists", () => {
+test("formats simple value lists", () => {
 	let actual = format(`
 		a {
 			transition-property: all,opacity;
@@ -40,7 +40,7 @@ Values("formats simple value lists", () => {
 	assert.equal(actual, expected);
 });
 
-Values("formats nested value lists", () => {
+test("formats nested value lists", () => {
 	let actual = format(`
 		a {
 			background: red,linear-gradient(to bottom,red 10%,green 50%,blue 100%);
@@ -52,7 +52,7 @@ Values("formats nested value lists", () => {
 	assert.equal(actual, expected);
 });
 
-Values("formats nested var()", () => {
+test("formats nested var()", () => {
 	let actual = format(`
 		a {
 			color: var(--test1,var(--test2,green));
@@ -66,7 +66,7 @@ Values("formats nested var()", () => {
 	assert.equal(actual, expected);
 });
 
-Values("formats multiline values on a single line", () => {
+test("formats multiline values on a single line", () => {
 	let actual = format(`
 a {
   background: linear-gradient(
@@ -81,7 +81,7 @@ a {
 	assert.equal(actual, expected);
 });
 
-Values('does not break font shorthand', () => {
+test('does not break font shorthand', () => {
 	let actual = format(`a {
 		font: 2em/2 sans-serif;
 		font: 2em/ 2 sans-serif;
@@ -95,7 +95,7 @@ Values('does not break font shorthand', () => {
 	assert.is(actual, expected)
 })
 
-Values('formats whitespace around operators (*/+-) correctly', () => {
+test('formats whitespace around operators (*/+-) correctly', () => {
 	let actual = format(`a {
 	font: 2em/2 sans-serif;
 	font-size: calc(2em/2);
@@ -109,7 +109,7 @@ Values('formats whitespace around operators (*/+-) correctly', () => {
 	assert.is(actual, expected)
 })
 
-Values('does not lowercase grid-area names', () => {
+test('does not lowercase grid-area names', () => {
 	let actual = format(`a { grid-area: emailInputBox; }`)
 	let expected = `a {
 	grid-area: emailInputBox;
@@ -117,7 +117,7 @@ Values('does not lowercase grid-area names', () => {
 	assert.is(actual, expected)
 })
 
-Values('does not lowercase custom properties in var()', () => {
+test('does not lowercase custom properties in var()', () => {
 	let actual = format(`a { color: var(--MyColor); }`)
 	let expected = `a {
 	color: var(--MyColor);
@@ -125,7 +125,7 @@ Values('does not lowercase custom properties in var()', () => {
 	assert.is(actual, expected)
 })
 
-Values('lowercases CSS functions', () => {
+test('lowercases CSS functions', () => {
 	let actual = format(`a {
 		color: RGB(0, 0, 0);
 		transform: translateX(100px);
@@ -137,7 +137,7 @@ Values('lowercases CSS functions', () => {
 	assert.is(actual, expected)
 })
 
-Values('does not change casing of `NaN`', () => {
+test('does not change casing of `NaN`', () => {
 	let actual = format(`a {
 		height: calc(1 * NaN);
 	}`)
@@ -147,7 +147,7 @@ Values('does not change casing of `NaN`', () => {
 	assert.is(actual, expected)
 })
 
-Values('does not change casing of URLs', () => {
+test('does not change casing of URLs', () => {
 	let actual = format(`a {
 		background-image: url("My-Url.png");
 	}`)
@@ -157,7 +157,7 @@ Values('does not change casing of URLs', () => {
 	assert.is(actual, expected)
 })
 
-Values('lowercases dimensions', () => {
+test('lowercases dimensions', () => {
 	let actual = format(`a {
 		font-size: 12PX;
 		width: var(--test, 33REM);
@@ -169,26 +169,4 @@ Values('lowercases dimensions', () => {
 	assert.is(actual, expected)
 })
 
-Values.skip('preserves comments', () => {
-	let actual = format(`
-		a {
-			color: /** comment */red;
-			color: red/* comment */;
-			background-image: linear-gradient(/* comment */red, green);
-			background-image: linear-gradient(red/* comment */, green);
-			background-image: linear-gradient(red, green/* comment */);
-			background-image: linear-gradient(red, green)/* comment */
-		}
-	`)
-	let expected = `a {
-	color: /* comment */red;
-	color: red/* comment */;
-	background-image: linear-gradient(/* comment */red, green);
-	background-image: linear-gradient(red/* comment */, green);
-	background-image: linear-gradient(red, green/* comment */);
-	background-image: linear-gradient(red, green)/* comment */
-}`
-	assert.is(actual, expected)
-})
-
-Values.run();
+test.run();

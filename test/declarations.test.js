@@ -2,9 +2,9 @@ import { suite } from "uvu";
 import * as assert from "uvu/assert";
 import { format } from "../index.js";
 
-let Declarations = suite("Declarations");
+let test = suite("Declarations");
 
-Declarations("Declarations end with a semicolon (;)", () => {
+test("Declarations end with a semicolon (;)", () => {
 	let actual = format(`
 		@font-face {
 			src: url('test');
@@ -55,7 +55,7 @@ css {
 	assert.equal(actual, expected);
 });
 
-Declarations("lowercases properties", () => {
+test("lowercases properties", () => {
 	let actual = format(`a { COLOR: green }`);
 	let expected = `a {
 	color: green;
@@ -63,7 +63,7 @@ Declarations("lowercases properties", () => {
 	assert.is(actual, expected);
 });
 
-Declarations('does not lowercase custom properties', () => {
+test('does not lowercase custom properties', () => {
 	let actual = format(`a {
 		--myVar: 1;
 	}`)
@@ -73,7 +73,7 @@ Declarations('does not lowercase custom properties', () => {
 	assert.is(actual, expected)
 })
 
-Declarations.skip('preserves comments', () => {
+test.skip('preserves comments', () => {
 	let actual = format(`a {
 		/* comment */color: green;
 		color/* comment */: green;
@@ -85,4 +85,4 @@ Declarations.skip('preserves comments', () => {
 	assert.is(actual, expected)
 })
 
-Declarations.run();
+test.run();
