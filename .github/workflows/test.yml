@@ -10,15 +10,23 @@ on:
     branches: [main]
 
 jobs:
+  lint:
+    name: Lint JS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Lint JS
+        run: npx --yes oxlint@latest -D perf
   test:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Use Node.js 18
+      - name: Use Node.js 20
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
           cache: "npm"
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit
