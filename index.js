@@ -41,8 +41,9 @@ function substr(node, css) {
  * @returns A portion of the CSS
  */
 function substr_raw(node, css) {
-	if (!node.loc) return ''
-	return css.substring(node.loc.start.offset, node.loc.end.offset)
+	let loc = node.loc
+	if (!loc) return ''
+	return css.substring(loc.start.offset, loc.end.offset)
 }
 
 /**
@@ -53,15 +54,17 @@ function substr_raw(node, css) {
  */
 function print_rule(node, css, indent_level) {
 	let buffer
+	let prelude = node.prelude
+	let block = node.block
 
-	if (node.prelude !== undefined && node.prelude.type === 'SelectorList') {
-		buffer = print_selectorlist(node.prelude, css, indent_level)
+	if (prelude !== undefined && prelude.type === 'SelectorList') {
+		buffer = print_selectorlist(prelude, css, indent_level)
 	} else {
-		buffer = print_unknown(node.prelude, css, indent_level)
+		buffer = print_unknown(prelude, css, indent_level)
 	}
 
-	if (node.block !== null && node.block.type === 'Block') {
-		buffer += print_block(node.block, css, indent_level)
+	if (block !== null && block.type === 'Block') {
+		buffer += print_block(block, css, indent_level)
 	}
 
 	return buffer
@@ -75,15 +78,16 @@ function print_rule(node, css, indent_level) {
  */
 function print_selectorlist(node, css, indent_level) {
 	let buffer = ''
+	let children = node.children
 
-	for (let selector of node.children) {
+	for (let selector of children) {
 		if (selector.type === 'Selector') {
 			buffer += print_selector(selector, css, indent_level)
 		} else {
 			buffer += print_unknown(selector, css, indent_level)
 		}
 
-		if (selector !== node.children.last) {
+		if (selector !== children.last) {
 			buffer += `,` + NEWLINE
 		}
 	}
@@ -247,17 +251,19 @@ function print_block(node, css, indent_level) {
  */
 function print_atrule(node, css, indent_level) {
 	let buffer = indent(indent_level) + '@' + node.name.toLowerCase()
+	let prelude = node.prelude
+	let block = node.block
 
 	// @font-face has no prelude
-	if (node.prelude !== null) {
-		buffer += ' ' + print_prelude(node.prelude, css)
+	if (prelude !== null) {
+		buffer += ' ' + print_prelude(prelude, css)
 	}
 
-	if (node.block === null) {
+	if (block === null) {
 		// `@import url(style.css);` has no block, neither does `@layer layer1;`
 		buffer += ';'
-	} else if (node.block.type === 'Block') {
-		buffer += print_block(node.block, css, indent_level)
+	} else if (block.type === 'Block') {
+		buffer += print_block(block, css, indent_level)
 	}
 
 	return buffer
@@ -279,7 +285,6 @@ function print_prelude(node, css) {
 		.replace(/\s*([:,])/g, '$1 ') // force whitespace after colon or comma
 		.replace(/\s*(=>|<=)\s*/g, ' $1 ') // force whitespace around => and <=
 		.replace(/(?<!<=)(?<!=>)(?<!<= )([<>])(?![<= ])(?![=> ])(?![ =>])/g, ' $1 ')
-		.replace(/\(\s+|\s+\)/g, match => match.trim())
 		.replace(/\s+/g, ' ') // collapse multiple whitespaces into one
 }
 
@@ -292,7 +297,7 @@ function print_prelude(node, css) {
 function print_declaration(node, css, indent_level) {
 	let property = node.property
 
-	if (!property.startsWith('--')) {
+	if (!property.startsWith('--') && /[A-Z]/.test(property)) {
 		property = property.toLowerCase()
 	}
 
@@ -366,7 +371,14 @@ function print_value(node, css) {
  * @param {string} css
  */
 function print_function(node, css) {
-	let buffer = node.name.toLowerCase() + '('
+	let name = node.name
+	let buffer = name
+
+	if (/[A-Z]/.test(name)) {
+		buffer = name.toLowerCase()
+	}
+
+	buffer += '('
 	buffer += print_list(node.children, css)
 	buffer += ')'
 	return buffer
