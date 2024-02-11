@@ -2,15 +2,15 @@ import { suite } from "uvu";
 import * as assert from "uvu/assert";
 import { format } from "../index.js";
 
-let Selectors = suite("Selectors");
+let test = suite("Selectors");
 
-Selectors("A single selector is rendered without a trailing comma", () => {
+test("A single selector is rendered without a trailing comma", () => {
 	let actual = format("a {}");
 	let expected = "a {}";
 	assert.is(actual, expected);
 });
 
-Selectors(
+test(
 	"Multiple selectors are placed on a new line, separated by commas",
 	() => {
 		let actual = format(`
@@ -34,7 +34,7 @@ selector3 {}`;
 	}
 );
 
-Selectors("formats multiline selectors on a single line", () => {
+test("formats multiline selectors on a single line", () => {
 	let actual = format(`
 a.b
  .c .d
@@ -47,7 +47,7 @@ color: green }
 	assert.equal(actual, expected);
 });
 
-Selectors("formats simple selector combinators", () => {
+test("formats simple selector combinators", () => {
 	let actual = format(`
 		a>b,
 		a>b~c  d {}
@@ -57,7 +57,7 @@ a > b ~ c d {}`;
 	assert.equal(actual, expected);
 });
 
-Selectors("formats nested selector combinators", () => {
+test("formats nested selector combinators", () => {
 	let fixtures = [
 		[`:where(a+b) {}`, `:where(a + b) {}`],
 		[`:where(:is(ol,ul)) {}`, `:where(:is(ol, ul)) {}`],
@@ -71,7 +71,7 @@ Selectors("formats nested selector combinators", () => {
 	}
 });
 
-Selectors("formats selectors with Nth", () => {
+test("formats selectors with Nth", () => {
 	let fixtures = [
 		[`li:nth-child(3n-2) {}`, `li:nth-child(3n -2) {}`],
 		[`li:nth-child(0n+1) {}`, `li:nth-child(0n + 1) {}`],
@@ -94,4 +94,4 @@ Selectors("formats selectors with Nth", () => {
 	}
 });
 
-Selectors.run();
+test.run();
