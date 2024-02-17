@@ -1,14 +1,14 @@
-import { suite } from "uvu";
-import * as assert from "uvu/assert";
-import { format } from "../index.js";
+import { suite } from "uvu"
+import * as assert from "uvu/assert"
+import { format } from "../index.js"
 
-let test = suite("Selectors");
+let test = suite("Selectors")
 
 test("A single selector is rendered without a trailing comma", () => {
-	let actual = format("a {}");
+	let actual = format("a {}")
 	let expected = "a {}";
-	assert.is(actual, expected);
-});
+	assert.is(actual, expected)
+})
 
 test(
 	"Multiple selectors are placed on a new line, separated by commas",
@@ -22,7 +22,7 @@ test(
 
 		selector3 {
 		}
-	`);
+	`)
 		let expected = `selector1,
 selector1a,
 selector1b,
@@ -30,9 +30,9 @@ selector1aa,
 selector2,
 selector3 {}`;
 
-		assert.equal(actual, expected);
+		assert.equal(actual, expected)
 	}
-);
+)
 
 test("formats multiline selectors on a single line", () => {
 	let actual = format(`
@@ -40,22 +40,24 @@ a.b
  .c .d
    .e .f {
 color: green }
-	`);
+	`)
 	let expected = `a.b .c .d .e .f {
 	color: green;
 }`;
-	assert.equal(actual, expected);
-});
+	assert.equal(actual, expected)
+})
 
 test("formats simple selector combinators", () => {
 	let actual = format(`
 		a>b,
-		a>b~c  d {}
-	`);
+		a>b~c  d,
+		.article-content ol li>* {}
+	`)
 	let expected = `a > b,
-a > b ~ c d {}`;
-	assert.equal(actual, expected);
-});
+a > b ~ c d,
+.article-content ol li > * {}`;
+	assert.equal(actual, expected)
+})
 
 test("formats nested selector combinators", () => {
 	let fixtures = [
@@ -66,10 +68,10 @@ test("formats nested selector combinators", () => {
 	];
 
 	for (let [css, expected] of fixtures) {
-		let actual = format(css);
-		assert.equal(actual, expected);
+		let actual = format(css)
+		assert.equal(actual, expected)
 	}
-});
+})
 
 test("formats selectors with Nth", () => {
 	let fixtures = [
@@ -89,9 +91,9 @@ test("formats selectors with Nth", () => {
 	];
 
 	for (let [css, expected] of fixtures) {
-		let actual = format(css);
-		assert.equal(actual, expected);
+		let actual = format(css)
+		assert.equal(actual, expected)
 	}
-});
+})
 
-test.run();
+test.run()
