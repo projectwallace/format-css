@@ -1,7 +1,10 @@
 // @ts-expect-error Typing of css-tree is incomplete
 import parse from 'css-tree/parser'
 
-const NEWLINE = '\n'
+// Warning: can be overridden when { minify: true }
+let NEWLINE = '\n' // or ''
+let TAB = '\t' // or ''
+let SPACE = ' ' // or ''
 
 /**
  * Indent a string
@@ -9,7 +12,7 @@ const NEWLINE = '\n'
  * @returns A string with {size} tabs
  */
 function indent(size) {
-	return '\t'.repeat(size)
+	return TAB.repeat(size)
 }
 
 /**
@@ -198,10 +201,10 @@ function print_block(node, css, indent_level) {
 	let children = node.children
 
 	if (children.isEmpty) {
-		return ' {}'
+		return SPACE + '{}'
 	}
 
-	let buffer = ' {' + NEWLINE
+	let buffer = SPACE + '{' + NEWLINE
 
 	indent_level++
 
@@ -308,7 +311,7 @@ function print_declaration(node, css, indent_level) {
 		value = value.replace(/\s*\/\s*/, '/')
 	}
 
-	return indent(indent_level) + property + ': ' + value
+	return indent(indent_level) + property + ':' + SPACE + value
 }
 
 /**
@@ -427,12 +430,17 @@ function print(node, css, indent_level = 0) {
  * @param {string} css The original CSS
  * @returns {string} The newly formatted CSS
  */
-export function format(css) {
+export function format(css, { minify = false } = {}) {
 	let ast = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
 		parseCustomProperty: true,
 		parseValue: true,
 	})
+
+	TAB = minify ? '' : '\t'
+	NEWLINE = minify ? '' : '\n'
+	SPACE = minify ? '' : ' '
+
 	return print(ast, css, 0)
 }
