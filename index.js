@@ -199,12 +199,13 @@ function print_selector(node, css, indent_level) {
  */
 function print_block(node, css, indent_level) {
 	let children = node.children
+	let buffer = SPACE
 
 	if (children.isEmpty) {
-		return SPACE + '{}'
+		return buffer + '{}'
 	}
 
-	let buffer = SPACE + '{' + NEWLINE
+	buffer += '{' + NEWLINE
 
 	indent_level++
 

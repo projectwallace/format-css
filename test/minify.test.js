@@ -4,6 +4,14 @@ import { format } from "../index.js"
 
 let test = suite("Minify")
 
+test('empty rule', () => {
+	let actual = format(`a {}`, {
+		minify: true
+	})
+	let expected = `a{}`
+	assert.equal(actual, expected)
+})
+
 test('simple declaration', () => {
 	let actual = format(`:root { --color: red; }`, {
 		minify: true
