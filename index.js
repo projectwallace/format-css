@@ -1,7 +1,10 @@
 // @ts-expect-error Typing of css-tree is incomplete
 import parse from 'css-tree/parser'
 
-const NEWLINE = '\n'
+// Warning: can be overridden when { minify: true }
+let NEWLINE = '\n' // or ''
+let TAB = '\t' // or ''
+let SPACE = ' ' // or ''
 
 /**
  * Indent a string
@@ -9,7 +12,7 @@ const NEWLINE = '\n'
  * @returns A string with {size} tabs
  */
 function indent(size) {
-	return '\t'.repeat(size)
+	return TAB.repeat(size)
 }
 
 /**
@@ -196,12 +199,13 @@ function print_selector(node, css, indent_level) {
  */
 function print_block(node, css, indent_level) {
 	let children = node.children
+	let buffer = SPACE
 
 	if (children.isEmpty) {
-		return ' {}'
+		return buffer + '{}'
 	}
 
-	let buffer = ' {' + NEWLINE
+	buffer += '{' + NEWLINE
 
 	indent_level++
 
@@ -308,7 +312,7 @@ function print_declaration(node, css, indent_level) {
 		value = value.replace(/\s*\/\s*/, '/')
 	}
 
-	return indent(indent_level) + property + ': ' + value
+	return indent(indent_level) + property + ':' + SPACE + value
 }
 
 /**
@@ -423,16 +427,34 @@ function print(node, css, indent_level = 0) {
 }
 
 /**
+ * @typedef {Object} Options
+ * @property {boolean} [minify] Whether to minify the CSS or keep it formatted
+ *
  * Take a string of CSS (minified or not) and format it with some simple rules
  * @param {string} css The original CSS
- * @returns {string} The newly formatted CSS
+ * @param {Options} options
+ * @returns {string} The formatted CSS
  */
-export function format(css) {
+export function format(css, { minify = false } = {}) {
 	let ast = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
 		parseCustomProperty: true,
 		parseValue: true,
 	})
+
+	TAB = minify ? '' : '\t'
+	NEWLINE = minify ? '' : '\n'
+	SPACE = minify ? '' : ' '
+
 	return print(ast, css, 0)
+}
+
+/**
+ * Take a string of CSS and minify it
+ * @param {string} css The original CSS
+ * @returns {string} The minified CSS
+ */
+export function minify(css) {
+	return format(css, { minify: true })
 }
