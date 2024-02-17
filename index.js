@@ -427,8 +427,12 @@ function print(node, css, indent_level = 0) {
 }
 
 /**
+ * @typedef {Object} Options
+ * @property {boolean} [minify] Whether to minify the CSS or keep it formatted
+ *
  * Take a string of CSS (minified or not) and format it with some simple rules
  * @param {string} css The original CSS
+ * @param {Options} options
  * @returns {string} The formatted CSS
  */
 export function format(css, { minify = false } = {}) {
