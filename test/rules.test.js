@@ -151,6 +151,20 @@ test('formats nested rules with selectors starting with', () => {
 	assert.equal(actual, expected);
 })
 
+test('newlines between declarations, nested rules and more declarations', () => {
+	let actual = format(`/* test */ a { font: 0/0; & b { color: red; } color: green;}`);
+	let expected = `a {
+	font: 0/0;
+
+	& b {
+		color: red;
+	}
+
+	color: green;
+}`;
+	assert.equal(actual, expected);
+})
+
 test("formats nested rules with a selector starting with &", () => {
 	let actual = format(`
 		selector {
