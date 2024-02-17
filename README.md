@@ -39,6 +39,20 @@ Need more examples?
 1. Multiline tokens like **Selectors, Values, etc.** are rendered on a single line
 1. Unknown syntax is rendered as-is, with multi-line formatting kept intact
 
+## Minify CSS
+
+This package also exposes a minifier function since minifying CSS follows many of the same rules as formatting.
+
+```js
+import { format, minify } from "@projectwallace/format-css";
+
+let minified = minify("a {}");
+
+// which is an alias for
+
+let formatted_mini = format("a {}", { minify: true });
+```
+
 ## Acknowledgements
 
 - Thanks to [CSSTree](https://github.com/csstree/csstree) for providing the necessary parser and the interfaces for our CSS Types (the **bold** elements in the list above)
