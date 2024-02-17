@@ -429,7 +429,7 @@ function print(node, css, indent_level = 0) {
 /**
  * Take a string of CSS (minified or not) and format it with some simple rules
  * @param {string} css The original CSS
- * @returns {string} The newly formatted CSS
+ * @returns {string} The formatted CSS
  */
 export function format(css, { minify = false } = {}) {
 	let ast = parse(css, {
@@ -444,4 +444,13 @@ export function format(css, { minify = false } = {}) {
 	SPACE = minify ? '' : ' '
 
 	return print(ast, css, 0)
+}
+
+/**
+ * Take a string of CSS and minify it
+ * @param {string} css The original CSS
+ * @returns {string} The minified CSS
+ */
+export function minify(css) {
+	return format(css, { minify: true })
 }
