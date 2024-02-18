@@ -1,8 +1,15 @@
 // @ts-expect-error Typing of css-tree is incomplete
 import parse from 'css-tree/parser'
 
-let SPACE = ' '
-let EMPTY_STRING = ''
+const SPACE = ' '
+const EMPTY_STRING = ''
+const TYPE_ATRULE = 'Atrule'
+const TYPE_RULE = 'Rule'
+const TYPE_BLOCK = 'Block'
+const TYPE_SELECTORLIST = 'SelectorList'
+const TYPE_SELECTOR = 'Selector'
+const TYPE_DECLARATION = 'Declaration'
+const TYPE_OPERATOR = 'Operator'
 
 // Warning: can be overridden when { minify: true }
 let NEWLINE = '\n' // or ''
@@ -72,14 +79,14 @@ function print_rule(node, css, indent_level) {
 	let prelude = node.prelude
 	let block = node.block
 
-	if (prelude.type === 'SelectorList') {
+	if (prelude.type === TYPE_SELECTORLIST) {
 		buffer = print_selectorlist(prelude, css, indent_level)
 	} else {
 		// In case parsing the selector list fails we'll print it as-is
 		buffer = print_unknown(prelude, css, indent_level)
 	}
 
-	if (block.type === 'Block') {
+	if (block.type === TYPE_BLOCK) {
 		buffer += print_block(block, css, indent_level)
 	}
 
@@ -96,14 +103,14 @@ function print_selectorlist(node, css, indent_level) {
 	let buffer = EMPTY_STRING
 	let children = node.children
 
-	children.forEach((selector) => {
-		if (selector.type === 'Selector') {
+	children.forEach((selector, item) => {
+		if (selector.type === TYPE_SELECTOR) {
 			buffer += print_selector(selector, css, indent_level)
 		} else {
 			buffer += print_unknown(selector, css, indent_level)
 		}
 
-		if (selector !== children.last) {
+		if (item.next !== null) {
 			buffer += `,` + NEWLINE
 		}
 	})
@@ -118,80 +125,83 @@ function print_selectorlist(node, css, indent_level) {
 function print_simple_selector(node, css) {
 	let buffer = EMPTY_STRING
 
-	if (node.children) {
-		node.children.forEach((child) => {
-			switch (child.type) {
-				case 'Combinator': {
-					// putting spaces around `child.name` (+ > ~ or ' '), unless the combinator is ' '
-					buffer += SPACE
-
-					if (child.name !== ' ') {
-						buffer += child.name + SPACE
-					}
-					break
-				}
-				case 'PseudoClassSelector': {
-					buffer += ':' + child.name
-
-					if (child.children) {
-						buffer += '(' + print_simple_selector(child, css) + ')'
-					}
-					break
-				}
-				case 'SelectorList': {
-					child.children.forEach((grandchild, item) => {
-						if (grandchild.type === 'Selector') {
-							buffer += print_simple_selector(grandchild, css)
-						}
-
-						if (item.next) {
-							buffer += ',' + SPACE
-						}
-					})
-					break
-				}
-				case 'Nth': {
-					if (child.nth) {
-						if (child.nth.type === 'AnPlusB') {
-							let a = child.nth.a
-							let b = child.nth.b
-
-							if (a !== null) {
-								buffer += a + 'n'
-							}
-
-							if (a !== null && b !== null) {
-								buffer += SPACE
-							}
-
-							if (b !== null) {
-								// When (1n + x) but not (1n - x)
-								if (a !== null && !b.startsWith('-')) {
-									buffer += '+' + SPACE
-								}
-
-								buffer += b
-							}
-						} else {
-							// For odd/even or maybe other identifiers later on
-							buffer += substr(child.nth, css)
-						}
-					}
-
-					if (child.selector !== null) {
-						// `of .selector`
-						// @ts-expect-error Typing of child.selector is SelectorList, which doesn't seem to be correct
-						buffer += SPACE + 'of' + SPACE + print_simple_selector(child.selector, css)
-					}
-					break
-				}
-				default: {
-					buffer += substr(child, css)
-					break
-				}
-			}
-		})
+	if (!node.children) {
+		return buffer
 	}
+
+	node.children.forEach((child) => {
+		switch (child.type) {
+			case 'Combinator': {
+				// putting spaces around `child.name` (+ > ~ or ' '), unless the combinator is ' '
+				buffer += SPACE
+
+				if (child.name !== ' ') {
+					buffer += child.name + SPACE
+				}
+				break
+			}
+			case 'PseudoClassSelector': {
+				buffer += ':' + child.name
+
+				if (child.children) {
+					buffer += '(' + print_simple_selector(child, css) + ')'
+				}
+				break
+			}
+			case TYPE_SELECTORLIST: {
+				child.children.forEach((grandchild, item) => {
+					if (grandchild.type === TYPE_SELECTOR) {
+						buffer += print_simple_selector(grandchild, css)
+					}
+
+					if (item.next) {
+						buffer += ',' + SPACE
+					}
+				})
+				break
+			}
+			case 'Nth': {
+				let nth = child.nth
+				if (nth) {
+					if (nth.type === 'AnPlusB') {
+						let a = nth.a
+						let b = nth.b
+
+						if (a !== null) {
+							buffer += a + 'n'
+						}
+
+						if (a !== null && b !== null) {
+							buffer += SPACE
+						}
+
+						if (b !== null) {
+							// When (1n + x) but not (1n - x)
+							if (a !== null && !b.startsWith('-')) {
+								buffer += '+' + SPACE
+							}
+
+							buffer += b
+						}
+					} else {
+						// For odd/even or maybe other identifiers later on
+						buffer += substr(child.nth, css)
+					}
+				}
+
+				if (child.selector !== null) {
+					// `of .selector`
+					// @ts-expect-error Typing of child.selector is SelectorList, which doesn't seem to be correct
+					buffer += SPACE + 'of' + SPACE + print_simple_selector(child.selector, css)
+				}
+				break
+			}
+			default: {
+				buffer += substr(child, css)
+				break
+			}
+		}
+	})
 
 	return buffer
 }
@@ -225,7 +235,7 @@ function print_block(node, css, indent_level) {
 	indent_level++
 
 	children.forEach((child, item) => {
-		if (child.type === 'Declaration') {
+		if (child.type === TYPE_DECLARATION) {
 			buffer += print_declaration(child, css, indent_level)
 
 			if (child === children.last) {
@@ -234,13 +244,13 @@ function print_block(node, css, indent_level) {
 				buffer += ';'
 			}
 		} else {
-			if (item.prev !== null && item.prev.data.type === 'Declaration') {
+			if (item.prev !== null && item.prev.data.type === TYPE_DECLARATION) {
 				buffer += NEWLINE
 			}
 
-			if (child.type === 'Rule') {
+			if (child.type === TYPE_RULE) {
 				buffer += print_rule(child, css, indent_level)
-			} else if (child.type === 'Atrule') {
+			} else if (child.type === TYPE_ATRULE) {
 				buffer += print_atrule(child, css, indent_level)
 			} else {
 				buffer += print_unknown(child, css, indent_level)
@@ -250,7 +260,7 @@ function print_block(node, css, indent_level) {
 		if (item.next !== null) {
 			buffer += NEWLINE
 
-			if (child.type !== 'Declaration') {
+			if (child.type !== TYPE_DECLARATION) {
 				buffer += NEWLINE
 			}
 		}
@@ -285,7 +295,7 @@ function print_atrule(node, css, indent_level) {
 	if (block === null) {
 		// `@import url(style.css);` has no block, neither does `@layer layer1;`
 		buffer += ';'
-	} else if (block.type === 'Block') {
+	} else if (block.type === TYPE_BLOCK) {
 		buffer += print_block(block, css, indent_level)
 	}
 
@@ -308,7 +318,7 @@ function print_prelude(node, css) {
 		.replace(/\s*([:,])/g, '$1 ') // force whitespace after colon or comma
 		.replace(/\s*(=>|<=)\s*/g, ' $1 ') // force whitespace around => and <=
 		.replace(/(?<!<=)(?<!=>)(?<!<= )([<>])(?![<= ])(?![=> ])(?![ =>])/g, ' $1 ')
-		.replace(/\s+/g, ' ') // collapse multiple whitespaces into one
+		.replace(/\s+/g, SPACE) // collapse multiple whitespaces into one
 }
 
 /**
@@ -355,7 +365,7 @@ function print_list(children, css) {
 			// Values can be inside var() as fallback
 			// var(--prop, VALUE)
 			buffer += print_value(node, css)
-		} else if (node.type === 'Operator') {
+		} else if (node.type === TYPE_OPERATOR) {
 			// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
 			// The + and - operators must be surrounded by whitespace
 			// Whitespace around other operators is optional
@@ -386,9 +396,9 @@ function print_list(children, css) {
 			buffer += substr(node, css)
 		}
 
-		if (node.type !== 'Operator') {
-			if (item.next) {
-				if (item.next.data.type !== 'Operator') {
+		if (node.type !== TYPE_OPERATOR) {
+			if (item.next !== null) {
+				if (item.next.data.type !== TYPE_OPERATOR) {
 					buffer += SPACE
 				}
 			}
@@ -459,16 +469,16 @@ function print(node, css, indent_level = 0) {
 	// @ts-expect-error Property 'children' does not exist on type 'AnPlusB', but we're never using that
 	let children = node.children
 
-	children.forEach((child) => {
-		if (child.type === 'Rule') {
+	children.forEach((child, item) => {
+		if (child.type === TYPE_RULE) {
 			buffer += print_rule(child, css, indent_level)
-		} else if (child.type === 'Atrule') {
+		} else if (child.type === TYPE_ATRULE) {
 			buffer += print_atrule(child, css, indent_level)
 		} else {
 			buffer += print_unknown(child, css, indent_level)
 		}
 
-		if (child !== children.last) {
+		if (item.next !== null) {
 			buffer += NEWLINE + NEWLINE
 		}
 	})
