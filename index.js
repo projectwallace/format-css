@@ -119,7 +119,7 @@ function print_simple_selector(node, css) {
 	let buffer = EMPTY_STRING
 
 	if (node.children) {
-		for (let child of node.children) {
+		node.children.forEach((child) => {
 			switch (child.type) {
 				case 'Combinator': {
 					// putting spaces around `child.name` (+ > ~ or ' '), unless the combinator is ' '
@@ -190,7 +190,7 @@ function print_simple_selector(node, css) {
 					break
 				}
 			}
-		}
+		})
 	}
 
 	return buffer
@@ -454,10 +454,12 @@ function print_unknown(node, css, indent_level) {
  */
 function print(node, css, indent_level = 0) {
 	let buffer = EMPTY_STRING
+
+	/** @type {import('css-tree').List<import('css-tree').CssNode>} */
 	// @ts-expect-error Property 'children' does not exist on type 'AnPlusB', but we're never using that
 	let children = node.children
 
-	for (let child of children) {
+	children.forEach((child) => {
 		if (child.type === 'Rule') {
 			buffer += print_rule(child, css, indent_level)
 		} else if (child.type === 'Atrule') {
@@ -469,7 +471,7 @@ function print(node, css, indent_level = 0) {
 		if (child !== children.last) {
 			buffer += NEWLINE + NEWLINE
 		}
-	}
+	})
 
 	return buffer
 }
@@ -484,6 +486,7 @@ function print(node, css, indent_level = 0) {
  * @returns {string} The formatted CSS
  */
 export function format(css, { minify = false } = {}) {
+	/** @type {import('css-tree').CssNode} */
 	let ast = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
