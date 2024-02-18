@@ -16,6 +16,20 @@ function indent(size) {
 }
 
 /**
+ * Check if a string contains uppercase characters
+ * @param {string} str
+ */
+function is_uppercase(str) {
+	for (let char of str) {
+		let code = char.charCodeAt(0)
+		if (code >= 65 && code <= 90) {
+			return true
+		}
+	}
+	return false
+}
+
+/**
  * @param {import('css-tree').CssNode} node
  * @param {string} css
  * @returns A portion of the CSS
@@ -254,9 +268,11 @@ function print_block(node, css, indent_level) {
  * @returns {string} A formatted Atrule
  */
 function print_atrule(node, css, indent_level) {
-	let buffer = indent(indent_level) + '@' + node.name.toLowerCase()
+	let buffer = indent(indent_level) + '@'
+	let name = node.name
 	let prelude = node.prelude
 	let block = node.block
+	buffer += is_uppercase(name) ? name.toLowerCase() : name
 
 	// @font-face has no prelude
 	if (prelude !== null) {
@@ -301,7 +317,7 @@ function print_prelude(node, css) {
 function print_declaration(node, css, indent_level) {
 	let property = node.property
 
-	if (!property.startsWith('--') && /[A-Z]/.test(property)) {
+	if (!property.startsWith('--') && is_uppercase(property)) {
 		property = property.toLowerCase()
 	}
 
@@ -351,11 +367,12 @@ function print_list(children, css) {
 	return buffer
 }
 
-/**
- * @param {import('css-tree').Dimension} node
- */
+/** @param {import('css-tree').Dimension} node */
 function print_dimension(node) {
-	return node.value + node.unit.toLowerCase()
+	let unit = node.unit
+	let buffer = node.value
+	buffer += is_uppercase(unit) ? unit.toLowerCase() : unit;
+	return buffer
 }
 
 /**
@@ -378,7 +395,7 @@ function print_function(node, css) {
 	let name = node.name
 	let buffer = name
 
-	if (/[A-Z]/.test(name)) {
+	if (is_uppercase(name)) {
 		buffer = name.toLowerCase()
 	}
 
@@ -400,8 +417,8 @@ function print_unknown(node, css, indent_level) {
 
 /**
  * @param {import('css-tree').CssNode} node
- * @param {number} indent_level
  * @param {string} css
+ * @param {number} [indent_level=0]
  * @returns {string} A formatted Stylesheet
  */
 function print(node, css, indent_level = 0) {
