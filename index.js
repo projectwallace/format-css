@@ -238,7 +238,7 @@ function print_block(node, css, indent_level) {
 		if (child.type === TYPE_DECLARATION) {
 			buffer += print_declaration(child, css, indent_level)
 
-			if (child === children.last) {
+			if (item.next === null) {
 				buffer += LAST_SEMICOLON
 			} else {
 				buffer += ';'
