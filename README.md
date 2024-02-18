@@ -4,7 +4,33 @@ Fast, small, zero-config library to format CSS with basic [rules](#formatting-ru
 
 ## Example output
 
-![Example input-output of this formatter](https://github.com/projectwallace/format-css/assets/1536852/ce160fd3-fa11-4d90-9432-22567ee1d851)
+<!-- prettier-ignore -->
+```css
+/* TURN THIS: */
+
+@layer base.normalize{@media (dynamic-range:high) or (color-gamut:p3){@supports (color:color(display-p3 0 0 0)){:where(html){--link:color(display-p3 .1 .4 1);--link-visited:color(display-p3 .6 .2 1)}}}}@layer base.normalize{:where(html) :where(dialog){background-color:var(--surface-1)}}
+
+/* INTO THIS: */
+
+@layer base.normalize {
+	@media (dynamic-range: high) or (color-gamut: p3) {
+		@supports (color: color(display-p3 0 0 0)) {
+			:where(html) {
+				--link: color(display-p3 .1 .4 1);
+				--link-visited: color(display-p3 .6 .2 1);
+			}
+		}
+	}
+}
+
+@layer base.normalize {
+	:where(html) :where(dialog) {
+		background-color: var(--surface-1);
+	}
+}
+
+/* AND BACK AGAIN! */
+```
 
 ## Installation
 
@@ -59,6 +85,6 @@ let formatted_mini = format("a {}", { minify: true });
 
 ## Related projects
 
-- [Format CSS online](https://www.projectwallace.com/prettify-css?utm_source=github&utm_medium=wallace_format_css_related_projects) - See this minifier in action online!
+- [Format CSS online](https://www.projectwallace.com/prettify-css?utm_source=github&utm_medium=wallace_format_css_related_projects) - See this formatter in action online!
+- [Minify CSS online](https://www.projectwallace.com/minify-css?utm_source=github&utm_medium=wallace_format_css_related_projects) - See this minifier in action online!
 - [CSS Analyzer](https://github.com/projectwallace/css-analyzer) - The best CSS analyzer that powers all analysis on [projectwallace.com](https://www.projectwallace.com?utm_source=github&utm_medium=wallace_format_css_related_projects)
-- [Minify CSS](https://github.com/projectwallace/minify-css) The exact opposite of this library: fast, small, zero-config CSS minifier.
