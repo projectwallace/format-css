@@ -28,6 +28,8 @@ Fast, small, zero-config library to format CSS with basic [rules](#formatting-ru
 		background-color: var(--surface-1);
 	}
 }
+
+/* AND BACK AGAIN! */
 ```
 
 ## Installation
