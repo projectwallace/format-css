@@ -42,8 +42,8 @@ a {
 })
 
 test('correctly minifies operators', () => {
-	let actual = minify(`a { width: calc(100% - 10px); }`)
-	let expected = `a{width:calc(100% - 10px)}`
+	let actual = minify(`a { width: calc(100% - 10px); height: calc(100 * 1%); }`)
+	let expected = `a{width:calc(100% - 10px);height:calc(100*1%)}`
 	assert.equal(actual, expected)
 })
 
