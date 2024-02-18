@@ -8,10 +8,12 @@ test('collapses abundant whitespace', () => {
 	let actual = format(`a {
 		transition: all   100ms   ease;
 		color: rgb(  0  ,  0   ,  0  );
+		color: red   ;
 	}`)
 	let expected = `a {
 	transition: all 100ms ease;
 	color: rgb(0, 0, 0);
+	color: red;
 }`
 	assert.is(actual, expected)
 })
@@ -99,12 +101,16 @@ test('formats whitespace around operators (*/+-) correctly', () => {
 	let actual = format(`a {
 	font: 2em/2 sans-serif;
 	font-size: calc(2em/2);
-	font-size: calc(2em + 2px)
+	font-size: calc(2em * 2);
+	font-size: calc(2em + 2px);
+	font-size: calc(2em - 2px);
 }`)
 	let expected = `a {
 	font: 2em/2 sans-serif;
 	font-size: calc(2em / 2);
+	font-size: calc(2em * 2);
 	font-size: calc(2em + 2px);
+	font-size: calc(2em - 2px);
 }`
 	assert.is(actual, expected)
 })
