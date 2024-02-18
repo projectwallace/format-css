@@ -4,7 +4,31 @@ Fast, small, zero-config library to format CSS with basic [rules](#formatting-ru
 
 ## Example output
 
-![Example input-output of this formatter](https://github.com/projectwallace/format-css/assets/1536852/ce160fd3-fa11-4d90-9432-22567ee1d851)
+<!-- prettier-ignore -->
+```css
+/* TURN THIS: */
+
+@layer base.normalize{@media (dynamic-range:high) or (color-gamut:p3){@supports (color:color(display-p3 0 0 0)){:where(html){--link:color(display-p3 .1 .4 1);--link-visited:color(display-p3 .6 .2 1)}}}}@layer base.normalize{:where(html) :where(dialog){background-color:var(--surface-1)}}
+
+/* INTO THIS: */
+
+@layer base.normalize {
+	@media (dynamic-range: high) or (color-gamut: p3) {
+		@supports (color: color(display-p3 0 0 0)) {
+			:where(html) {
+				--link: color(display-p3 .1 .4 1);
+				--link-visited: color(display-p3 .6 .2 1);
+			}
+		}
+	}
+}
+
+@layer base.normalize {
+	:where(html) :where(dialog) {
+		background-color: var(--surface-1);
+	}
+}
+```
 
 ## Installation
 
