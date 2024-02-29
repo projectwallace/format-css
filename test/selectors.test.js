@@ -73,6 +73,24 @@ test("formats nested selector combinators", () => {
 	}
 })
 
+test('formats pseudo selectors', () => {
+	let css = `
+		a::before,
+		a::after,
+		b:before,
+		b:after,
+		c::first-letter {}
+		`
+	let expected = `a::before,
+a::after,
+b::before,
+b::after,
+c::first-letter {}`
+
+	let actual = format(css)
+	assert.equal(actual, expected)
+})
+
 test("formats selectors with Nth", () => {
 	let fixtures = [
 		[`li:nth-child(3n-2) {}`, `li:nth-child(3n -2) {}`],

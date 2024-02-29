@@ -141,7 +141,15 @@ function print_simple_selector(node, css) {
 				break
 			}
 			case 'PseudoClassSelector': {
-				buffer += ':' + child.name
+				buffer += ':'
+
+				// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
+				// as `:before` and `:after`, but we want to keep them as `::before` and `::after`
+				if (child.name === 'before' || child.name === 'after') {
+					buffer += ':'
+				}
+
+				buffer += child.name
 
 				if (child.children) {
 					buffer += '(' + print_simple_selector(child, css) + ')'
