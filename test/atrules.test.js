@@ -68,7 +68,8 @@ test('AtRule prelude formatting', () => {
 		[`@supports (display:grid){}`, `@supports (display: grid) {}`],
 		[`@supports (-webkit-appearance: none) {}`, `@supports (-webkit-appearance: none) {}`],
 		[`@media all and (-moz-images-in-menus:0) and (min-resolution:.001dpcm) {}`, `@media all and (-moz-images-in-menus: 0) and (min-resolution: .001dpcm) {}`],
-		[`@media all and (-webkit-min-device-pixel-ratio: 10000),not all and (-webkit-min-device-pixel-ratio: 0) {}`, `@media all and (-webkit-min-device-pixel-ratio: 10000), not all and (-webkit-min-device-pixel-ratio: 0) {}`]
+		[`@media all and (-webkit-min-device-pixel-ratio: 10000),not all and (-webkit-min-device-pixel-ratio: 0) {}`, `@media all and (-webkit-min-device-pixel-ratio: 10000), not all and (-webkit-min-device-pixel-ratio: 0) {}`],
+		['@supports selector([popover]:open) {}', '@supports selector([popover]:open) {}'],
 	]
 
 	for (let [css, expected] of fixtures) {
