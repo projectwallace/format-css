@@ -323,7 +323,7 @@ function print_prelude(node, css) {
 	let buffer = substr(node, css)
 
 	return buffer
-		.replace(/\s*([:,])/g, '$1 ') // force whitespace after colon or comma
+		.replace(/\s*([:,])/g, buffer.includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
 		.replace(/\s*(=>|<=)\s*/g, ' $1 ') // force whitespace around => and <=
 		.replace(/(?<!<=)(?<!=>)(?<!<= )([<>])(?![<= ])(?![=> ])(?![ =>])/g, ' $1 ')
 		.replace(/\s+/g, SPACE) // collapse multiple whitespaces into one
