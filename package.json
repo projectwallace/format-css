@@ -5,9 +5,9 @@
   "type": "module",
   "source": "index.js",
   "exports": {
+    "types": "./dist/index.d.ts",
     "require": "./dist/format.cjs",
-    "default": "./dist/format.modern.js",
-    "types": "./dist/index.d.ts"
+    "default": "./dist/format.modern.js"
   },
   "types": "./dist/index.d.ts",
   "main": "./dist/format.cjs",
