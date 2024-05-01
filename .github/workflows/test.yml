@@ -28,5 +28,7 @@ jobs:
         run: npm run check
       - name: Lint JS
         run: npx --yes oxlint@latest -D perf
+      - name: Build package
+        run: npm run build
       - name: "Publint"
         run: "npx --yes publint"
