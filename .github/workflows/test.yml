@@ -56,6 +56,15 @@ jobs:
     name: Lint package
     runs-on: ubuntu-latest
     steps:
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit
       - name: Build package
         run: npm run build
       - name: Run "Publint"
