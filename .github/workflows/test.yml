@@ -24,11 +24,39 @@ jobs:
         run: npm install --ignore-scripts --no-audit
       - name: Unit tests
         run: npm test
+  check:
+    name: Check types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit
       - name: Check types
         run: npm run check
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit
       - name: Lint JS
         run: npx --yes oxlint@latest -D perf
+  lint-package:
+    name: Lint package
+    runs-on: ubuntu-latest
+    steps:
       - name: Build package
         run: npm run build
-      - name: "Publint"
+      - name: Run "Publint"
         run: "npx --yes publint"
