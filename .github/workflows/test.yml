@@ -56,7 +56,6 @@ jobs:
     name: Lint package
     runs-on: ubuntu-latest
     steps:
-    steps:
       - uses: actions/checkout@v4
       - name: Use Node.js 20
         uses: actions/setup-node@v4
