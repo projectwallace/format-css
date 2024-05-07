@@ -6,25 +6,26 @@
   "source": "index.js",
   "exports": {
     "types": "./dist/index.d.ts",
-    "require": "./dist/format.cjs",
-    "default": "./dist/format.modern.js"
+    "require": "./dist/format-css.umd.cjs",
+    "default": "./dist/format-css.js"
   },
   "types": "./dist/index.d.ts",
-  "main": "./dist/format.cjs",
-  "module": "./dist/format.module.js",
-  "unpkg": "./dist/format.umd.js",
+  "main": "./dist/format-css.umd.cjs",
+  "module": "./dist/format-css.js",
+  "unpkg": "./dist/format-css.umd.cjs",
   "scripts": {
-    "build": "microbundle",
+    "build": "vite build",
     "test": "uvu",
     "check": "tsc",
     "lint": "oxlint -D perf"
   },
   "devDependencies": {
     "@types/css-tree": "^2.3.4",
-    "microbundle": "^0.15.1",
     "oxlint": "^0.2.8",
     "typescript": "^5.3.3",
-    "uvu": "^0.5.6"
+    "uvu": "^0.5.6",
+    "vite": "^5.2.11",
+    "vite-plugin-dts": "^3.9.1"
   },
   "dependencies": {
     "css-tree": "^2.3.1"
