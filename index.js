@@ -142,16 +142,24 @@ function print_simple_selector(node, css) {
 				}
 				break
 			}
+			case 'PseudoElementSelector': {
+				buffer += COLON + COLON
+				buffer += is_uppercase(child.name) ? child.name.toLowerCase() : child.name
+				break
+			}
 			case 'PseudoClassSelector': {
 				buffer += COLON
 
 				// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
 				// as `:before` and `:after`, but we want to keep them as `::before` and `::after`
-				if (child.name === 'before' || child.name === 'after') {
+				let name = child.name
+				let pseudo = is_uppercase(name) ? name.toLowerCase() : name
+
+				if (pseudo === 'before' || pseudo === 'after') {
 					buffer += COLON
 				}
 
-				buffer += child.name
+				buffer += pseudo
 
 				if (child.children) {
 					buffer += '(' + print_simple_selector(child, css) + ')'
