@@ -3,6 +3,8 @@ import parse from 'css-tree/parser'
 
 const SPACE = ' '
 const EMPTY_STRING = ''
+const COLON = ':'
+const SEMICOLON = ';'
 const TYPE_ATRULE = 'Atrule'
 const TYPE_RULE = 'Rule'
 const TYPE_BLOCK = 'Block'
@@ -141,12 +143,12 @@ function print_simple_selector(node, css) {
 				break
 			}
 			case 'PseudoClassSelector': {
-				buffer += ':'
+				buffer += COLON
 
 				// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
 				// as `:before` and `:after`, but we want to keep them as `::before` and `::after`
 				if (child.name === 'before' || child.name === 'after') {
-					buffer += ':'
+					buffer += COLON
 				}
 
 				buffer += child.name
@@ -249,7 +251,7 @@ function print_block(node, css, indent_level) {
 			if (item.next === null) {
 				buffer += LAST_SEMICOLON
 			} else {
-				buffer += ';'
+				buffer += SEMICOLON
 			}
 		} else {
 			if (item.prev !== null && item.prev.data.type === TYPE_DECLARATION) {
@@ -302,7 +304,7 @@ function print_atrule(node, css, indent_level) {
 
 	if (block === null) {
 		// `@import url(style.css);` has no block, neither does `@layer layer1;`
-		buffer += ';'
+		buffer += SEMICOLON
 	} else if (block.type === TYPE_BLOCK) {
 		buffer += print_block(block, css, indent_level)
 	}
@@ -352,7 +354,7 @@ function print_declaration(node, css, indent_level) {
 		value = value.replace(/\s*\/\s*/, '/')
 	}
 
-	return indent(indent_level) + property + ':' + OPTIONAL_SPACE + value
+	return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value
 }
 
 /**
@@ -514,8 +516,8 @@ export function format(css, { minify = false } = {}) {
 
 	TAB = minify ? EMPTY_STRING : '\t'
 	NEWLINE = minify ? EMPTY_STRING : '\n'
-	OPTIONAL_SPACE = minify ? EMPTY_STRING : ' '
-	LAST_SEMICOLON = minify ? EMPTY_STRING : ';'
+	OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE
+	LAST_SEMICOLON = minify ? EMPTY_STRING : SEMICOLON
 
 	return print(ast, css, 0)
 }
