@@ -54,15 +54,19 @@ test('Atrule blocks are surrounded by {} with correct spacing and indentation', 
 	assert.equal(actual, expected)
 })
 
-test('AtRule prelude formatting', () => {
+test('@media prelude formatting', () => {
 	let fixtures = [
 		[`@media all{}`, `@media all {}`],
 		[`@media all   and print{}`, `@media all and print {}`],
 		[`@media (min-width:1000px){}`, `@media (min-width: 1000px) {}`],
 		[`@media (min-width : 1000px) {}`, `@media (min-width: 1000px) {}`],
 		[`@media all and (transform-3d) {}`, `@media all and (transform-3d) {}`],
+		[`@media only screen and (min-width: 1024px)and (max-width: 1439px), only screen and (min-width: 768px)and (max-width: 1023px) {}`, `@media only screen and (min-width: 1024px) and (max-width: 1439px), only screen and (min-width: 768px) and (max-width: 1023px) {}`],
+		[`@media (min-width: 1024px)or (max-width: 1439px) {}`, `@media (min-width: 1024px) or (max-width: 1439px) {}`],
 		[`@media all and (transform-3d), (-webkit-transform-3d) {}`, `@media all and (transform-3d), (-webkit-transform-3d) {}`],
 		[`@media screen or print {}`, `@media screen or print {}`],
+		[`@media (update: slow) or (hover: none) {}`, `@media (update: slow) or (hover: none) {}`],
+		[`@media (update: slow)or (hover: none) {}`, `@media (update: slow) or (hover: none) {}`],
 		[`@layer    test;`, `@layer test;`],
 		[`@layer tbody,thead;`, `@layer tbody, thead;`],
 		[`@supports (display:grid){}`, `@supports (display: grid) {}`],
@@ -70,6 +74,31 @@ test('AtRule prelude formatting', () => {
 		[`@media all and (-moz-images-in-menus:0) and (min-resolution:.001dpcm) {}`, `@media all and (-moz-images-in-menus: 0) and (min-resolution: .001dpcm) {}`],
 		[`@media all and (-webkit-min-device-pixel-ratio: 10000),not all and (-webkit-min-device-pixel-ratio: 0) {}`, `@media all and (-webkit-min-device-pixel-ratio: 10000), not all and (-webkit-min-device-pixel-ratio: 0) {}`],
 		['@supports selector([popover]:open) {}', '@supports selector([popover]:open) {}'],
+	]
+
+	for (let [css, expected] of fixtures) {
+		let actual = format(css)
+		assert.equal(actual, expected)
+	}
+})
+
+test('@supports prelude formatting', () => {
+	let fixtures = [
+		[`@supports (display:grid){}`, `@supports (display: grid) {}`],
+		[`@supports (-webkit-appearance: none) {}`, `@supports (-webkit-appearance: none) {}`],
+		['@supports selector([popover]:open) {}', '@supports selector([popover]:open) {}'],
+	]
+
+	for (let [css, expected] of fixtures) {
+		let actual = format(css)
+		assert.equal(actual, expected)
+	}
+})
+
+test('@layer prelude formatting', () => {
+	let fixtures = [
+		[`@layer    test;`, `@layer test;`],
+		[`@layer tbody,thead;`, `@layer tbody, thead;`],
 	]
 
 	for (let [css, expected] of fixtures) {
