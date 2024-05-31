@@ -385,32 +385,9 @@ function print_list(children, css) {
 			// var(--prop, VALUE)
 			buffer += print_value(node, css)
 		} else if (node.type === TYPE_OPERATOR) {
-			// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
-			// The + and - operators must be surrounded by whitespace
-			// Whitespace around other operators is optional
-
-			// Trim the operator because CSSTree adds whitespace around it
-			let operator = node.value.trim()
-			let code = operator.charCodeAt(0)
-
-			if (code === 43 || code === 45) { // + or -
-				// Add required space before + and - operators
-				buffer += SPACE
-			} else if (code !== 44) { // ,
-				// Add optional space before operator
-				buffer += OPTIONAL_SPACE
-			}
-
-			// FINALLY, render the operator
-			buffer += operator
-
-			if (code === 43 || code === 45) { // + or -
-				// Add required space after + and - operators
-				buffer += SPACE
-			} else {
-				// Add optional space after other operators (like *, /, and ,)
-				buffer += OPTIONAL_SPACE
-			}
+			buffer += print_operator(node)
+		} else if (node.type === 'Parentheses') {
+			buffer += '(' + print_list(node.children, css) + ')'
 		} else {
 			buffer += substr(node, css)
 		}
@@ -423,6 +400,42 @@ function print_list(children, css) {
 			}
 		}
 	})
+
+	return buffer
+}
+
+/**
+ * @param {import('css-tree').Operator} node
+ * @returns {string} A formatted Operator
+ */
+function print_operator(node) {
+	let buffer = EMPTY_STRING
+	// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
+	// The + and - operators must be surrounded by whitespace
+	// Whitespace around other operators is optional
+
+	// Trim the operator because CSSTree adds whitespace around it
+	let operator = node.value.trim()
+	let code = operator.charCodeAt(0)
+
+	if (code === 43 || code === 45) { // + or -
+		// Add required space before + and - operators
+		buffer += SPACE
+	} else if (code !== 44) { // ,
+		// Add optional space before operator
+		buffer += OPTIONAL_SPACE
+	}
+
+	// FINALLY, render the operator
+	buffer += operator
+
+	if (code === 43 || code === 45) { // + or -
+		// Add required space after + and - operators
+		buffer += SPACE
+	} else {
+		// Add optional space after other operators (like *, /, and ,)
+		buffer += OPTIONAL_SPACE
+	}
 
 	return buffer
 }

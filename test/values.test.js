@@ -115,6 +115,38 @@ test('formats whitespace around operators (*/+-) correctly', () => {
 	assert.is(actual, expected)
 })
 
+test('formats whitespace around operators (*/+-) correctly in nested parenthesis', () => {
+	let actual = format(`a {
+	width: calc(((100% - var(--x))/ 12 * 6) + (-1 * var(--y)));
+	width: calc(((100% - var(--x))/ 12 * 6) + (-1 * var(--y)));
+	width: calc(((100% - var(--x))/ 12 * 6) + (-1 * var(--y)));
+	width: calc(((100% - var(--x))/ 12 * 6) + (-1 * var(--y)));
+}`)
+	let expected = `a {
+	width: calc(((100% - var(--x)) / 12 * 6) + (-1 * var(--y)));
+	width: calc(((100% - var(--x)) / 12 * 6) + (-1 * var(--y)));
+	width: calc(((100% - var(--x)) / 12 * 6) + (-1 * var(--y)));
+	width: calc(((100% - var(--x)) / 12 * 6) + (-1 * var(--y)));
+}`
+	assert.is(actual, expected)
+})
+
+test('formats parenthesis correctly', () => {
+	let actual = format(`a {
+	width: calc(100% - var(--x));
+	width: calc((100% - var(--x)));
+	width: calc(100% - (var(--x)));
+	width: calc((100% - (var(--x))));
+}`)
+	let expected = `a {
+	width: calc(100% - var(--x));
+	width: calc((100% - var(--x)));
+	width: calc(100% - (var(--x)));
+	width: calc((100% - (var(--x))));
+}`
+	assert.is(actual, expected)
+})
+
 test('does not lowercase grid-area names', () => {
 	let actual = format(`a { grid-area: emailInputBox; }`)
 	let expected = `a {
