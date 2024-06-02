@@ -47,7 +47,7 @@ function substr(node, css) {
 
 	let start = loc.start
 	let end = loc.end
-	return css.substring(start.offset, end.offset)
+	return css.slice(start.offset, end.offset)
 }
 
 /**
@@ -58,7 +58,7 @@ function substr(node, css) {
 function substr_raw(node, css) {
 	let loc = node.loc
 	if (!loc) return EMPTY_STRING
-	return css.substring(loc.start.offset, loc.end.offset)
+	return css.slice(loc.start.offset, loc.end.offset)
 }
 
 /**
