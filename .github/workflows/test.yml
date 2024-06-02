@@ -29,6 +29,8 @@ jobs:
         run: npx --yes oxlint@latest -D perf
       - name: Build package
         run: npm run build
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - name: "Publint"
         run: "npx --yes publint"
       - name: Upload coverage reports to Codecov
