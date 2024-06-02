@@ -179,6 +179,16 @@ test("formats nested rules with a selector starting with &", () => {
 	assert.equal(actual, expected);
 })
 
+test.only('formats unknown stuff in curly braces', () => {
+	let actual = format(`
+		selector {
+			{ color: red; }
+		}
+	`)
+	let expected = `selector {}`;
+	assert.is(actual, expected);
+})
+
 test.skip("Relaxed nesting: formats nested rules with a selector with a &", () => {
 	let actual = format(`
 		selector {

@@ -232,8 +232,16 @@ function print_selector(node, css, indent_level) {
 function print_block(node, css, indent_level) {
 	let children = node.children
 	let buffer = OPTIONAL_SPACE
+	let only_raw = true
 
-	if (children.isEmpty) {
+	for (let child of children) {
+		if (child.type !== 'Raw') {
+			only_raw = false
+			break
+		}
+	}
+
+	if (children.isEmpty || only_raw) {
 		return buffer + '{}'
 	}
 
@@ -259,8 +267,6 @@ function print_block(node, css, indent_level) {
 				buffer += print_rule(child, css, indent_level)
 			} else if (child.type === TYPE_ATRULE) {
 				buffer += print_atrule(child, css, indent_level)
-			} else {
-				buffer += print_unknown(child, css, indent_level)
 			}
 		}
 
