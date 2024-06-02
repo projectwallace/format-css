@@ -40,9 +40,15 @@ test('in @supports prelude', () => {
 	assert.is(actual, expected)
 })
 
-test.skip('in @import prelude', () => {
+test.skip('in @import prelude before specifier', () => {
 	let actual = format('@import /*test*/"foo"/*test*/;')
 	let expected = '@import /*test*/"foo"/*test*/;'
+	assert.is(actual, expected)
+})
+
+test('in @import prelude after specifier', () => {
+	let actual = format('@import "foo"/*test*/;')
+	let expected = '@import "foo"/*test*/;'
 	assert.is(actual, expected)
 })
 
@@ -63,9 +69,9 @@ test('in attribute selector', () => {
 })
 
 test.skip('in var() with fallback', () => {
-	let actual = format(`a { prop: var( /* 1 */ --name /* 2 */ , /* 3 */ ) }`)
+	let actual = format(`a { prop: var( /* 1 */ --name /* 2 */ , /* 3 */ 1 /* 4 */ ) }`)
 	let expected = `a {
-	prop: var(/* 1 */ --name /* 2 */, /* 3 */ );
+	prop: var(/* 1 */ --name /* 2 */, /* 3 */ 1 /* 4 */);
 }`
 	assert.is(actual, expected)
 })
