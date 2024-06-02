@@ -213,4 +213,14 @@ test('lowercases dimensions', () => {
 	assert.is(actual, expected)
 })
 
+test('formats unknown content in value', () => {
+	let actual = format(`a {
+		content: 'Test' : counter(page);
+	}`)
+	let expected = `a {
+	content: 'Test' : counter(page);
+}`
+	assert.is(actual, expected)
+})
+
 test.run();

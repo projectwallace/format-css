@@ -43,7 +43,6 @@ function is_uppercase(str) {
  */
 function substr(node, css) {
 	let loc = node.loc
-
 	if (!loc) return EMPTY_STRING
 
 	let start = loc.start
