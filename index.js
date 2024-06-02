@@ -196,7 +196,7 @@ function print_simple_selector(node, css) {
 						}
 					} else {
 						// For odd/even or maybe other identifiers later on
-						buffer += substr(child.nth, css)
+						buffer += substr(nth, css)
 					}
 				}
 
@@ -236,14 +236,6 @@ function print_selector(node, css, indent_level) {
 function print_block(node, css, indent_level) {
 	let children = node.children
 	let buffer = OPTIONAL_SPACE
-	// let only_raw = true
-
-	// for (let child of children) {
-	// 	if (child.type !== 'Raw') {
-	// 		only_raw = false
-	// 		break
-	// 	}
-	// }
 
 	if (children.isEmpty) {
 		return buffer + '{}'
@@ -390,6 +382,7 @@ function print_list(children, css) {
 			buffer += substr(node, css)
 		}
 
+		// Add space after the item coming after an operator
 		if (node.type !== TYPE_OPERATOR) {
 			if (item.next !== null) {
 				if (item.next.data.type !== TYPE_OPERATOR) {
@@ -460,12 +453,7 @@ function print_value(node, css) {
  * @param {string} css
  */
 function print_function(node, css) {
-	let buffer = lowercase(node.name)
-
-	buffer += '('
-	buffer += print_list(node.children, css)
-	buffer += ')'
-	return buffer
+	return lowercase(node.name) + '(' + print_list(node.children, css) + ')'
 }
 
 /**
