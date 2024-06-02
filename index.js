@@ -99,8 +99,6 @@ function print_selectorlist(node, css, indent_level) {
 	children.forEach((selector, item) => {
 		if (selector.type === TYPE_SELECTOR) {
 			buffer += print_selector(selector, css, indent_level)
-		} else {
-			buffer += print_unknown(selector, css, indent_level)
 		}
 
 		if (item.next !== null) {
@@ -231,16 +229,16 @@ function print_selector(node, css, indent_level) {
 function print_block(node, css, indent_level) {
 	let children = node.children
 	let buffer = OPTIONAL_SPACE
-	let only_raw = true
+	// let only_raw = true
 
-	for (let child of children) {
-		if (child.type !== 'Raw') {
-			only_raw = false
-			break
-		}
-	}
+	// for (let child of children) {
+	// 	if (child.type !== 'Raw') {
+	// 		only_raw = false
+	// 		break
+	// 	}
+	// }
 
-	if (children.isEmpty || only_raw) {
+	if (children.isEmpty) {
 		return buffer + '{}'
 	}
 
@@ -266,6 +264,8 @@ function print_block(node, css, indent_level) {
 				buffer += print_rule(child, css, indent_level)
 			} else if (child.type === TYPE_ATRULE) {
 				buffer += print_atrule(child, css, indent_level)
+			} else {
+				buffer += print_unknown(child, css, indent_level)
 			}
 		}
 
