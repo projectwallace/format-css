@@ -75,10 +75,16 @@ a {
     red,
   10% blue,
 20% green,100% yellow);
+		color: rgb(
+			0,
+			0,
+			0
+		);
 }
 	`);
 	let expected = `a {
 	background: linear-gradient(red, 10% blue, 20% green, 100% yellow);
+	color: rgb(0, 0, 0);
 }`;
 	assert.equal(actual, expected);
 });
@@ -203,6 +209,16 @@ test('lowercases dimensions', () => {
 	let expected = `a {
 	font-size: 12px;
 	width: var(--test, 33rem);
+}`
+	assert.is(actual, expected)
+})
+
+test('formats unknown content in value', () => {
+	let actual = format(`a {
+		content: 'Test' : counter(page);
+	}`)
+	let expected = `a {
+	content: 'Test' : counter(page);
 }`
 	assert.is(actual, expected)
 })

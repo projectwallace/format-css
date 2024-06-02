@@ -43,20 +43,11 @@ function is_uppercase(str) {
  */
 function substr(node, css) {
 	let loc = node.loc
-
 	if (!loc) return EMPTY_STRING
 
 	let start = loc.start
 	let end = loc.end
-	let str = css.substring(start.offset, end.offset)
-
-	// Single-line node, most common case
-	if (start.line === end.line) {
-		return str
-	}
-
-	// Multi-line nodes, less common
-	return str.replace(/\s+/g, SPACE)
+	return css.substring(start.offset, end.offset)
 }
 
 /**
@@ -108,8 +99,6 @@ function print_selectorlist(node, css, indent_level) {
 	children.forEach((selector, item) => {
 		if (selector.type === TYPE_SELECTOR) {
 			buffer += print_selector(selector, css, indent_level)
-		} else {
-			buffer += print_unknown(selector, css, indent_level)
 		}
 
 		if (item.next !== null) {
@@ -126,12 +115,9 @@ function print_selectorlist(node, css, indent_level) {
  */
 function print_simple_selector(node, css) {
 	let buffer = EMPTY_STRING
+	let children = node.children || []
 
-	if (!node.children) {
-		return buffer
-	}
-
-	node.children.forEach((child) => {
+	children.forEach((child) => {
 		switch (child.type) {
 			case 'Combinator': {
 				// putting spaces around `child.name` (+ > ~ or ' '), unless the combinator is ' '
@@ -243,6 +229,14 @@ function print_selector(node, css, indent_level) {
 function print_block(node, css, indent_level) {
 	let children = node.children
 	let buffer = OPTIONAL_SPACE
+	// let only_raw = true
+
+	// for (let child of children) {
+	// 	if (child.type !== 'Raw') {
+	// 		only_raw = false
+	// 		break
+	// 	}
+	// }
 
 	if (children.isEmpty) {
 		return buffer + '{}'

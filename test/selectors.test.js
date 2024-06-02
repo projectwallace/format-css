@@ -134,4 +134,16 @@ test("formats selectors with Nth", () => {
 	}
 })
 
+test('formats multiline selectors', () => {
+	let actual = format(`
+		a:is(
+			a,
+			b,
+			c
+		) {}
+	`)
+	let expected = `a:is(a, b, c) {}`;
+	assert.is(actual, expected)
+})
+
 test.run()
