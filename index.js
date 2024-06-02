@@ -36,6 +36,14 @@ function is_uppercase(str) {
 	return /[A-Z]/.test(str)
 }
 
+/** @param {string} str */
+function lowercase(str) {
+	if (is_uppercase(str)) {
+		return str.toLowerCase()
+	}
+	return str
+}
+
 /**
  * @param {import('css-tree').CssNode} node
  * @param {string} css
@@ -130,7 +138,7 @@ function print_simple_selector(node, css) {
 			}
 			case 'PseudoElementSelector': {
 				buffer += COLON + COLON
-				buffer += is_uppercase(child.name) ? child.name.toLowerCase() : child.name
+				buffer += lowercase(child.name)
 				break
 			}
 			case 'PseudoClassSelector': {
@@ -138,8 +146,7 @@ function print_simple_selector(node, css) {
 
 				// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
 				// as `:before` and `:after`, but we want to keep them as `::before` and `::after`
-				let name = child.name
-				let pseudo = is_uppercase(name) ? name.toLowerCase() : name
+				let pseudo = lowercase(child.name)
 
 				if (pseudo === 'before' || pseudo === 'after') {
 					buffer += COLON
@@ -294,10 +301,9 @@ function print_block(node, css, indent_level) {
  */
 function print_atrule(node, css, indent_level) {
 	let buffer = indent(indent_level) + '@'
-	let name = node.name
 	let prelude = node.prelude
 	let block = node.block
-	buffer += is_uppercase(name) ? name.toLowerCase() : name
+	buffer += lowercase(node.name)
 
 	// @font-face has no prelude
 	if (prelude !== null) {
@@ -345,9 +351,7 @@ function print_declaration(node, css, indent_level) {
 
 	// Lowercase the property, unless it's a custom property (starts with --)
 	if (!(property.charCodeAt(0) === 45 && property.charCodeAt(1) === 45)) { // 45 == '-'
-		if (is_uppercase(property)) {
-			property = property.toLowerCase()
-		}
+		property = lowercase(property)
 	}
 
 	let value = print_value(node.value, css)
@@ -436,10 +440,7 @@ function print_operator(node) {
 
 /** @param {import('css-tree').Dimension} node */
 function print_dimension(node) {
-	let unit = node.unit
-	let buffer = node.value
-	buffer += is_uppercase(unit) ? unit.toLowerCase() : unit;
-	return buffer
+	return node.value + lowercase(node.unit)
 }
 
 /**
@@ -459,12 +460,7 @@ function print_value(node, css) {
  * @param {string} css
  */
 function print_function(node, css) {
-	let name = node.name
-	let buffer = name
-
-	if (is_uppercase(name)) {
-		buffer = name.toLowerCase()
-	}
+	let buffer = lowercase(node.name)
 
 	buffer += '('
 	buffer += print_list(node.children, css)
