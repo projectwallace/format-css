@@ -75,10 +75,16 @@ a {
     red,
   10% blue,
 20% green,100% yellow);
+		color: rgb(
+			0,
+			0,
+			0
+		);
 }
 	`);
 	let expected = `a {
 	background: linear-gradient(red, 10% blue, 20% green, 100% yellow);
+	color: rgb(0, 0, 0);
 }`;
 	assert.equal(actual, expected);
 });

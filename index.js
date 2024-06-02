@@ -48,15 +48,7 @@ function substr(node, css) {
 
 	let start = loc.start
 	let end = loc.end
-	let str = css.substring(start.offset, end.offset)
-
-	// Single-line node, most common case
-	if (start.line === end.line) {
-		return str
-	}
-
-	// Multi-line nodes, less common
-	return str.replace(/\s+/g, SPACE)
+	return css.substring(start.offset, end.offset)
 }
 
 /**
@@ -126,12 +118,9 @@ function print_selectorlist(node, css, indent_level) {
  */
 function print_simple_selector(node, css) {
 	let buffer = EMPTY_STRING
+	let children = node.children || []
 
-	if (!node.children) {
-		return buffer
-	}
-
-	node.children.forEach((child) => {
+	children.forEach((child) => {
 		switch (child.type) {
 			case 'Combinator': {
 				// putting spaces around `child.name` (+ > ~ or ' '), unless the combinator is ' '

@@ -15,7 +15,7 @@
   "unpkg": "./dist/format-css.umd.cjs",
   "scripts": {
     "build": "vite build",
-    "test": "uvu",
+    "test": "c8 --reporter=lcov uvu",
     "check": "tsc",
     "lint": "oxlint -D perf"
   },
