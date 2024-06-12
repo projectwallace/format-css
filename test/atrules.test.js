@@ -82,6 +82,14 @@ test('@media prelude formatting', () => {
 	}
 })
 
+test.skip('calc() inside @media', () => {
+	let actual = format(`
+		@media (min-width: calc(300px* 3)) {}
+	`)
+	let expected = `@media (min-width: calc(300px * 3)) {}`
+	assert.equal(actual, expected)
+})
+
 test('@supports prelude formatting', () => {
 	let fixtures = [
 		[`@supports (display:grid){}`, `@supports (display: grid) {}`],
