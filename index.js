@@ -353,6 +353,11 @@ function print_declaration(node, css, indent_level) {
 		value = value.replace(/\s*\/\s*/, '/')
 	}
 
+	// Hacky: add a space in case of a `space toggle` during minification
+	if (value === EMPTY_STRING && OPTIONAL_SPACE === EMPTY_STRING) {
+		value += SPACE
+	}
+
 	return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value
 }
 

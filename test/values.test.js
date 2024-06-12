@@ -181,6 +181,22 @@ test('lowercases CSS functions', () => {
 	assert.is(actual, expected)
 })
 
+test('relative colors', () => {
+	let actual = format(`a {
+		color: rgb(  from  red 0  0  255);
+		color: rgb(  from  rgb( 200  0  0 )  r  r  r  ) ;
+		color: hwb( from   var( --base-color  )  h  w  b  /  var( --standard-opacity ) ) ;
+		color: lch(from var(--base-color) calc(l + 20) c h);
+	}`)
+	let expected = `a {
+	color: rgb(from red 0 0 255);
+	color: rgb(from rgb(200 0 0) r r r);
+	color: hwb(from var(--base-color) h w b / var(--standard-opacity));
+	color: lch(from var(--base-color) calc(l + 20) c h);
+}`
+	assert.is(actual, expected)
+})
+
 test('does not change casing of `NaN`', () => {
 	let actual = format(`a {
 		height: calc(1 * NaN);
@@ -220,6 +236,27 @@ test('formats unknown content in value', () => {
 	let expected = `a {
 	content: 'Test' : counter(page);
 }`
+	assert.is(actual, expected)
+})
+
+test('does not break space toggles', () => {
+	let actual = format(`a {
+		--ON: initial;
+		--OFF: ;
+	}`)
+	let expected = `a {
+	--ON: initial;
+	--OFF: ;
+}`
+	assert.is(actual, expected)
+})
+
+test('does not break space toggles (minified)', () => {
+	let actual = format(`a {
+		--ON: initial;
+		--OFF: ;
+	}`, { minify: true })
+	let expected = `a{--ON:initial;--OFF: }`
 	assert.is(actual, expected)
 })
 
