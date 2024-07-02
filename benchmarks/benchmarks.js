@@ -1,6 +1,6 @@
-import { Bench } from "tinybench";
-import { withCodSpeed } from "@codspeed/tinybench-plugin";
-import * as fs from "fs";
+import { Bench } from "tinybench"
+import { withCodSpeed } from "@codspeed/tinybench-plugin"
+import * as fs from "fs"
 import { format } from '../index.js'
 
 let filelist = fs.readdirSync('./benchmarks/__fixtures__')
@@ -13,6 +13,7 @@ for (let filename of filelist) {
 	bench.add(`${filename} (${byte_size}kB)`, () => format(css))
 }
 
+await bench.warmup()
 await bench.run()
 
 console.table(bench.table())
