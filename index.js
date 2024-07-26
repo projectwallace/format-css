@@ -62,6 +62,8 @@ export function format(css, { minify = false } = {}) {
 	 */
 	function substr(node) {
 		let loc = node.loc
+
+		// If there's no location data, e.g. when using space toggles
 		if (!loc) return EMPTY_STRING
 
 		let start = loc.start
@@ -132,6 +134,18 @@ export function format(css, { minify = false } = {}) {
 
 		children.forEach((child) => {
 			switch (child.type) {
+				case TYPE_SELECTORLIST: {
+					child.children.forEach((grandchild, item) => {
+						if (grandchild.type === TYPE_SELECTOR) {
+							buffer += print_simple_selector(grandchild)
+						}
+
+						if (item.next) {
+							buffer += ',' + SPACE
+						}
+					})
+					break
+				}
 				case 'Combinator': {
 					// putting spaces around `child.name` (+ > ~ or ' '), unless the combinator is ' '
 					buffer += SPACE
@@ -162,18 +176,6 @@ export function format(css, { minify = false } = {}) {
 					if (child.children) {
 						buffer += '(' + print_simple_selector(child) + ')'
 					}
-					break
-				}
-				case TYPE_SELECTORLIST: {
-					child.children.forEach((grandchild, item) => {
-						if (grandchild.type === TYPE_SELECTOR) {
-							buffer += print_simple_selector(grandchild)
-						}
-
-						if (item.next) {
-							buffer += ',' + SPACE
-						}
-					})
 					break
 				}
 				case 'Nth': {
