@@ -5,6 +5,8 @@ const SPACE = ' '
 const EMPTY_STRING = ''
 const COLON = ':'
 const SEMICOLON = ';'
+const OPEN_PARENTHESES = '('
+const CLOSE_PARENTHESES = ')'
 const TYPE_ATRULE = 'Atrule'
 const TYPE_RULE = 'Rule'
 const TYPE_BLOCK = 'Block'
@@ -160,7 +162,7 @@ export function format(css, { minify = false } = {}) {
 					buffer += pseudo
 
 					if (child.children) {
-						buffer += '(' + print_simple_selector(child) + ')'
+						buffer += OPEN_PARENTHESES + print_simple_selector(child) + CLOSE_PARENTHESES
 					}
 					break
 				}
@@ -378,7 +380,7 @@ export function format(css, { minify = false } = {}) {
 			} else if (node.type === TYPE_OPERATOR) {
 				buffer += print_operator(node)
 			} else if (node.type === 'Parentheses') {
-				buffer += '(' + print_list(node.children) + ')'
+				buffer += OPEN_PARENTHESES + print_list(node.children) + CLOSE_PARENTHESES
 			} else {
 				buffer += substr(node)
 			}
@@ -455,7 +457,7 @@ export function format(css, { minify = false } = {}) {
 	 * @param {import('css-tree').FunctionNode} node
 	 */
 	function print_function(node) {
-		return lowercase(node.name) + '(' + print_list(node.children) + ')'
+		return lowercase(node.name) + OPEN_PARENTHESES + print_list(node.children) + CLOSE_PARENTHESES
 	}
 
 	/**
