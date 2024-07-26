@@ -1,10 +1,10 @@
-import { suite } from "uvu";
-import * as assert from "uvu/assert";
-import { format } from "../index.js";
+import { suite } from 'uvu'
+import * as assert from 'uvu/assert'
+import { format } from '../index.js'
 
-let test = suite("Declarations");
+let test = suite('Declarations')
 
-test("Declarations end with a semicolon (;)", () => {
+test('Declarations end with a semicolon (;)', () => {
 	let actual = format(`
 		@font-face {
 			src: url('test');
@@ -28,7 +28,7 @@ test("Declarations end with a semicolon (;)", () => {
 				}
 			}
 		}
-	`);
+	`)
 	let expected = `@font-face {
 	src: url('test');
 	font-family: Test;
@@ -50,18 +50,18 @@ css {
 			property1: value5;
 		}
 	}
-}`;
+}`
 
-	assert.equal(actual, expected);
-});
+	assert.equal(actual, expected)
+})
 
-test("lowercases properties", () => {
-	let actual = format(`a { COLOR: green }`);
+test('lowercases properties', () => {
+	let actual = format(`a { COLOR: green }`)
 	let expected = `a {
 	color: green;
-}`;
-	assert.is(actual, expected);
-});
+}`
+	assert.is(actual, expected)
+})
 
 test('does not lowercase custom properties', () => {
 	let actual = format(`a {
@@ -85,4 +85,4 @@ test.skip('preserves comments', () => {
 	assert.is(actual, expected)
 })
 
-test.run();
+test.run()

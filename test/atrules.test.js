@@ -61,7 +61,10 @@ test('@media prelude formatting', () => {
 		[`@media (min-width:1000px){}`, `@media (min-width: 1000px) {}`],
 		[`@media (min-width : 1000px) {}`, `@media (min-width: 1000px) {}`],
 		[`@media all and (transform-3d) {}`, `@media all and (transform-3d) {}`],
-		[`@media only screen and (min-width: 1024px)and (max-width: 1439px), only screen and (min-width: 768px)and (max-width: 1023px) {}`, `@media only screen and (min-width: 1024px) and (max-width: 1439px), only screen and (min-width: 768px) and (max-width: 1023px) {}`],
+		[
+			`@media only screen and (min-width: 1024px)and (max-width: 1439px), only screen and (min-width: 768px)and (max-width: 1023px) {}`,
+			`@media only screen and (min-width: 1024px) and (max-width: 1439px), only screen and (min-width: 768px) and (max-width: 1023px) {}`,
+		],
 		[`@media (min-width: 1024px)or (max-width: 1439px) {}`, `@media (min-width: 1024px) or (max-width: 1439px) {}`],
 		[`@media all and (transform-3d), (-webkit-transform-3d) {}`, `@media all and (transform-3d), (-webkit-transform-3d) {}`],
 		[`@media screen or print {}`, `@media screen or print {}`],
@@ -71,8 +74,14 @@ test('@media prelude formatting', () => {
 		[`@layer tbody,thead;`, `@layer tbody, thead;`],
 		[`@supports (display:grid){}`, `@supports (display: grid) {}`],
 		[`@supports (-webkit-appearance: none) {}`, `@supports (-webkit-appearance: none) {}`],
-		[`@media all and (-moz-images-in-menus:0) and (min-resolution:.001dpcm) {}`, `@media all and (-moz-images-in-menus: 0) and (min-resolution: .001dpcm) {}`],
-		[`@media all and (-webkit-min-device-pixel-ratio: 10000),not all and (-webkit-min-device-pixel-ratio: 0) {}`, `@media all and (-webkit-min-device-pixel-ratio: 10000), not all and (-webkit-min-device-pixel-ratio: 0) {}`],
+		[
+			`@media all and (-moz-images-in-menus:0) and (min-resolution:.001dpcm) {}`,
+			`@media all and (-moz-images-in-menus: 0) and (min-resolution: .001dpcm) {}`,
+		],
+		[
+			`@media all and (-webkit-min-device-pixel-ratio: 10000),not all and (-webkit-min-device-pixel-ratio: 0) {}`,
+			`@media all and (-webkit-min-device-pixel-ratio: 10000), not all and (-webkit-min-device-pixel-ratio: 0) {}`,
+		],
 		['@supports selector([popover]:open) {}', '@supports selector([popover]:open) {}'],
 	]
 
@@ -246,4 +255,4 @@ test.skip('preserves comments', () => {
 	assert.is(actual, expected)
 })
 
-test.run();
+test.run()

@@ -1,8 +1,8 @@
-import { suite } from "uvu";
-import * as assert from "uvu/assert";
-import { format } from "../index.js";
+import { suite } from 'uvu'
+import * as assert from 'uvu/assert'
+import { format } from '../index.js'
 
-let test = suite("Values");
+let test = suite('Values')
 
 test('collapses abundant whitespace', () => {
 	let actual = format(`a {
@@ -18,7 +18,7 @@ test('collapses abundant whitespace', () => {
 	assert.is(actual, expected)
 })
 
-test("formats simple value lists", () => {
+test('formats simple value lists', () => {
 	let actual = format(`
 		a {
 			transition-property: all,opacity;
@@ -29,7 +29,7 @@ test("formats simple value lists", () => {
 			content: 'Test';
 			background-image: url("EXAMPLE.COM");
 		}
-	`);
+	`)
 	let expected = `a {
 	transition-property: all, opacity;
 	transition: all 100ms ease, opacity 10ms 20ms linear;
@@ -38,37 +38,37 @@ test("formats simple value lists", () => {
 	color: hsl(0%, 10%, 50%);
 	content: 'Test';
 	background-image: url("EXAMPLE.COM");
-}`;
-	assert.equal(actual, expected);
-});
+}`
+	assert.equal(actual, expected)
+})
 
-test("formats nested value lists", () => {
+test('formats nested value lists', () => {
 	let actual = format(`
 		a {
 			background: red,linear-gradient(to bottom,red 10%,green 50%,blue 100%);
 		}
-	`);
+	`)
 	let expected = `a {
 	background: red, linear-gradient(to bottom, red 10%, green 50%, blue 100%);
-}`;
-	assert.equal(actual, expected);
-});
+}`
+	assert.equal(actual, expected)
+})
 
-test("formats nested var()", () => {
+test('formats nested var()', () => {
 	let actual = format(`
 		a {
 			color: var(--test1,var(--test2,green));
 			color: var(--test3,rgb(0,0,0));
 		}
-	`);
+	`)
 	let expected = `a {
 	color: var(--test1, var(--test2, green));
 	color: var(--test3, rgb(0, 0, 0));
-}`;
-	assert.equal(actual, expected);
-});
+}`
+	assert.equal(actual, expected)
+})
 
-test("formats multiline values on a single line", () => {
+test('formats multiline values on a single line', () => {
 	let actual = format(`
 a {
   background: linear-gradient(
@@ -81,13 +81,13 @@ a {
 			0
 		);
 }
-	`);
+	`)
 	let expected = `a {
 	background: linear-gradient(red, 10% blue, 20% green, 100% yellow);
 	color: rgb(0, 0, 0);
-}`;
-	assert.equal(actual, expected);
-});
+}`
+	assert.equal(actual, expected)
+})
 
 test('does not break font shorthand', () => {
 	let actual = format(`a {
@@ -252,12 +252,15 @@ test('does not break space toggles', () => {
 })
 
 test('does not break space toggles (minified)', () => {
-	let actual = format(`a {
+	let actual = format(
+		`a {
 		--ON: initial;
 		--OFF: ;
-	}`, { minify: true })
+	}`,
+		{ minify: true },
+	)
 	let expected = `a{--ON:initial;--OFF: }`
 	assert.is(actual, expected)
 })
 
-test.run();
+test.run()
