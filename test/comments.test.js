@@ -1,8 +1,8 @@
-import { suite } from "uvu"
-import * as assert from "uvu/assert"
-import { format } from "../index.js"
+import { suite } from 'uvu'
+import * as assert from 'uvu/assert'
+import { format } from '../index.js'
 
-let test = suite("Comments")
+let test = suite('Comments')
 
 test.skip('regular comment before rule', () => {
 	let actual = format(`

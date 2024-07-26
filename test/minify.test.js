@@ -1,8 +1,8 @@
-import { suite } from "uvu"
-import * as assert from "uvu/assert"
-import { minify } from "../index.js"
+import { suite } from 'uvu'
+import * as assert from 'uvu/assert'
+import { minify } from '../index.js'
 
-let test = suite("Minify")
+let test = suite('Minify')
 
 test('empty rule', () => {
 	let actual = minify(`a {}`)
@@ -28,7 +28,7 @@ test('empty atrule', () => {
 	assert.equal(actual, expected)
 })
 
-test("formats multiline values on a single line", () => {
+test('formats multiline values on a single line', () => {
 	let actual = minify(`
 a {
   background: linear-gradient(
@@ -36,9 +36,9 @@ a {
   10% blue,
 20% green,100% yellow);
 }
-	`);
-	let expected = `a{background:linear-gradient(red,10% blue,20% green,100% yellow)}`;
-	assert.equal(actual, expected);
+	`)
+	let expected = `a{background:linear-gradient(red,10% blue,20% green,100% yellow)}`
+	assert.equal(actual, expected)
 })
 
 test('correctly minifies operators', () => {

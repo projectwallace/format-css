@@ -1,32 +1,32 @@
 // @ts-expect-error Typing of css-tree is incomplete
-import parse from "css-tree/parser";
+import parse from 'css-tree/parser'
 
-const SPACE = " ";
-const EMPTY_STRING = "";
-const COLON = ":";
-const SEMICOLON = ";";
-const TYPE_ATRULE = "Atrule";
-const TYPE_RULE = "Rule";
-const TYPE_BLOCK = "Block";
-const TYPE_SELECTORLIST = "SelectorList";
-const TYPE_SELECTOR = "Selector";
-const TYPE_DECLARATION = "Declaration";
-const TYPE_OPERATOR = "Operator";
+const SPACE = ' '
+const EMPTY_STRING = ''
+const COLON = ':'
+const SEMICOLON = ';'
+const TYPE_ATRULE = 'Atrule'
+const TYPE_RULE = 'Rule'
+const TYPE_BLOCK = 'Block'
+const TYPE_SELECTORLIST = 'SelectorList'
+const TYPE_SELECTOR = 'Selector'
+const TYPE_DECLARATION = 'Declaration'
+const TYPE_OPERATOR = 'Operator'
 
 /**
  * Check if a string contains uppercase characters
  * @param {string} str
  */
 function is_uppercase(str) {
-	return /[A-Z]/.test(str);
+	return /[A-Z]/.test(str)
 }
 
 /** @param {string} str */
 function lowercase(str) {
 	if (is_uppercase(str)) {
-		return str.toLowerCase();
+		return str.toLowerCase()
 	}
-	return str;
+	return str
 }
 
 /**
@@ -45,12 +45,12 @@ export function format(css, { minify = false } = {}) {
 		parseAtrulePrelude: false,
 		parseCustomProperty: true,
 		parseValue: true,
-	});
+	})
 
-	const TAB = minify ? EMPTY_STRING : "\t";
-	const NEWLINE = minify ? EMPTY_STRING : "\n";
-	const OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE;
-	const LAST_SEMICOLON = minify ? EMPTY_STRING : SEMICOLON;
+	const TAB = minify ? EMPTY_STRING : '\t'
+	const NEWLINE = minify ? EMPTY_STRING : '\n'
+	const OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE
+	const LAST_SEMICOLON = minify ? EMPTY_STRING : SEMICOLON
 
 	let indent_level = 0
 
@@ -60,7 +60,7 @@ export function format(css, { minify = false } = {}) {
 	 * @returns A string with {size} tabs
 	 */
 	function indent(size) {
-		return TAB.repeat(size);
+		return TAB.repeat(size)
 	}
 
 	/**
@@ -68,12 +68,12 @@ export function format(css, { minify = false } = {}) {
 	 * @returns A portion of the CSS
 	 */
 	function substr(node) {
-		let loc = node.loc;
-		if (!loc) return EMPTY_STRING;
+		let loc = node.loc
+		if (!loc) return EMPTY_STRING
 
-		let start = loc.start;
-		let end = loc.end;
-		return css.slice(start.offset, end.offset);
+		let start = loc.start
+		let end = loc.end
+		return css.slice(start.offset, end.offset)
 	}
 
 	/**
@@ -81,9 +81,9 @@ export function format(css, { minify = false } = {}) {
 	 * @returns A portion of the CSS
 	 */
 	function substr_raw(node) {
-		let loc = node.loc;
-		if (!loc) return EMPTY_STRING;
-		return css.slice(loc.start.offset, loc.end.offset);
+		let loc = node.loc
+		if (!loc) return EMPTY_STRING
+		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
 	/**
@@ -91,22 +91,22 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted Rule
 	 */
 	function print_rule(node) {
-		let buffer;
-		let prelude = node.prelude;
-		let block = node.block;
+		let buffer
+		let prelude = node.prelude
+		let block = node.block
 
 		if (prelude.type === TYPE_SELECTORLIST) {
-			buffer = print_selectorlist(prelude);
+			buffer = print_selectorlist(prelude)
 		} else {
 			// In case parsing the selector list fails we'll print it as-is
-			buffer = print_unknown(prelude, indent_level);
+			buffer = print_unknown(prelude, indent_level)
 		}
 
 		if (block.type === TYPE_BLOCK) {
-			buffer += print_block(block);
+			buffer += print_block(block)
 		}
 
-		return buffer;
+		return buffer
 	}
 
 	/**
@@ -114,119 +114,119 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted SelectorList
 	 */
 	function print_selectorlist(node) {
-		let buffer = EMPTY_STRING;
-		let children = node.children;
+		let buffer = EMPTY_STRING
+		let children = node.children
 
 		children.forEach((selector, item) => {
 			if (selector.type === TYPE_SELECTOR) {
-				buffer += print_selector(selector);
+				buffer += print_selector(selector)
 			}
 
 			if (item.next !== null) {
-				buffer += `,` + NEWLINE;
+				buffer += `,` + NEWLINE
 			}
-		});
+		})
 
-		return buffer;
+		return buffer
 	}
 
 	/**
 	 * @param {import('css-tree').Selector|import('css-tree').PseudoClassSelector} node
 	 */
 	function print_simple_selector(node) {
-		let buffer = EMPTY_STRING;
-		let children = node.children || [];
+		let buffer = EMPTY_STRING
+		let children = node.children || []
 
 		children.forEach((child) => {
 			switch (child.type) {
-				case "Combinator": {
+				case 'Combinator': {
 					// putting spaces around `child.name` (+ > ~ or ' '), unless the combinator is ' '
-					buffer += SPACE;
+					buffer += SPACE
 
-					if (child.name !== " ") {
-						buffer += child.name + SPACE;
+					if (child.name !== ' ') {
+						buffer += child.name + SPACE
 					}
-					break;
+					break
 				}
-				case "PseudoElementSelector": {
-					buffer += COLON + COLON;
-					buffer += lowercase(child.name);
-					break;
+				case 'PseudoElementSelector': {
+					buffer += COLON + COLON
+					buffer += lowercase(child.name)
+					break
 				}
-				case "PseudoClassSelector": {
-					buffer += COLON;
+				case 'PseudoClassSelector': {
+					buffer += COLON
 
 					// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
 					// as `:before` and `:after`, but we want to keep them as `::before` and `::after`
-					let pseudo = lowercase(child.name);
+					let pseudo = lowercase(child.name)
 
-					if (pseudo === "before" || pseudo === "after") {
-						buffer += COLON;
+					if (pseudo === 'before' || pseudo === 'after') {
+						buffer += COLON
 					}
 
-					buffer += pseudo;
+					buffer += pseudo
 
 					if (child.children) {
-						buffer += "(" + print_simple_selector(child) + ")";
+						buffer += '(' + print_simple_selector(child) + ')'
 					}
-					break;
+					break
 				}
 				case TYPE_SELECTORLIST: {
 					child.children.forEach((grandchild, item) => {
 						if (grandchild.type === TYPE_SELECTOR) {
-							buffer += print_simple_selector(grandchild);
+							buffer += print_simple_selector(grandchild)
 						}
 
 						if (item.next) {
-							buffer += "," + SPACE;
+							buffer += ',' + SPACE
 						}
-					});
-					break;
+					})
+					break
 				}
-				case "Nth": {
-					let nth = child.nth;
+				case 'Nth': {
+					let nth = child.nth
 					if (nth) {
-						if (nth.type === "AnPlusB") {
-							let a = nth.a;
-							let b = nth.b;
+						if (nth.type === 'AnPlusB') {
+							let a = nth.a
+							let b = nth.b
 
 							if (a !== null) {
-								buffer += a + "n";
+								buffer += a + 'n'
 							}
 
 							if (a !== null && b !== null) {
-								buffer += SPACE;
+								buffer += SPACE
 							}
 
 							if (b !== null) {
 								// When (1n + x) but not (1n - x)
-								if (a !== null && !b.startsWith("-")) {
-									buffer += "+" + SPACE;
+								if (a !== null && !b.startsWith('-')) {
+									buffer += '+' + SPACE
 								}
 
-								buffer += b;
+								buffer += b
 							}
 						} else {
 							// For odd/even or maybe other identifiers later on
-							buffer += substr(nth);
+							buffer += substr(nth)
 						}
 					}
 
 					if (child.selector !== null) {
 						// `of .selector`
 						// @ts-expect-error Typing of child.selector is SelectorList, which doesn't seem to be correct
-						buffer += SPACE + "of" + SPACE + print_simple_selector(child.selector);
+						buffer += SPACE + 'of' + SPACE + print_simple_selector(child.selector)
 					}
-					break;
+					break
 				}
 				default: {
-					buffer += substr(child);
-					break;
+					buffer += substr(child)
+					break
 				}
 			}
-		});
+		})
 
-		return buffer;
+		return buffer
 	}
 
 	/**
@@ -234,7 +234,7 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted Selector
 	 */
 	function print_selector(node) {
-		return indent(indent_level) + print_simple_selector(node);
+		return indent(indent_level) + print_simple_selector(node)
 	}
 
 	/**
@@ -242,55 +242,55 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted Block
 	 */
 	function print_block(node) {
-		let children = node.children;
-		let buffer = OPTIONAL_SPACE;
+		let children = node.children
+		let buffer = OPTIONAL_SPACE
 
 		if (children.isEmpty) {
-			return buffer + "{}";
+			return buffer + '{}'
 		}
 
-		buffer += "{" + NEWLINE;
+		buffer += '{' + NEWLINE
 
-		indent_level++;
+		indent_level++
 
 		children.forEach((child, item) => {
 			if (child.type === TYPE_DECLARATION) {
-				buffer += print_declaration(child);
+				buffer += print_declaration(child)
 
 				if (item.next === null) {
-					buffer += LAST_SEMICOLON;
+					buffer += LAST_SEMICOLON
 				} else {
-					buffer += SEMICOLON;
+					buffer += SEMICOLON
 				}
 			} else {
 				if (item.prev !== null && item.prev.data.type === TYPE_DECLARATION) {
-					buffer += NEWLINE;
+					buffer += NEWLINE
 				}
 
 				if (child.type === TYPE_RULE) {
-					buffer += print_rule(child);
+					buffer += print_rule(child)
 				} else if (child.type === TYPE_ATRULE) {
-					buffer += print_atrule(child);
+					buffer += print_atrule(child)
 				} else {
-					buffer += print_unknown(child, indent_level);
+					buffer += print_unknown(child, indent_level)
 				}
 			}
 
 			if (item.next !== null) {
-				buffer += NEWLINE;
+				buffer += NEWLINE
 
 				if (child.type !== TYPE_DECLARATION) {
-					buffer += NEWLINE;
+					buffer += NEWLINE
 				}
 			}
-		});
+		})
 
-		indent_level--;
+		indent_level--
 
-		buffer += NEWLINE;
-		buffer += indent(indent_level) + "}";
+		buffer += NEWLINE
+		buffer += indent(indent_level) + '}'
 
-		return buffer;
+		return buffer
 	}
 
 	/**
@@ -298,24 +298,24 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted Atrule
 	 */
 	function print_atrule(node) {
-		let buffer = indent(indent_level) + "@";
-		let prelude = node.prelude;
-		let block = node.block;
-		buffer += lowercase(node.name);
+		let buffer = indent(indent_level) + '@'
+		let prelude = node.prelude
+		let block = node.block
+		buffer += lowercase(node.name)
 
 		// @font-face has no prelude
 		if (prelude !== null) {
-			buffer += SPACE + print_prelude(prelude);
+			buffer += SPACE + print_prelude(prelude)
 		}
 
 		if (block === null) {
 			// `@import url(style.css);` has no block, neither does `@layer layer1;`
-			buffer += SEMICOLON;
+			buffer += SEMICOLON
 		} else if (block.type === TYPE_BLOCK) {
-			buffer += print_block(block);
+			buffer += print_block(block)
 		}
 
-		return buffer;
+		return buffer
 	}
 
 	/**
@@ -327,17 +327,14 @@ export function format(css, { minify = false } = {}) {
 	 * @param {import('css-tree').AtrulePrelude | import('css-tree').Raw} node
 	 */
 	function print_prelude(node) {
-		let buffer = substr(node);
+		let buffer = substr(node)
 
 		return buffer
-			.replace(/\s*([:,])/g, buffer.includes("selector(") ? "$1" : "$1 ") // force whitespace after colon or comma, except inside `selector()`
-			.replace(/\s*(=>|<=)\s*/g, " $1 ") // force whitespace around => and <=
-			.replace(/\)([a-zA-Z])/g, ") $1") // force whitespace between closing parenthesis and following text (usually and|or)
-			.replace(
-				/(?<!<=)(?<!=>)(?<!<= )([<>])(?![<= ])(?![=> ])(?![ =>])/g,
-				" $1 "
-			)
-			.replace(/\s+/g, SPACE); // collapse multiple whitespaces into one
+			.replace(/\s*([:,])/g, buffer.includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
+			.replace(/\s*(=>|<=)\s*/g, ' $1 ') // force whitespace around => and <=
+			.replace(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
+			.replace(/(?<!<=)(?<!=>)(?<!<= )([<>])(?![<= ])(?![=> ])(?![ =>])/g, ' $1 ')
+			.replace(/\s+/g, SPACE) // collapse multiple whitespaces into one
 	}
 
 	/**
@@ -345,65 +342,65 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted Declaration
 	 */
 	function print_declaration(node) {
-		let property = node.property;
+		let property = node.property
 
 		// Lowercase the property, unless it's a custom property (starts with --)
 		if (!(property.charCodeAt(0) === 45 && property.charCodeAt(1) === 45)) {
 			// 45 == '-'
-			property = lowercase(property);
+			property = lowercase(property)
 		}
 
-		let value = print_value(node.value);
+		let value = print_value(node.value)
 
 		// Special case for `font` shorthand: remove whitespace around /
-		if (property === "font") {
-			value = value.replace(/\s*\/\s*/, "/");
+		if (property === 'font') {
+			value = value.replace(/\s*\/\s*/, '/')
 		}
 
 		// Hacky: add a space in case of a `space toggle` during minification
 		if (value === EMPTY_STRING && OPTIONAL_SPACE === EMPTY_STRING) {
-			value += SPACE;
+			value += SPACE
 		}
 
-		return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value;
+		return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value
 	}
 
 	/**
 	 * @param {import('css-tree').List<import('css-tree').CssNode>} children
 	 */
 	function print_list(children) {
-		let buffer = EMPTY_STRING;
+		let buffer = EMPTY_STRING
 
 		children.forEach((node, item) => {
-			if (node.type === "Identifier") {
-				buffer += node.name;
-			} else if (node.type === "Function") {
-				buffer += print_function(node);
-			} else if (node.type === "Dimension") {
-				buffer += print_dimension(node);
-			} else if (node.type === "Value") {
+			if (node.type === 'Identifier') {
+				buffer += node.name
+			} else if (node.type === 'Function') {
+				buffer += print_function(node)
+			} else if (node.type === 'Dimension') {
+				buffer += print_dimension(node)
+			} else if (node.type === 'Value') {
 				// Values can be inside var() as fallback
 				// var(--prop, VALUE)
-				buffer += print_value(node);
+				buffer += print_value(node)
 			} else if (node.type === TYPE_OPERATOR) {
-				buffer += print_operator(node);
-			} else if (node.type === "Parentheses") {
-				buffer += "(" + print_list(node.children) + ")";
+				buffer += print_operator(node)
+			} else if (node.type === 'Parentheses') {
+				buffer += '(' + print_list(node.children) + ')'
 			} else {
-				buffer += substr(node);
+				buffer += substr(node)
 			}
 
 			// Add space after the item coming after an operator
 			if (node.type !== TYPE_OPERATOR) {
 				if (item.next !== null) {
 					if (item.next.data.type !== TYPE_OPERATOR) {
-						buffer += SPACE;
+						buffer += SPACE
 					}
 				}
 			}
-		});
+		})
 
-		return buffer;
+		return buffer
 	}
 
 	/**
@@ -411,61 +408,61 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted Operator
 	 */
 	function print_operator(node) {
-		let buffer = EMPTY_STRING;
+		let buffer = EMPTY_STRING
 		// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
 		// The + and - operators must be surrounded by whitespace
 		// Whitespace around other operators is optional
 
 		// Trim the operator because CSSTree adds whitespace around it
-		let operator = node.value.trim();
-		let code = operator.charCodeAt(0);
+		let operator = node.value.trim()
+		let code = operator.charCodeAt(0)
 
 		if (code === 43 || code === 45) {
 			// + or -
 			// Add required space before + and - operators
-			buffer += SPACE;
+			buffer += SPACE
 		} else if (code !== 44) {
 			// ,
 			// Add optional space before operator
-			buffer += OPTIONAL_SPACE;
+			buffer += OPTIONAL_SPACE
 		}
 
 		// FINALLY, render the operator
-		buffer += operator;
+		buffer += operator
 
 		if (code === 43 || code === 45) {
 			// + or -
 			// Add required space after + and - operators
-			buffer += SPACE;
+			buffer += SPACE
 		} else {
 			// Add optional space after other operators (like *, /, and ,)
-			buffer += OPTIONAL_SPACE;
+			buffer += OPTIONAL_SPACE
 		}
 
-		return buffer;
+		return buffer
 	}
 
 	/** @param {import('css-tree').Dimension} node */
 	function print_dimension(node) {
-		return node.value + lowercase(node.unit);
+		return node.value + lowercase(node.unit)
 	}
 
 	/**
 	 * @param {import('css-tree').Value | import('css-tree').Raw} node
 	 */
 	function print_value(node) {
-		if (node.type === "Raw") {
-			return print_unknown(node, 0);
+		if (node.type === 'Raw') {
+			return print_unknown(node, 0)
 		}
 
-		return print_list(node.children);
+		return print_list(node.children)
 	}
 
 	/**
 	 * @param {import('css-tree').FunctionNode} node
 	 */
 	function print_function(node) {
-		return lowercase(node.name) + "(" + print_list(node.children) + ")";
+		return lowercase(node.name) + '(' + print_list(node.children) + ')'
 	}
 
 	/**
@@ -474,7 +471,7 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted unknown CSS string
 	 */
 	function print_unknown(node, indent_level) {
-		return indent(indent_level) + substr_raw(node).trim();
+		return indent(indent_level) + substr_raw(node).trim()
 	}
 
 	/**
@@ -482,30 +479,30 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted Stylesheet
 	 */
 	function print(node) {
-		let buffer = EMPTY_STRING;
+		let buffer = EMPTY_STRING
 
 		/** @type {import('css-tree').List<import('css-tree').CssNode>} */
 		// @ts-expect-error Property 'children' does not exist on type 'AnPlusB', but we're never using that
-		let children = node.children;
+		let children = node.children
 
 		children.forEach((child, item) => {
 			if (child.type === TYPE_RULE) {
-				buffer += print_rule(child);
+				buffer += print_rule(child)
 			} else if (child.type === TYPE_ATRULE) {
-				buffer += print_atrule(child);
+				buffer += print_atrule(child)
 			} else {
-				buffer += print_unknown(child, indent_level);
+				buffer += print_unknown(child, indent_level)
 			}
 
 			if (item.next !== null) {
-				buffer += NEWLINE + NEWLINE;
+				buffer += NEWLINE + NEWLINE
 			}
-		});
+		})
 
-		return buffer;
+		return buffer
 	}
 
-	return print(ast);
+	return print(ast)
 }
 
 /**
@@ -514,5 +511,5 @@ export function format(css, { minify = false } = {}) {
  * @returns {string} The minified CSS
  */
 export function minify(css) {
-	return format(css, { minify: true });
+	return format(css, { minify: true })
 }
