@@ -52,6 +52,8 @@ export function format(css, { minify = false } = {}) {
 	const OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE;
 	const LAST_SEMICOLON = minify ? EMPTY_STRING : SEMICOLON;
 
+	let indent_level = 0
+
 	/**
 	 * Indent a string
 	 * @param {number} size
@@ -86,23 +88,22 @@ export function format(css, { minify = false } = {}) {
 
 	/**
 	 * @param {import('css-tree').Rule} node
-	 * @param {number} indent_level
 	 * @returns {string} A formatted Rule
 	 */
-	function print_rule(node, indent_level) {
+	function print_rule(node) {
 		let buffer;
 		let prelude = node.prelude;
 		let block = node.block;
 
 		if (prelude.type === TYPE_SELECTORLIST) {
-			buffer = print_selectorlist(prelude, indent_level);
+			buffer = print_selectorlist(prelude);
 		} else {
 			// In case parsing the selector list fails we'll print it as-is
 			buffer = print_unknown(prelude, indent_level);
 		}
 
 		if (block.type === TYPE_BLOCK) {
-			buffer += print_block(block, indent_level);
+			buffer += print_block(block);
 		}
 
 		return buffer;
@@ -110,16 +111,15 @@ export function format(css, { minify = false } = {}) {
 
 	/**
 	 * @param {import('css-tree').SelectorList} node
-	 * @param {number} indent_level
 	 * @returns {string} A formatted SelectorList
 	 */
-	function print_selectorlist(node, indent_level) {
+	function print_selectorlist(node) {
 		let buffer = EMPTY_STRING;
 		let children = node.children;
 
 		children.forEach((selector, item) => {
 			if (selector.type === TYPE_SELECTOR) {
-				buffer += print_selector(selector, indent_level);
+				buffer += print_selector(selector);
 			}
 
 			if (item.next !== null) {
@@ -231,19 +231,17 @@ export function format(css, { minify = false } = {}) {
 
 	/**
 	 * @param {import('css-tree').Selector} node
-	 * @param {number} indent_level
 	 * @returns {string} A formatted Selector
 	 */
-	function print_selector(node, indent_level) {
+	function print_selector(node) {
 		return indent(indent_level) + print_simple_selector(node);
 	}
 
 	/**
 	 * @param {import('css-tree').Block} node
-	 * @param {number} indent_level
 	 * @returns {string} A formatted Block
 	 */
-	function print_block(node, indent_level) {
+	function print_block(node) {
 		let children = node.children;
 		let buffer = OPTIONAL_SPACE;
 
@@ -257,7 +255,7 @@ export function format(css, { minify = false } = {}) {
 
 		children.forEach((child, item) => {
 			if (child.type === TYPE_DECLARATION) {
-				buffer += print_declaration(child, indent_level);
+				buffer += print_declaration(child);
 
 				if (item.next === null) {
 					buffer += LAST_SEMICOLON;
@@ -270,9 +268,9 @@ export function format(css, { minify = false } = {}) {
 				}
 
 				if (child.type === TYPE_RULE) {
-					buffer += print_rule(child, indent_level);
+					buffer += print_rule(child);
 				} else if (child.type === TYPE_ATRULE) {
-					buffer += print_atrule(child, indent_level);
+					buffer += print_atrule(child);
 				} else {
 					buffer += print_unknown(child, indent_level);
 				}
@@ -297,10 +295,9 @@ export function format(css, { minify = false } = {}) {
 
 	/**
 	 * @param {import('css-tree').Atrule} node
-	 * @param {number} indent_level
 	 * @returns {string} A formatted Atrule
 	 */
-	function print_atrule(node, indent_level) {
+	function print_atrule(node) {
 		let buffer = indent(indent_level) + "@";
 		let prelude = node.prelude;
 		let block = node.block;
@@ -315,7 +312,7 @@ export function format(css, { minify = false } = {}) {
 			// `@import url(style.css);` has no block, neither does `@layer layer1;`
 			buffer += SEMICOLON;
 		} else if (block.type === TYPE_BLOCK) {
-			buffer += print_block(block, indent_level);
+			buffer += print_block(block);
 		}
 
 		return buffer;
@@ -345,10 +342,9 @@ export function format(css, { minify = false } = {}) {
 
 	/**
 	 * @param {import('css-tree').Declaration} node
-	 * @param {number} indent_level
 	 * @returns {string} A formatted Declaration
 	 */
-	function print_declaration(node, indent_level) {
+	function print_declaration(node) {
 		let property = node.property;
 
 		// Lowercase the property, unless it's a custom property (starts with --)
@@ -483,10 +479,9 @@ export function format(css, { minify = false } = {}) {
 
 	/**
 	 * @param {import('css-tree').CssNode} node
-	 * @param {number} indent_level
 	 * @returns {string} A formatted Stylesheet
 	 */
-	function print(node, indent_level) {
+	function print(node) {
 		let buffer = EMPTY_STRING;
 
 		/** @type {import('css-tree').List<import('css-tree').CssNode>} */
@@ -495,9 +490,9 @@ export function format(css, { minify = false } = {}) {
 
 		children.forEach((child, item) => {
 			if (child.type === TYPE_RULE) {
-				buffer += print_rule(child, indent_level);
+				buffer += print_rule(child);
 			} else if (child.type === TYPE_ATRULE) {
-				buffer += print_atrule(child, indent_level);
+				buffer += print_atrule(child);
 			} else {
 				buffer += print_unknown(child, indent_level);
 			}
@@ -510,7 +505,7 @@ export function format(css, { minify = false } = {}) {
 		return buffer;
 	}
 
-	return print(ast, 0);
+	return print(ast);
 }
 
 /**
