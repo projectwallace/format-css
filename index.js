@@ -14,22 +14,6 @@ const TYPE_DECLARATION = 'Declaration'
 const TYPE_OPERATOR = 'Operator'
 
 /**
- * Check if a string contains uppercase characters
- * @param {string} str
- */
-function is_uppercase(str) {
-	return /[A-Z]/.test(str)
-}
-
-/** @param {string} str */
-function lowercase(str) {
-	if (is_uppercase(str)) {
-		return str.toLowerCase()
-	}
-	return str
-}
-
-/**
  * @typedef {Object} Options
  * @property {boolean} [minify] Whether to minify the CSS or keep it formatted
  *
@@ -150,7 +134,7 @@ export function format(css, { minify = false } = {}) {
 				}
 				case 'PseudoElementSelector': {
 					buffer += COLON + COLON
-					buffer += lowercase(child.name)
+					buffer += child.name.toLowerCase()
 					break
 				}
 				case 'PseudoClassSelector': {
@@ -158,7 +142,7 @@ export function format(css, { minify = false } = {}) {
 
 					// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
 					// as `:before` and `:after`, but we want to keep them as `::before` and `::after`
-					let pseudo = lowercase(child.name)
+					let pseudo = child.name.toLowerCase()
 
 					if (pseudo === 'before' || pseudo === 'after') {
 						buffer += COLON
@@ -301,7 +285,7 @@ export function format(css, { minify = false } = {}) {
 		let buffer = indent(indent_level) + '@'
 		let prelude = node.prelude
 		let block = node.block
-		buffer += lowercase(node.name)
+		buffer += node.name.toLowerCase()
 
 		// @font-face has no prelude
 		if (prelude !== null) {
@@ -347,7 +331,7 @@ export function format(css, { minify = false } = {}) {
 		// Lowercase the property, unless it's a custom property (starts with --)
 		if (!(property.charCodeAt(0) === 45 && property.charCodeAt(1) === 45)) {
 			// 45 == '-'
-			property = lowercase(property)
+			property = property.toLowerCase()
 		}
 
 		let value = print_value(node.value)
@@ -444,7 +428,7 @@ export function format(css, { minify = false } = {}) {
 
 	/** @param {import('css-tree').Dimension} node */
 	function print_dimension(node) {
-		return node.value + lowercase(node.unit)
+		return node.value + node.unit.toLowerCase()
 	}
 
 	/**
@@ -462,7 +446,7 @@ export function format(css, { minify = false } = {}) {
 	 * @param {import('css-tree').FunctionNode} node
 	 */
 	function print_function(node) {
-		return lowercase(node.name) + '(' + print_list(node.children) + ')'
+		return node.name.toLowerCase() + '(' + print_list(node.children) + ')'
 	}
 
 	/**
