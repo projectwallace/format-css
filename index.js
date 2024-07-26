@@ -65,10 +65,7 @@ export function format(css, { minify = false } = {}) {
 	function substr(node) {
 		let loc = node.loc
 		if (!loc) return EMPTY_STRING
-
-		let start = loc.start
-		let end = loc.end
-		return css.slice(start.offset, end.offset)
+		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
 	/**
@@ -110,9 +107,8 @@ export function format(css, { minify = false } = {}) {
 	 */
 	function print_selectorlist(node) {
 		let buffer = EMPTY_STRING
-		let children = node.children
 
-		children.forEach((selector, item) => {
+		node.children.forEach((selector, item) => {
 			if (selector.type === TYPE_SELECTOR) {
 				buffer += print_selector(selector)
 			}
@@ -152,7 +148,7 @@ export function format(css, { minify = false } = {}) {
 					buffer += COLON
 
 					// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
-					// as `:before` and `:after`, but we want to keep them as `::before` and `::after`
+					// as `:before` and `:after`, but we want to print them as `::before` and `::after`
 					let pseudo = lowercase(child.name)
 
 					if (pseudo === 'before' || pseudo === 'after') {
@@ -353,7 +349,7 @@ export function format(css, { minify = false } = {}) {
 		}
 
 		// Hacky: add a space in case of a `space toggle` during minification
-		if (value === EMPTY_STRING && OPTIONAL_SPACE === EMPTY_STRING) {
+		if (value === EMPTY_STRING && minify) {
 			value += SPACE
 		}
 
