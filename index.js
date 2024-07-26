@@ -13,17 +13,10 @@ const TYPE_SELECTOR = 'Selector'
 const TYPE_DECLARATION = 'Declaration'
 const TYPE_OPERATOR = 'Operator'
 
-/**
- * Check if a string contains uppercase characters
- * @param {string} str
- */
-function is_uppercase(str) {
-	return /[A-Z]/.test(str)
-}
-
 /** @param {string} str */
 function lowercase(str) {
-	if (is_uppercase(str)) {
+	// Only create new strings in memory if we need to
+	if (/[A-Z]/.test(str)) {
 		return str.toLowerCase()
 	}
 	return str
