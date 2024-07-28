@@ -17,21 +17,19 @@
     "build": "vite build",
     "test": "c8 --reporter=lcov uvu",
     "check": "tsc",
-    "lint": "oxlint -D perf",
     "prettier": "prettier --check index.js test/**/*.js"
   },
   "devDependencies": {
-    "@codecov/vite-plugin": "^0.0.1-beta.8",
+    "@codecov/vite-plugin": "^0.0.1-beta.10",
     "@codspeed/tinybench-plugin": "^3.1.0",
     "@types/css-tree": "^2.3.4",
-    "c8": "^9.1.0",
-    "oxlint": "^0.2.8",
+    "c8": "^10.1.2",
     "prettier": "^3.3.3",
     "tinybench": "^2.8.0",
     "typescript": "^5.3.3",
     "uvu": "^0.5.6",
     "vite": "^5.2.11",
-    "vite-plugin-dts": "^3.9.1"
+    "vite-plugin-dts": "^4.0.0-beta.1"
   },
   "dependencies": {
     "css-tree": "^2.3.1"
