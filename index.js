@@ -110,7 +110,7 @@ export function format(css, { minify = false } = {}) {
 
 		node.children.forEach((selector, item) => {
 			if (selector.type === TYPE_SELECTOR) {
-				buffer += print_selector(selector)
+				buffer += indent(indent_level) + print_simple_selector(selector)
 			}
 
 			if (item.next !== null) {
@@ -221,14 +221,6 @@ export function format(css, { minify = false } = {}) {
 	}
 
 	/**
-	 * @param {import('css-tree').Selector} node
-	 * @returns {string} A formatted Selector
-	 */
-	function print_selector(node) {
-		return indent(indent_level) + print_simple_selector(node)
-	}
-
-	/**
 	 * @param {import('css-tree').Block} node
 	 * @returns {string} A formatted Block
 	 */
@@ -294,7 +286,7 @@ export function format(css, { minify = false } = {}) {
 		let block = node.block
 		buffer += lowercase(node.name)
 
-		// @font-face has no prelude
+		// @font-face and anonymous @layer have no prelude
 		if (prelude !== null) {
 			buffer += SPACE + print_prelude(prelude)
 		}
@@ -366,9 +358,9 @@ export function format(css, { minify = false } = {}) {
 			if (node.type === 'Identifier') {
 				buffer += node.name
 			} else if (node.type === 'Function') {
-				buffer += print_function(node)
+				buffer += lowercase(node.name) + OPEN_PARENTHESES + print_list(node.children) + CLOSE_PARENTHESES
 			} else if (node.type === 'Dimension') {
-				buffer += print_dimension(node)
+				buffer += node.value + lowercase(node.unit)
 			} else if (node.type === 'Value') {
 				// Values can be inside var() as fallback
 				// var(--prop, VALUE)
@@ -433,11 +425,6 @@ export function format(css, { minify = false } = {}) {
 		return buffer
 	}
 
-	/** @param {import('css-tree').Dimension} node */
-	function print_dimension(node) {
-		return node.value + lowercase(node.unit)
-	}
-
 	/**
 	 * @param {import('css-tree').Value | import('css-tree').Raw} node
 	 */
@@ -447,13 +434,6 @@ export function format(css, { minify = false } = {}) {
 		}
 
 		return print_list(node.children)
-	}
-
-	/**
-	 * @param {import('css-tree').FunctionNode} node
-	 */
-	function print_function(node) {
-		return lowercase(node.name) + OPEN_PARENTHESES + print_list(node.children) + CLOSE_PARENTHESES
 	}
 
 	/**
