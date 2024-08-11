@@ -64,17 +64,18 @@ export function format(css, { minify = false } = {}) {
 	 */
 	function substr(node) {
 		let loc = node.loc
-		if (!loc) return EMPTY_STRING
+		// @ts-expect-error We're not checking for loc, but it's always there
 		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
 	/**
 	 * @param {import('css-tree').CssNode} node
 	 * @returns A portion of the CSS
+	 * @todo We can ditch this function and use `substr` directly
 	 */
 	function substr_raw(node) {
 		let loc = node.loc
-		if (!loc) return EMPTY_STRING
+		// @ts-expect-error We're not checking for loc, but it's always there
 		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
@@ -369,6 +370,9 @@ export function format(css, { minify = false } = {}) {
 				buffer += print_operator(node)
 			} else if (node.type === 'Parentheses') {
 				buffer += OPEN_PARENTHESES + print_list(node.children) + CLOSE_PARENTHESES
+			} else if (node.type === 'WhiteSpace') {
+				let length = node.value.length
+				buffer += SPACE.repeat(length - 1)
 			} else {
 				buffer += substr(node)
 			}
