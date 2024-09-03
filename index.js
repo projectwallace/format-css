@@ -219,8 +219,8 @@ export function format(css, { minify = false } = {}) {
 
 					if (child.matcher && child.value) {
 						buffer += child.matcher
-
 						buffer += QUOTE
+
 						if (child.value.type === 'String') {
 							buffer += child.value.value
 						} else if (child.value.type === 'Identifier') {
