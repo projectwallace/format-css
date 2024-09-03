@@ -137,4 +137,27 @@ test('formats multiline selectors', () => {
 	assert.is(actual, expected)
 })
 
+test('forces attribute selectors to have quoted values', () => {
+	let actual = format(`
+		[title=foo],
+		[title="bar"],
+		[title='baz'] {}
+	`)
+	let expected = `[title="foo"],
+[title="bar"],
+[title="baz"] {}`
+	assert.is(actual, expected)
+})
+
+test('adds a space before attribute selector flags', () => {
+	let actual = format(`
+		[title="foo" i],
+		[title="baz"i],
+		[title=foo i] {}
+	`)
+	let expected = `[title="foo" i],
+[title="baz" i],
+[title="foo" i] {}`
+	assert.is(actual, expected)
+})
 test.run()

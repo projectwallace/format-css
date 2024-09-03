@@ -5,8 +5,11 @@ const SPACE = ' '
 const EMPTY_STRING = ''
 const COLON = ':'
 const SEMICOLON = ';'
+const QUOTE = '"'
 const OPEN_PARENTHESES = '('
 const CLOSE_PARENTHESES = ')'
+const OPEN_BRACKET = '['
+const CLOSE_BRACKET = ']'
 const TYPE_ATRULE = 'Atrule'
 const TYPE_RULE = 'Rule'
 const TYPE_BLOCK = 'Block'
@@ -208,6 +211,29 @@ export function format(css, { minify = false } = {}) {
 						// @ts-expect-error Typing of child.selector is SelectorList, which doesn't seem to be correct
 						buffer += SPACE + 'of' + SPACE + print_simple_selector(child.selector)
 					}
+					break
+				}
+				case 'AttributeSelector': {
+					buffer += OPEN_BRACKET
+					buffer += child.name.name
+
+					if (child.matcher && child.value) {
+						buffer += child.matcher
+
+						buffer += QUOTE
+						if (child.value.type === 'String') {
+							buffer += child.value.value
+						} else if (child.value.type === 'Identifier') {
+							buffer += child.value.name
+						}
+						buffer += QUOTE
+					}
+
+					if (child.flags) {
+						buffer += SPACE + child.flags
+					}
+
+					buffer += CLOSE_BRACKET
 					break
 				}
 				default: {
