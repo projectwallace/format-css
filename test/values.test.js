@@ -263,4 +263,28 @@ test('does not break space toggles (minified)', () => {
 	assert.is(actual, expected)
 })
 
+test('adds quotes around strings in url()', () => {
+	let actual = format(`a {
+		background-image: url("star.gif");
+		list-style-image: url('../images/bullet.jpg');
+		content: url("pdficon.jpg");
+		cursor: url(mycursor.cur);
+		border-image-source: url(/media/diamonds.png);
+		src: url('fantasticfont.woff');
+		offset-path: url(#path);
+		mask-image: url("masks.svg#mask1");
+	}`)
+	let expected = `a {
+	background-image: url("star.gif");
+	list-style-image: url("../images/bullet.jpg");
+	content: url("pdficon.jpg");
+	cursor: url("mycursor.cur");
+	border-image-source: url("/media/diamonds.png");
+	src: url("fantasticfont.woff");
+	offset-path: url("#path");
+	mask-image: url("masks.svg#mask1");
+}`
+	assert.is(actual, expected)
+})
+
 test.run()

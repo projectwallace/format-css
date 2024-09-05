@@ -395,6 +395,8 @@ export function format(css, { minify = false } = {}) {
 				buffer += print_operator(node)
 			} else if (node.type === 'Parentheses') {
 				buffer += OPEN_PARENTHESES + print_list(node.children) + CLOSE_PARENTHESES
+			} else if (node.type === 'Url') {
+				buffer += 'url(' + QUOTE + node.value + QUOTE + CLOSE_PARENTHESES
 			} else {
 				buffer += substr(node)
 			}

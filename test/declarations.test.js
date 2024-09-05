@@ -30,7 +30,7 @@ test('Declarations end with a semicolon (;)', () => {
 		}
 	`)
 	let expected = `@font-face {
-	src: url('test');
+	src: url("test");
 	font-family: Test;
 }
 
