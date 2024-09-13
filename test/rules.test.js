@@ -129,13 +129,6 @@ test('no trailing newline on empty nested rule', () => {
 	assert.equal(actual, expected)
 })
 
-test('formats :lang correctly', () => {
-	let actual = format(`:lang("nl","de"),li:nth-child() {}`)
-	let expected = `:lang("nl","de"),
-li:nth-child() {}`
-	assert.equal(actual, expected)
-})
-
 test('formats nested rules with selectors starting with', () => {
 	let actual = format(`
 		selector {

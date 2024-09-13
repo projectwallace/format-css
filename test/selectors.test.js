@@ -160,4 +160,12 @@ test('adds a space before attribute selector flags', () => {
 [title="foo" i] {}`
 	assert.is(actual, expected)
 })
+
+test('formats :lang correctly', () => {
+	let actual = format(`:lang("nl","de"),li:nth-child() {}`)
+	let expected = `:lang("nl","de"),
+li:nth-child() {}`
+	assert.equal(actual, expected)
+})
+
 test.run()
