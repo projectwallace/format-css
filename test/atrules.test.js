@@ -54,12 +54,50 @@ test('Atrule blocks are surrounded by {} with correct spacing and indentation', 
 	assert.equal(actual, expected)
 })
 
+test('adds whitespace between prelude and {', () => {
+	let actual = format(`@media all{}`)
+	let expected = `@media all {}`
+	assert.equal(actual, expected)
+})
+
+test('collapses whitespaces in prelude', () => {
+	let actual = format(`@media all   and   (min-width: 1000px) {}`)
+	let expected = `@media all and (min-width: 1000px) {}`
+	assert.equal(actual, expected)
+})
+
+test('adds whitespace to @media (min-width:1000px)', () => {
+	let actual = format(`@media (min-width:1000px) {}`)
+	let expected = `@media (min-width: 1000px) {}`
+	assert.equal(actual, expected)
+})
+
+test('removes excess whitespace around min-width : 1000px', () => {
+	let actual = format(`@media (min-width : 1000px) {}`)
+	let expected = `@media (min-width: 1000px) {}`
+	assert.equal(actual, expected)
+})
+
+test('formats @layer with excess whitespace', () => {
+	let actual = format(`@layer    test;`)
+	let expected = `@layer test;`
+	assert.equal(actual, expected)
+})
+
+test('adds whitespace to @layer tbody,thead', () => {
+	let actual = format(`@layer tbody,thead;`)
+	let expected = `@layer tbody, thead;`
+	assert.equal(actual, expected)
+})
+
+test('adds whitespace to @supports (display:grid)', () => {
+	let actual = format(`@supports (display:grid){}`)
+	let expected = `@supports (display: grid) {}`
+	assert.equal(actual, expected)
+})
+
 test('@media prelude formatting', () => {
 	let fixtures = [
-		[`@media all{}`, `@media all {}`],
-		[`@media all   and print{}`, `@media all and print {}`],
-		[`@media (min-width:1000px){}`, `@media (min-width: 1000px) {}`],
-		[`@media (min-width : 1000px) {}`, `@media (min-width: 1000px) {}`],
 		[`@media all and (transform-3d) {}`, `@media all and (transform-3d) {}`],
 		[
 			`@media only screen and (min-width: 1024px)and (max-width: 1439px), only screen and (min-width: 768px)and (max-width: 1023px) {}`,
@@ -70,10 +108,6 @@ test('@media prelude formatting', () => {
 		[`@media screen or print {}`, `@media screen or print {}`],
 		[`@media (update: slow) or (hover: none) {}`, `@media (update: slow) or (hover: none) {}`],
 		[`@media (update: slow)or (hover: none) {}`, `@media (update: slow) or (hover: none) {}`],
-		[`@layer    test;`, `@layer test;`],
-		[`@layer tbody,thead;`, `@layer tbody, thead;`],
-		[`@supports (display:grid){}`, `@supports (display: grid) {}`],
-		[`@supports (-webkit-appearance: none) {}`, `@supports (-webkit-appearance: none) {}`],
 		[
 			`@media all and (-moz-images-in-menus:0) and (min-resolution:.001dpcm) {}`,
 			`@media all and (-moz-images-in-menus: 0) and (min-resolution: .001dpcm) {}`,
@@ -82,10 +116,6 @@ test('@media prelude formatting', () => {
 			`@media all and (-webkit-min-device-pixel-ratio: 10000),not all and (-webkit-min-device-pixel-ratio: 0) {}`,
 			`@media all and (-webkit-min-device-pixel-ratio: 10000), not all and (-webkit-min-device-pixel-ratio: 0) {}`,
 		],
-		['@supports selector([popover]:open) {}', '@supports selector([popover]:open) {}'],
-		['@import url("fineprint.css") print;', '@import url("fineprint.css") print;'],
-		['@import url("style.css") layer;', '@import url("style.css") layer;'],
-		['@import url("style.css") layer(test.first) supports(display:grid);', '@import url("style.css") layer(test.first) supports(display: grid);'],
 	]
 
 	for (let [css, expected] of fixtures) {
@@ -94,7 +124,7 @@ test('@media prelude formatting', () => {
 	}
 })
 
-test.skip('lowercases functions inside atrule preludes', () => {
+test('lowercases functions inside atrule preludes', () => {
 	let actual = format(`
 @import URL("style.css") LAYER(test) SUPPORTS(display:grid);
 @supports SELECTOR([popover]:open) {}
@@ -116,12 +146,37 @@ test('formats @scope', () => {
 	assert.equal(actual, expected)
 })
 
-test.skip('calc() inside @media', () => {
+test('calc() inside @media', () => {
 	let actual = format(`
-		@media (min-width: calc(300px* 3)) {}
+		@media (min-width: calc(1px*1)) {}
+		@media (min-width: calc(2px* 2)) {}
+		@media (min-width: calc(3px *3)) {}
+		@media (min-width: calc(4px * 4)) {}
+		@media (min-width: calc(5px  *  5)) {}
 	`)
-	let expected = `@media (min-width: calc(300px * 3)) {}`
+	let expected = `@media (min-width: calc(1px * 1)) {}
+
+@media (min-width: calc(2px * 2)) {}
+
+@media (min-width: calc(3px * 3)) {}
+
+@media (min-width: calc(4px * 4)) {}
+
+@media (min-width: calc(5px * 5)) {}`
 	assert.equal(actual, expected)
+})
+
+test('@import prelude formatting', () => {
+	let fixtures = [
+		['@import url("fineprint.css") print;', '@import url("fineprint.css") print;'],
+		['@import url("style.css") layer;', '@import url("style.css") layer;'],
+		['@import url("style.css") layer(test.first) supports(display:grid);', '@import url("style.css") layer(test.first) supports(display: grid);'],
+	]
+
+	for (let [css, expected] of fixtures) {
+		let actual = format(css)
+		assert.equal(actual, expected)
+	}
 })
 
 test('@supports prelude formatting', () => {
