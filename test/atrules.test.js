@@ -83,12 +83,37 @@ test('@media prelude formatting', () => {
 			`@media all and (-webkit-min-device-pixel-ratio: 10000), not all and (-webkit-min-device-pixel-ratio: 0) {}`,
 		],
 		['@supports selector([popover]:open) {}', '@supports selector([popover]:open) {}'],
+		['@import url("fineprint.css") print;', '@import url("fineprint.css") print;'],
+		['@import url("style.css") layer;', '@import url("style.css") layer;'],
+		['@import url("style.css") layer(test.first) supports(display:grid);', '@import url("style.css") layer(test.first) supports(display: grid);'],
 	]
 
 	for (let [css, expected] of fixtures) {
 		let actual = format(css)
 		assert.equal(actual, expected)
 	}
+})
+
+test.skip('lowercases functions inside atrule preludes', () => {
+	let actual = format(`
+@import URL("style.css") LAYER(test) SUPPORTS(display:grid);
+@supports SELECTOR([popover]:open) {}
+`)
+	let expected = `@import url("style.css") layer(test) supports(display: grid);
+
+@supports selector([popover]:open) {}`
+	assert.equal(actual, expected)
+})
+
+test('formats @scope', () => {
+	let actual = format(`
+		@scope (.light-scheme) {}
+		@scope (.media-object) to (.content > *) {}
+`)
+	let expected = `@scope (.light-scheme) {}
+
+@scope (.media-object) to (.content > *) {}`
+	assert.equal(actual, expected)
 })
 
 test.skip('calc() inside @media', () => {
