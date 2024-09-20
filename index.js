@@ -75,9 +75,6 @@ export function format(css, { minify = false } = {}) {
 
 		if (prelude.type === TYPE_SELECTORLIST) {
 			buffer = print_selectorlist(prelude)
-		} else {
-			// In case parsing the selector list fails we'll print it as-is
-			buffer = print_unknown(prelude, indent_level)
 		}
 
 		if (block.type === TYPE_BLOCK) {
