@@ -67,13 +67,6 @@ export function format(css, { minify = false } = {}) {
 		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
-	/** @param {import('css-tree').CssNode} node */
-	function substr_raw(node) {
-		let loc = node.loc
-		if (!loc) return EMPTY_STRING
-		return css.slice(loc.start.offset, loc.end.offset)
-	}
-
 	/** @param {import('css-tree').Rule} node */
 	function print_rule(node) {
 		let buffer
@@ -442,7 +435,7 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted unknown CSS string
 	 */
 	function print_unknown(node, indent_level) {
-		return indent(indent_level) + substr_raw(node).trim()
+		return indent(indent_level) + substr(node).trim()
 	}
 
 	/** @param {import('css-tree').CssNode} node */
