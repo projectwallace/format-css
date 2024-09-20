@@ -12,7 +12,7 @@ for (let filename of filelist) {
 	let byte_size = (Buffer.byteLength(css) / 1024).toFixed(1)
 	bench.add(`${filename} (${byte_size}kB)`, () => format(css))
 
-	if (filename.includes('nerdy')) {
+	if (filename.includes('syntax')) {
 		bench.add(`minify ${filename} (${byte_size}kB)`, () => minify(css))
 	}
 }
