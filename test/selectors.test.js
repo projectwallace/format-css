@@ -168,4 +168,16 @@ li:nth-child() {}`
 	assert.equal(actual, expected)
 })
 
+test('formats unknown pseudos correctly', () => {
+	let actual = format(`
+		::foo-bar,
+		:unkown-thing(),
+		:unnowkn(kjsa.asddk,asd) {}
+	`)
+	let expected = `::foo-bar,
+:unkown-thing(),
+:unnowkn(kjsa.asddk,asd) {}`
+	assert.equal(actual, expected)
+})
+
 test.run()
