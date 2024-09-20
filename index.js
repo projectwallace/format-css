@@ -54,36 +54,27 @@ export function format(css, { minify = false } = {}) {
 	/**
 	 * Indent a string
 	 * @param {number} size
-	 * @returns A string with {size} tabs
+	 * @returns {string} A string with {size} tabs
 	 */
 	function indent(size) {
 		return minify ? EMPTY_STRING : '\t'.repeat(size)
 	}
 
-	/**
-	 * @param {import('css-tree').CssNode} node
-	 * @returns A portion of the CSS
-	 */
+	/** @param {import('css-tree').CssNode} node */
 	function substr(node) {
 		let loc = node.loc
 		if (!loc) return EMPTY_STRING
 		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
-	/**
-	 * @param {import('css-tree').CssNode} node
-	 * @returns A portion of the CSS
-	 */
+	/** @param {import('css-tree').CssNode} node */
 	function substr_raw(node) {
 		let loc = node.loc
 		if (!loc) return EMPTY_STRING
 		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
-	/**
-	 * @param {import('css-tree').Rule} node
-	 * @returns {string} A formatted Rule
-	 */
+	/** @param {import('css-tree').Rule} node */
 	function print_rule(node) {
 		let buffer
 		let prelude = node.prelude
@@ -103,10 +94,7 @@ export function format(css, { minify = false } = {}) {
 		return buffer
 	}
 
-	/**
-	 * @param {import('css-tree').SelectorList} node
-	 * @returns {string} A formatted SelectorList
-	 */
+	/** @param {import('css-tree').SelectorList} node */
 	function print_selectorlist(node) {
 		let buffer = EMPTY_STRING
 
@@ -123,9 +111,7 @@ export function format(css, { minify = false } = {}) {
 		return buffer
 	}
 
-	/**
-	 * @param {import('css-tree').Selector|import('css-tree').PseudoClassSelector} node
-	 */
+	/** @param {import('css-tree').Selector|import('css-tree').PseudoClassSelector} node */
 	function print_simple_selector(node) {
 		let buffer = EMPTY_STRING
 		let children = node.children || []
@@ -245,10 +231,7 @@ export function format(css, { minify = false } = {}) {
 		return buffer
 	}
 
-	/**
-	 * @param {import('css-tree').Block} node
-	 * @returns {string} A formatted Block
-	 */
+	/** @param {import('css-tree').Block} node */
 	function print_block(node) {
 		let children = node.children
 		let buffer = OPTIONAL_SPACE
@@ -301,10 +284,7 @@ export function format(css, { minify = false } = {}) {
 		return buffer
 	}
 
-	/**
-	 * @param {import('css-tree').Atrule} node
-	 * @returns {string} A formatted Atrule
-	 */
+	/** @param {import('css-tree').Atrule} node */
 	function print_atrule(node) {
 		let buffer = indent(indent_level) + '@'
 		let prelude = node.prelude
@@ -348,10 +328,7 @@ export function format(css, { minify = false } = {}) {
 
 	}
 
-	/**
-	 * @param {import('css-tree').Declaration} node
-	 * @returns {string} A formatted Declaration
-	 */
+	/** @param {import('css-tree').Declaration} node */
 	function print_declaration(node) {
 		let property = node.property
 
@@ -376,9 +353,7 @@ export function format(css, { minify = false } = {}) {
 		return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value
 	}
 
-	/**
-	 * @param {import('css-tree').List<import('css-tree').CssNode>} children
-	 */
+	/** @param {import('css-tree').List<import('css-tree').CssNode>} children */
 	function print_list(children) {
 		let buffer = EMPTY_STRING
 
@@ -416,10 +391,7 @@ export function format(css, { minify = false } = {}) {
 		return buffer
 	}
 
-	/**
-	 * @param {import('css-tree').Operator} node
-	 * @returns {string} A formatted Operator
-	 */
+	/** @param {import('css-tree').Operator} node */
 	function print_operator(node) {
 		let buffer = EMPTY_STRING
 		// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
@@ -455,9 +427,7 @@ export function format(css, { minify = false } = {}) {
 		return buffer
 	}
 
-	/**
-	 * @param {import('css-tree').Value | import('css-tree').Raw} node
-	 */
+	/** @param {import('css-tree').Value | import('css-tree').Raw} node */
 	function print_value(node) {
 		if (node.type === 'Raw') {
 			return print_unknown(node, 0)
@@ -475,10 +445,7 @@ export function format(css, { minify = false } = {}) {
 		return indent(indent_level) + substr_raw(node).trim()
 	}
 
-	/**
-	 * @param {import('css-tree').CssNode} node
-	 * @returns {string} A formatted Stylesheet
-	 */
+	/** @param {import('css-tree').CssNode} node */
 	function print(node) {
 		let buffer = EMPTY_STRING
 
