@@ -45,7 +45,6 @@ export function format(css, { minify = false } = {}) {
 		parseValue: true,
 	})
 
-	const TAB = minify ? EMPTY_STRING : '\t'
 	const NEWLINE = minify ? EMPTY_STRING : '\n'
 	const OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE
 	const LAST_SEMICOLON = minify ? EMPTY_STRING : SEMICOLON
@@ -58,7 +57,7 @@ export function format(css, { minify = false } = {}) {
 	 * @returns A string with {size} tabs
 	 */
 	function indent(size) {
-		return TAB.repeat(size)
+		return minify ? EMPTY_STRING : '\t'.repeat(size)
 	}
 
 	/**
