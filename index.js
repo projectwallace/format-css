@@ -112,14 +112,6 @@ export function format(css, { minify = false } = {}) {
 					buffer += lowercase(child.name)
 					break
 				}
-				case 'IdSelector': {
-					buffer += '#' + child.name
-					break
-				}
-				case 'ClassSelector': {
-					buffer += '.' + child.name
-					break
-				}
 				case 'Combinator': {
 					// putting spaces around `child.name` (+ > ~ or ' '), unless the combinator is ' '
 					buffer += SPACE
