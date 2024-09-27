@@ -56,6 +56,18 @@ a > b ~ c d,
 	assert.equal(actual, expected)
 })
 
+test('lowercases type selectors', () => {
+	let actual = format(`
+		A,
+		B,
+		C {}
+	`)
+	let expected = `a,
+b,
+c {}`
+	assert.equal(actual, expected)
+})
+
 test('formats nested selector combinators', () => {
 	let fixtures = [
 		[`:where(a+b) {}`, `:where(a + b) {}`],
