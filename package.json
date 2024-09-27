@@ -32,7 +32,8 @@
     "vite-plugin-dts": "^4.0.0-beta.1"
   },
   "dependencies": {
-    "css-tree": "^3.0.0"
+    "css-tree": "^3.0.0",
+    "string-byte-slice": "^3.0.0"
   },
   "files": [
     "dist"

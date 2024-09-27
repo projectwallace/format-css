@@ -1,5 +1,6 @@
 // @ts-expect-error Typing of css-tree is incomplete
 import parse from 'css-tree/parser'
+import stringByteSlice from 'string-byte-slice'
 
 const SPACE = ' '
 const EMPTY_STRING = ''
@@ -64,7 +65,7 @@ export function format(css, { minify = false } = {}) {
 	function substr(node) {
 		let loc = node.loc
 		if (!loc) return EMPTY_STRING
-		return css.slice(loc.start.offset, loc.end.offset)
+		return stringByteSlice(css, loc.start.offset, loc.end.offset)
 	}
 
 	/** @param {import('css-tree').Rule} node */
