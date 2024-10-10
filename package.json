@@ -2,6 +2,13 @@
   "name": "@projectwallace/format-css",
   "version": "1.4.3",
   "description": "Fast, small, zero-config library to format CSS with basic rules.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/projectwallace/format-css.git"
+  },
+  "homepage": "https://github.com/projectwallace/format-css",
+  "issues": "https://github.com/projectwallace/format-css/issues",
+  "license": "MIT",
   "type": "module",
   "source": "index.js",
   "exports": {
