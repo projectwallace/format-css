@@ -319,7 +319,6 @@ export function format(css, { minify = false } = {}) {
 			.replace(/calc\(([^*]*)\*([^*])/g, 'calc($1 * $2') // force correct whitespace around * in calc()
 			.replace(/\s+/g, SPACE) // collapse multiple whitespaces into one
 			.replace(/selector|url|supports|layer\(/ig, (match) => lowercase(match)) // lowercase function names
-
 	}
 
 	/** @param {import('css-tree').Declaration} node */
@@ -439,32 +438,26 @@ export function format(css, { minify = false } = {}) {
 		return indent(indent_level) + substr(node).trim()
 	}
 
-	/** @param {import('css-tree').CssNode} node */
-	function print(node) {
-		let buffer = EMPTY_STRING
+	/** @type {import('css-tree').List<import('css-tree').CssNode>} */
+	// @ts-expect-error Property 'children' does not exist on type 'AnPlusB', but we're never using that
+	let children = ast.children
+	let buffer = EMPTY_STRING
 
-		/** @type {import('css-tree').List<import('css-tree').CssNode>} */
-		// @ts-expect-error Property 'children' does not exist on type 'AnPlusB', but we're never using that
-		let children = node.children
+	children.forEach((child, item) => {
+		if (child.type === TYPE_RULE) {
+			buffer += print_rule(child)
+		} else if (child.type === TYPE_ATRULE) {
+			buffer += print_atrule(child)
+		} else {
+			buffer += print_unknown(child, indent_level)
+		}
 
-		children.forEach((child, item) => {
-			if (child.type === TYPE_RULE) {
-				buffer += print_rule(child)
-			} else if (child.type === TYPE_ATRULE) {
-				buffer += print_atrule(child)
-			} else {
-				buffer += print_unknown(child, indent_level)
-			}
+		if (item.next !== null) {
+			buffer += NEWLINE + NEWLINE
+		}
+	})
 
-			if (item.next !== null) {
-				buffer += NEWLINE + NEWLINE
-			}
-		})
-
-		return buffer
-	}
-
-	return print(ast)
+	return buffer
 }
 
 /**
