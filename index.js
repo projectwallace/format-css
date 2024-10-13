@@ -10,6 +10,9 @@ const OPEN_PARENTHESES = '('
 const CLOSE_PARENTHESES = ')'
 const OPEN_BRACKET = '['
 const CLOSE_BRACKET = ']'
+const OPEN_BRACE = '{'
+const CLOSE_BRACE = '}'
+const EMPTY_BLOCK = '{}'
 const TYPE_ATRULE = 'Atrule'
 const TYPE_RULE = 'Rule'
 const TYPE_BLOCK = 'Block'
@@ -37,12 +40,18 @@ function lowercase(str) {
  * @returns {string} The formatted CSS
  */
 export function format(css, { minify = false } = {}) {
+	/** @type {number[]} */
+	let comments = []
+
 	/** @type {import('css-tree').CssNode} */
 	let ast = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
 		parseCustomProperty: true,
 		parseValue: true,
+		onComment: (/** @type {string} */ _, /** @type {import('css-tree').CssLocation} */ position) => {
+			comments.push(position.start.offset, position.end.offset)
+		}
 	})
 
 	const NEWLINE = minify ? EMPTY_STRING : '\n'
@@ -67,6 +76,25 @@ export function format(css, { minify = false } = {}) {
 		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
+	/**
+	 * Get a comment from the CSS string after the first offset and before the second offset
+	 * @param {number | undefined} after After which offset to look for comments
+	 * @param {number | undefined} before Before which offset to look for comments
+	 * @returns {string | undefined} The comment string, if found
+	 */
+	function print_comment(after, before) {
+		if (after === undefined || before === undefined) return undefined
+		let buffer = ''
+		for (let i = 0; i < comments.length; i += 2) {
+			let start = comments[i]
+			if (start === undefined || start < after) continue
+			let end = comments[i + 1]
+			if (end === undefined || end > before) break
+			buffer += css.substring(start, end)
+		}
+		return buffer
+	}
+
 	/** @param {import('css-tree').Rule} node */
 	function print_rule(node) {
 		let buffer
@@ -75,6 +103,13 @@ export function format(css, { minify = false } = {}) {
 
 		if (prelude.type === TYPE_SELECTORLIST) {
 			buffer = print_selectorlist(prelude)
+		}
+
+		if (prelude.loc && block.loc) {
+			let after_prelude_comment = print_comment(prelude.loc.end.offset, block.loc.start.offset)
+			if (after_prelude_comment) {
+				buffer += NEWLINE + indent(indent_level) + after_prelude_comment
+			}
 		}
 
 		if (block.type === TYPE_BLOCK) {
@@ -88,13 +123,21 @@ export function format(css, { minify = false } = {}) {
 	function print_selectorlist(node) {
 		let buffer = EMPTY_STRING
 
-		node.children.forEach((selector, item) => {
+		node.children.forEach((selector, item, list) => {
 			if (selector.type === TYPE_SELECTOR) {
 				buffer += indent(indent_level) + print_simple_selector(selector)
 			}
 
 			if (item.next !== null) {
 				buffer += `,` + NEWLINE
+			}
+
+			if (selector.loc) {
+				let end_offset = item.next ? item.next.data.loc?.start.offset : list.last?.loc?.end.offset
+				let comment = print_comment(selector.loc?.end.offset, end_offset)
+				if (comment) {
+					buffer += indent(indent_level) + comment + NEWLINE
+				}
 			}
 		})
 
@@ -231,14 +274,38 @@ export function format(css, { minify = false } = {}) {
 		let buffer = OPTIONAL_SPACE
 
 		if (children.isEmpty) {
-			return buffer + '{}'
+			// Check is the block maybe contains comments
+			if (node.loc) {
+				let before_first_comment = print_comment(node.loc.start.offset, node.loc.end.offset)
+				if (before_first_comment) {
+					buffer += OPEN_BRACE + NEWLINE
+					buffer += indent(indent_level + 1) + before_first_comment + NEWLINE
+					buffer += indent(indent_level) + CLOSE_BRACE
+					return buffer
+				}
+			}
+			return buffer + EMPTY_BLOCK
 		}
 
-		buffer += '{' + NEWLINE
+		buffer += OPEN_BRACE + NEWLINE
 
 		indent_level++
 
+		if (node.loc) {
+			let before_first_comment = print_comment(node.loc.start.offset, children.first?.loc?.start.offset)
+			if (before_first_comment) {
+				buffer += indent(indent_level) + before_first_comment + NEWLINE
+			}
+		}
+
 		children.forEach((child, item) => {
+			if (child.loc && item.prev) {
+				let before_comment = print_comment(item.prev?.data.loc?.end.offset, child.loc.start.offset)
+				if (before_comment) {
+					buffer += indent(indent_level) + before_comment + NEWLINE
+				}
+			}
+
 			if (child.type === TYPE_DECLARATION) {
 				buffer += print_declaration(child)
 
@@ -268,12 +335,19 @@ export function format(css, { minify = false } = {}) {
 					buffer += NEWLINE
 				}
 			}
+
+			if (node.loc) {
+				let after_comment = print_comment(children.last?.loc?.end.offset, node.loc.end.offset)
+				if (after_comment) {
+					buffer += NEWLINE + indent(indent_level) + after_comment
+				}
+			}
 		})
 
 		indent_level--
 
 		buffer += NEWLINE
-		buffer += indent(indent_level) + '}'
+		buffer += indent(indent_level) + CLOSE_BRACE
 
 		return buffer
 	}
@@ -443,6 +517,13 @@ export function format(css, { minify = false } = {}) {
 	let children = ast.children
 	let buffer = EMPTY_STRING
 
+	if (ast.loc) {
+		let before_first_comment = print_comment(0, children.first?.loc?.start.offset)
+		if (before_first_comment) {
+			buffer += before_first_comment + NEWLINE
+		}
+	}
+
 	children.forEach((child, item) => {
 		if (child.type === TYPE_RULE) {
 			buffer += print_rule(child)
@@ -453,9 +534,27 @@ export function format(css, { minify = false } = {}) {
 		}
 
 		if (item.next !== null) {
-			buffer += NEWLINE + NEWLINE
+			buffer += NEWLINE
+		}
+
+		if (child.loc) {
+			let after_comment = print_comment(child.loc.end.offset, item.next?.data.loc?.start.offset)
+			if (after_comment) {
+				buffer += indent(indent_level) + after_comment
+			}
+		}
+
+		if (item.next !== null) {
+			buffer += NEWLINE
 		}
 	})
+
+	if (ast.loc) {
+		let after_last_comment = print_comment(children.last?.loc?.end.offset, ast.loc.end.offset)
+		if (after_last_comment) {
+			buffer += NEWLINE + after_last_comment
+		}
+	}
 
 	return buffer
 }

@@ -4,16 +4,6 @@ import { format } from '../index.js'
 
 let test = suite('Comments')
 
-test.skip('regular comment before rule', () => {
-	let actual = format(`
-	/* comment */
-	selector {}
-	`)
-	let expected = `/* comment */
-selector {}`
-	assert.is(actual, expected)
-})
-
 test('bang comment before rule', () => {
 	let actual = format(`
 	/*! comment */
@@ -22,6 +12,58 @@ test('bang comment before rule', () => {
 	let expected = `/*! comment */
 
 selector {}`
+	assert.is(actual, expected)
+})
+
+test('before selectors', () => {
+	let actual = format(`
+		/* comment */
+	selector1,
+	selector2 {
+		property: value;
+	}
+	`)
+	let expected = `/* comment */
+selector1,
+selector2 {
+	property: value;
+}`
+	assert.is(actual, expected)
+})
+
+test('before nested selectors', () => {
+	let actual = format(`
+		a {
+			/* comment */
+			& nested1,
+			& nested2 {
+				property: value;
+			}
+		}
+	`)
+	let expected = `a {
+	/* comment */
+	& nested1,
+	& nested2 {
+		property: value;
+	}
+}`
+	assert.is(actual, expected)
+})
+
+test('after selectors', () => {
+	let actual = format(`
+	selector1,
+	selector2
+	/* comment */ {
+		property: value;
+	}
+	`)
+	let expected = `selector1,
+selector2
+/* comment */ {
+	property: value;
+}`
 	assert.is(actual, expected)
 })
 
@@ -37,6 +79,26 @@ test('in between selectors', () => {
 /* comment */
 selector2 {
 	property: value;
+}`
+	assert.is(actual, expected)
+})
+
+test('in between nested selectors', () => {
+	let actual = format(`
+		a {
+			& nested1,
+			/* comment */
+			& nested2 {
+				property: value;
+			}
+		}
+	`)
+	let expected = `a {
+	& nested1,
+	/* comment */
+	& nested2 {
+		property: value;
+	}
 }`
 	assert.is(actual, expected)
 })
@@ -69,6 +131,24 @@ test('as last child in rule', () => {
 	assert.is(actual, expected)
 })
 
+test('as last child in nested rule', () => {
+	let actual = format(`
+	a {
+		& selector {
+			property: value;
+			/* comment */
+		}
+	}
+	`)
+	let expected = `a {
+	& selector {
+		property: value;
+		/* comment */
+	}
+}`
+	assert.is(actual, expected)
+})
+
 test('as only child in rule', () => {
 	let actual = format(`
 	selector {
@@ -77,6 +157,20 @@ test('as only child in rule', () => {
 	`)
 	let expected = `selector {
 	/* comment */
+}`
+	assert.is(actual, expected)
+})
+
+test('as only child in nested rule', () => {
+	let actual = format(`a {
+	& selector {
+		/* comment */
+	}
+}`)
+	let expected = `a {
+	& selector {
+		/* comment */
+	}
 }`
 	assert.is(actual, expected)
 })
@@ -97,6 +191,26 @@ test('in between declarations', () => {
 	assert.is(actual, expected)
 })
 
+test('in between nested declarations', () => {
+	let actual = format(`
+	a {
+		& selector {
+			property: value;
+			/* comment */
+			property: value;
+		}
+	}
+	`)
+	let expected = `a {
+	& selector {
+		property: value;
+		/* comment */
+		property: value;
+	}
+}`
+	assert.is(actual, expected)
+})
+
 test('as first child in atrule', () => {
 	let actual = format(`
 	@media (min-width: 1000px) {
@@ -110,6 +224,28 @@ test('as first child in atrule', () => {
 	/* comment */
 	selector {
 		property: value;
+	}
+}`
+	assert.is(actual, expected)
+})
+
+test('as first child in nested atrule', () => {
+	let actual = format(`
+	@media all {
+		@media (min-width: 1000px) {
+			/* comment */
+			selector {
+				property: value;
+			}
+		}
+	}
+	`)
+	let expected = `@media all {
+	@media (min-width: 1000px) {
+		/* comment */
+		selector {
+			property: value;
+		}
 	}
 }`
 	assert.is(actual, expected)
@@ -133,6 +269,28 @@ test('as last child in atrule', () => {
 	assert.is(actual, expected)
 })
 
+test('as last child in nested atrule', () => {
+	let actual = format(`
+	@media all {
+		@media (min-width: 1000px) {
+			selector {
+				property: value;
+			}
+			/* comment */
+		}
+	}
+	`)
+	let expected = `@media all {
+	@media (min-width: 1000px) {
+		selector {
+			property: value;
+		}
+		/* comment */
+	}
+}`
+	assert.is(actual, expected)
+})
+
 test('as only child in atrule', () => {
 	let actual = format(`
 	@media (min-width: 1000px) {
@@ -142,6 +300,46 @@ test('as only child in atrule', () => {
 	let expected = `@media (min-width: 1000px) {
 	/* comment */
 }`
+	assert.is(actual, expected)
+})
+
+test('as only child in nested atrule', () => {
+	let actual = format(`
+	@media all {
+		@media (min-width: 1000px) {
+			/* comment */
+		}
+	}
+	`)
+	let expected = `@media all {
+	@media (min-width: 1000px) {
+		/* comment */
+	}
+}`
+	assert.is(actual, expected)
+})
+
+test('in between rules and atrules', () => {
+	let actual = format(`
+	/* comment 1 */
+	selector {}
+	/* comment 2 */
+	@media (min-width: 1000px) {
+		/* comment 3 */
+		selector {}
+		/* comment 4 */
+	}
+	/* comment 5 */
+	`)
+	let expected = `/* comment 1 */
+selector {}
+/* comment 2 */
+@media (min-width: 1000px) {
+	/* comment 3 */
+	selector {}
+	/* comment 4 */
+}
+/* comment 5 */`
 	assert.is(actual, expected)
 })
 
