@@ -271,7 +271,6 @@ export function format(css, { minify = false } = {}) {
 	function print_block(node) {
 		let children = node.children
 		let buffer = OPTIONAL_SPACE
-		/** @type {import('css-tree').CssLocation} */
 		let loc = /** @type {import('css-tree').CssLocation} */ (node.loc)
 
 		if (children.isEmpty) {
