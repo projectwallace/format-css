@@ -4,6 +4,12 @@ import { format } from '../index.js'
 
 let test = suite('Comments')
 
+test('only comment', () => {
+	let actual = format(`/* comment */`)
+	let expected = `/* comment */`
+	assert.is(actual, expected)
+})
+
 test('bang comment before rule', () => {
 	let actual = format(`
 	/*! comment */
@@ -340,6 +346,42 @@ selector {}
 	/* comment 4 */
 }
 /* comment 5 */`
+	assert.is(actual, expected)
+})
+
+
+
+test('multiple comments in between rules and atrules', () => {
+	let actual = format(`
+	/* comment 1 */
+	/* comment 1.1 */
+	selector {}
+	/* comment 2 */
+	/* comment 2.1 */
+	@media (min-width: 1000px) {
+		/* comment 3 */
+		/* comment 3.1 */
+		selector {}
+		/* comment 4 */
+		/* comment 4.1 */
+	}
+	/* comment 5 */
+	/* comment 5.1 */
+	`)
+	let expected = `/* comment 1 */
+/* comment 1.1 */
+selector {}
+/* comment 2 */
+/* comment 2.1 */
+@media (min-width: 1000px) {
+	/* comment 3 */
+	/* comment 3.1 */
+	selector {}
+	/* comment 4 */
+	/* comment 4.1 */
+}
+/* comment 5 */
+/* comment 5.1 */`
 	assert.is(actual, expected)
 })
 
