@@ -10,7 +10,6 @@ test.skip('regular comment before rule', () => {
 	selector {}
 	`)
 	let expected = `/* comment */
-
 selector {}`
 	assert.is(actual, expected)
 })
@@ -23,6 +22,126 @@ test('bang comment before rule', () => {
 	let expected = `/*! comment */
 
 selector {}`
+	assert.is(actual, expected)
+})
+
+test('in between selectors', () => {
+	let actual = format(`
+	selector1,
+	/* comment */
+	selector2 {
+		property: value;
+	}
+	`)
+	let expected = `selector1,
+/* comment */
+selector2 {
+	property: value;
+}`
+	assert.is(actual, expected)
+})
+
+test('as first child in rule', () => {
+	let actual = format(`
+	selector {
+		/* comment */
+		property: value;
+	}
+	`)
+	let expected = `selector {
+	/* comment */
+	property: value;
+}`
+	assert.is(actual, expected)
+})
+
+test('as last child in rule', () => {
+	let actual = format(`
+	selector {
+		property: value;
+		/* comment */
+	}
+	`)
+	let expected = `selector {
+	property: value;
+	/* comment */
+}`
+	assert.is(actual, expected)
+})
+
+test('as only child in rule', () => {
+	let actual = format(`
+	selector {
+		/* comment */
+	}
+	`)
+	let expected = `selector {
+	/* comment */
+}`
+	assert.is(actual, expected)
+})
+
+test('in between declarations', () => {
+	let actual = format(`
+	selector {
+		property: value;
+		/* comment */
+		property: value;
+	}
+	`)
+	let expected = `selector {
+	property: value;
+	/* comment */
+	property: value;
+}`
+	assert.is(actual, expected)
+})
+
+test('as first child in atrule', () => {
+	let actual = format(`
+	@media (min-width: 1000px) {
+		/* comment */
+		selector {
+			property: value;
+		}
+	}
+	`)
+	let expected = `@media (min-width: 1000px) {
+	/* comment */
+	selector {
+		property: value;
+	}
+}`
+	assert.is(actual, expected)
+})
+
+test('as last child in atrule', () => {
+	let actual = format(`
+	@media (min-width: 1000px) {
+		selector {
+			property: value;
+		}
+		/* comment */
+	}
+	`)
+	let expected = `@media (min-width: 1000px) {
+	selector {
+		property: value;
+	}
+	/* comment */
+}`
+	assert.is(actual, expected)
+})
+
+test('as only child in atrule', () => {
+	let actual = format(`
+	@media (min-width: 1000px) {
+		/* comment */
+	}
+	`)
+	let expected = `@media (min-width: 1000px) {
+	/* comment */
+}`
 	assert.is(actual, expected)
 })
 
