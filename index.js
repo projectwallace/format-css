@@ -83,7 +83,10 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string | undefined} The comment string, if found
 	 */
 	function print_comment(after, before) {
-		if (after === undefined || before === undefined) return undefined
+		if (minify || after === undefined || before === undefined) {
+			return undefined
+		}
+
 		let buffer = ''
 		for (let i = 0; i < comments.length; i += 2) {
 			let start = comments[i]

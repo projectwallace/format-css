@@ -437,4 +437,20 @@ test.skip('in value functions', () => {
 	assert.is(actual, expected)
 })
 
+test('strips comments in minification mode', () => {
+	let actual = format(`
+	/* comment 1 */
+	selector {}
+	/* comment 2 */
+	@media (min-width: 1000px) {
+		/* comment 3 */
+		selector {}
+		/* comment 4 */
+	}
+	/* comment 5 */
+	`, { minify: true })
+	let expected = `selector{}@media (min-width: 1000px){selector{}}`
+	assert.is(actual, expected)
+})
+
 test.run()
