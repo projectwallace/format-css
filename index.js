@@ -108,11 +108,9 @@ export function format(css, { minify = false } = {}) {
 			buffer = print_selectorlist(prelude)
 		}
 
-		if (prelude.loc && block.loc) {
-			let after_prelude_comment = print_comment(prelude.loc.end.offset, block.loc.start.offset)
-			if (after_prelude_comment) {
-				buffer += NEWLINE + indent(indent_level) + after_prelude_comment
-			}
+		let after_prelude_comment = print_comment(prelude.loc?.end.offset, block.loc?.start.offset)
+		if (after_prelude_comment) {
+			buffer += NEWLINE + indent(indent_level) + after_prelude_comment
 		}
 
 		if (block.type === TYPE_BLOCK) {
@@ -135,12 +133,10 @@ export function format(css, { minify = false } = {}) {
 				buffer += `,` + NEWLINE
 			}
 
-			if (selector.loc) {
-				let end_offset = item.next ? item.next.data.loc?.start.offset : list.last?.loc?.end.offset
-				let comment = print_comment(selector.loc?.end.offset, end_offset)
-				if (comment) {
-					buffer += indent(indent_level) + comment + NEWLINE
-				}
+			let end_offset = item.next ? item.next.data.loc?.start.offset : list.last?.loc?.end.offset
+			let comment = print_comment(selector.loc?.end.offset, end_offset)
+			if (comment) {
+				buffer += indent(indent_level) + comment + NEWLINE
 			}
 		})
 
@@ -275,17 +271,17 @@ export function format(css, { minify = false } = {}) {
 	function print_block(node) {
 		let children = node.children
 		let buffer = OPTIONAL_SPACE
+		/** @type {import('css-tree').CssLocation} */
+		let loc = /** @type {import('css-tree').CssLocation} */ (node.loc)
 
 		if (children.isEmpty) {
-			// Check is the block maybe contains comments
-			if (node.loc) {
-				let before_first_comment = print_comment(node.loc.start.offset, node.loc.end.offset)
-				if (before_first_comment) {
-					buffer += OPEN_BRACE + NEWLINE
-					buffer += indent(indent_level + 1) + before_first_comment + NEWLINE
-					buffer += indent(indent_level) + CLOSE_BRACE
-					return buffer
-				}
+			// Check if the block maybe contains comments
+			let before_first_comment = print_comment(loc.start.offset, loc.end.offset)
+			if (before_first_comment) {
+				buffer += OPEN_BRACE + NEWLINE
+				buffer += indent(indent_level + 1) + before_first_comment + NEWLINE
+				buffer += indent(indent_level) + CLOSE_BRACE
+				return buffer
 			}
 			return buffer + EMPTY_BLOCK
 		}
@@ -294,19 +290,15 @@ export function format(css, { minify = false } = {}) {
 
 		indent_level++
 
-		if (node.loc) {
-			let before_first_comment = print_comment(node.loc.start.offset, children.first?.loc?.start.offset)
-			if (before_first_comment) {
-				buffer += indent(indent_level) + before_first_comment + NEWLINE
-			}
+		let before_first_comment = print_comment(loc.start.offset, children.first?.loc?.start.offset)
+		if (before_first_comment) {
+			buffer += indent(indent_level) + before_first_comment + NEWLINE
 		}
 
 		children.forEach((child, item) => {
-			if (child.loc && item.prev) {
-				let before_comment = print_comment(item.prev?.data.loc?.end.offset, child.loc.start.offset)
-				if (before_comment) {
-					buffer += indent(indent_level) + before_comment + NEWLINE
-				}
+			let before_comment = print_comment(item.prev?.data.loc?.end.offset, child.loc?.start.offset)
+			if (before_comment) {
+				buffer += indent(indent_level) + before_comment + NEWLINE
 			}
 
 			if (child.type === TYPE_DECLARATION) {
@@ -339,11 +331,9 @@ export function format(css, { minify = false } = {}) {
 				}
 			}
 
-			if (node.loc) {
-				let after_comment = print_comment(children.last?.loc?.end.offset, node.loc.end.offset)
-				if (after_comment) {
-					buffer += NEWLINE + indent(indent_level) + after_comment
-				}
+			let after_comment = print_comment(children.last?.loc?.end.offset, loc.end.offset)
+			if (after_comment) {
+				buffer += NEWLINE + indent(indent_level) + after_comment
 			}
 		})
 
@@ -520,11 +510,9 @@ export function format(css, { minify = false } = {}) {
 	let children = ast.children
 	let buffer = EMPTY_STRING
 
-	if (ast.loc) {
-		let before_first_comment = print_comment(0, children.first?.loc?.start.offset)
-		if (before_first_comment) {
-			buffer += before_first_comment + NEWLINE
-		}
+	let before_first_comment = print_comment(0, children.first?.loc?.start.offset)
+	if (before_first_comment) {
+		buffer += before_first_comment + NEWLINE
 	}
 
 	children.forEach((child, item) => {
@@ -538,25 +526,19 @@ export function format(css, { minify = false } = {}) {
 
 		if (item.next !== null) {
 			buffer += NEWLINE
-		}
 
-		if (child.loc) {
-			let after_comment = print_comment(child.loc.end.offset, item.next?.data.loc?.start.offset)
+			let after_comment = print_comment(child.loc?.end.offset, item.next.data.loc?.start.offset)
 			if (after_comment) {
 				buffer += indent(indent_level) + after_comment
 			}
-		}
 
-		if (item.next !== null) {
 			buffer += NEWLINE
 		}
 	})
 
-	if (ast.loc) {
-		let after_last_comment = print_comment(children.last?.loc?.end.offset, ast.loc.end.offset)
-		if (after_last_comment) {
-			buffer += NEWLINE + after_last_comment
-		}
+	let after_last_comment = print_comment(children.last?.loc?.end.offset, ast.loc?.end.offset)
+	if (after_last_comment) {
+		buffer += NEWLINE + after_last_comment
 	}
 
 	return buffer
