@@ -297,8 +297,8 @@ export function format(css, { minify = false } = {}) {
 			let comment = print_comment(start_offset(node), end_offset(node))
 			if (comment) {
 				buffer += OPEN_BRACE + NEWLINE
-				buffer += indent(indent_level + 1) + comment + NEWLINE
-				buffer += indent(indent_level) + CLOSE_BRACE
+				buffer += indent(indent_level + 1) + comment
+				buffer += NEWLINE + indent(indent_level) + CLOSE_BRACE
 				return buffer
 			}
 			return buffer + EMPTY_BLOCK
