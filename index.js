@@ -10,6 +10,9 @@ const OPEN_PARENTHESES = '('
 const CLOSE_PARENTHESES = ')'
 const OPEN_BRACKET = '['
 const CLOSE_BRACKET = ']'
+const OPEN_BRACE = '{'
+const CLOSE_BRACE = '}'
+const EMPTY_BLOCK = '{}'
 const TYPE_ATRULE = 'Atrule'
 const TYPE_RULE = 'Rule'
 const TYPE_BLOCK = 'Block'
@@ -37,12 +40,18 @@ function lowercase(str) {
  * @returns {string} The formatted CSS
  */
 export function format(css, { minify = false } = {}) {
+	/** @type {number[]} */
+	let comments = []
+
 	/** @type {import('css-tree').CssNode} */
 	let ast = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
 		parseCustomProperty: true,
 		parseValue: true,
+		onComment: (/** @type {string} */ _, /** @type {import('css-tree').CssLocation} */ position) => {
+			comments.push(position.start.offset, position.end.offset)
+		}
 	})
 
 	const NEWLINE = minify ? EMPTY_STRING : '\n'
@@ -63,8 +72,50 @@ export function format(css, { minify = false } = {}) {
 	/** @param {import('css-tree').CssNode} node */
 	function substr(node) {
 		let loc = node.loc
+		// If the node has no location, return an empty string
+		// This is necessary for space toggles
 		if (!loc) return EMPTY_STRING
 		return css.slice(loc.start.offset, loc.end.offset)
+	}
+
+	/** @param {import('css-tree').CssNode} node */
+	function start_offset(node) {
+		let loc = /** @type {import('css-tree').CssLocation} */(node.loc)
+		return loc.start.offset
+	}
+
+	/** @param {import('css-tree').CssNode} node */
+	function end_offset(node) {
+		let loc = /** @type {import('css-tree').CssLocation} */(node.loc)
+		return loc.end.offset
+	}
+
+	/**
+	 * Get a comment from the CSS string after the first offset and before the second offset
+	 * @param {number | undefined} after After which offset to look for comments
+	 * @param {number | undefined} before Before which offset to look for comments
+	 * @returns {string | undefined} The comment string, if found
+	 */
+	function print_comment(after, before) {
+		if (minify || after === undefined || before === undefined) {
+			return EMPTY_STRING
+		}
+
+		let buffer = ''
+		for (let i = 0; i < comments.length; i += 2) {
+			// Check that the comment is within the range
+			let start = comments[i]
+			if (start === undefined || start < after) continue
+			let end = comments[i + 1]
+			if (end === undefined || end > before) break
+
+			// Special case for comments that follow another comment:
+			if (buffer.length > 0) {
+				buffer += NEWLINE + indent(indent_level)
+			}
+			buffer += css.slice(start, end)
+		}
+		return buffer
 	}
 
 	/** @param {import('css-tree').Rule} node */
@@ -75,6 +126,11 @@ export function format(css, { minify = false } = {}) {
 
 		if (prelude.type === TYPE_SELECTORLIST) {
 			buffer = print_selectorlist(prelude)
+		}
+
+		let comment = print_comment(end_offset(prelude), start_offset(block))
+		if (comment) {
+			buffer += NEWLINE + indent(indent_level) + comment
 		}
 
 		if (block.type === TYPE_BLOCK) {
@@ -95,6 +151,12 @@ export function format(css, { minify = false } = {}) {
 
 			if (item.next !== null) {
 				buffer += `,` + NEWLINE
+			}
+
+			let end = item.next !== null ? start_offset(item.next.data) : end_offset(node)
+			let comment = print_comment(end_offset(selector), end)
+			if (comment) {
+				buffer += indent(indent_level) + comment + NEWLINE
 			}
 		})
 
@@ -231,14 +293,34 @@ export function format(css, { minify = false } = {}) {
 		let buffer = OPTIONAL_SPACE
 
 		if (children.isEmpty) {
-			return buffer + '{}'
+			// Check if the block maybe contains comments
+			let comment = print_comment(start_offset(node), end_offset(node))
+			if (comment) {
+				buffer += OPEN_BRACE + NEWLINE
+				buffer += indent(indent_level + 1) + comment
+				buffer += NEWLINE + indent(indent_level) + CLOSE_BRACE
+				return buffer
+			}
+			return buffer + EMPTY_BLOCK
 		}
 
-		buffer += '{' + NEWLINE
+		buffer += OPEN_BRACE + NEWLINE
 
 		indent_level++
 
+		let opening_comment = print_comment(start_offset(node), start_offset(/** @type {import('css-tree').CssNode} */(children.first)))
+		if (opening_comment) {
+			buffer += indent(indent_level) + opening_comment + NEWLINE
+		}
+
 		children.forEach((child, item) => {
+			if (item.prev !== null) {
+				let comment = print_comment(end_offset(item.prev.data), start_offset(child))
+				if (comment) {
+					buffer += indent(indent_level) + comment + NEWLINE
+				}
+			}
+
 			if (child.type === TYPE_DECLARATION) {
 				buffer += print_declaration(child)
 
@@ -270,10 +352,13 @@ export function format(css, { minify = false } = {}) {
 			}
 		})
 
-		indent_level--
+		let closing_comment = print_comment(end_offset(/** @type {import('css-tree').CssNode} */(children.last)), end_offset(node))
+		if (closing_comment) {
+			buffer += NEWLINE + indent(indent_level) + closing_comment
+		}
 
-		buffer += NEWLINE
-		buffer += indent(indent_level) + '}'
+		indent_level--
+		buffer += NEWLINE + indent(indent_level) + CLOSE_BRACE
 
 		return buffer
 	}
@@ -443,19 +528,40 @@ export function format(css, { minify = false } = {}) {
 	let children = ast.children
 	let buffer = EMPTY_STRING
 
-	children.forEach((child, item) => {
-		if (child.type === TYPE_RULE) {
-			buffer += print_rule(child)
-		} else if (child.type === TYPE_ATRULE) {
-			buffer += print_atrule(child)
-		} else {
-			buffer += print_unknown(child, indent_level)
+	if (children.first) {
+		let opening_comment = print_comment(0, start_offset(children.first))
+		if (opening_comment) {
+			buffer += opening_comment + NEWLINE
 		}
 
-		if (item.next !== null) {
-			buffer += NEWLINE + NEWLINE
+		children.forEach((child, item) => {
+			if (child.type === TYPE_RULE) {
+				buffer += print_rule(child)
+			} else if (child.type === TYPE_ATRULE) {
+				buffer += print_atrule(child)
+			} else {
+				buffer += print_unknown(child, indent_level)
+			}
+
+			if (item.next !== null) {
+				buffer += NEWLINE
+
+				let comment = print_comment(end_offset(child), start_offset(item.next.data))
+				if (comment) {
+					buffer += indent(indent_level) + comment
+				}
+
+				buffer += NEWLINE
+			}
+		})
+
+		let closing_comment = print_comment(end_offset(/** @type {import('css-tree').CssNode} */(children.last)), end_offset(ast))
+		if (closing_comment) {
+			buffer += NEWLINE + closing_comment
 		}
-	})
+	} else {
+		buffer += print_comment(0, end_offset(ast))
+	}
 
 	return buffer
 }
