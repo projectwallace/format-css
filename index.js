@@ -308,16 +308,16 @@ export function format(css, { minify = false } = {}) {
 
 		indent_level++
 
-		let comment = print_comment(start_offset(node), start_offset(/** @type {import('css-tree').CssNode} */(children.first)))
-		if (comment) {
-			buffer += indent(indent_level) + comment + NEWLINE
+		let opening_comment = print_comment(start_offset(node), start_offset(/** @type {import('css-tree').CssNode} */(children.first)))
+		if (opening_comment) {
+			buffer += indent(indent_level) + opening_comment + NEWLINE
 		}
 
 		children.forEach((child, item) => {
 			if (item.prev !== null) {
-				let before_comment = print_comment(end_offset(item.prev.data), start_offset(child))
-				if (before_comment) {
-					buffer += indent(indent_level) + before_comment + NEWLINE
+				let comment = print_comment(end_offset(item.prev.data), start_offset(child))
+				if (comment) {
+					buffer += indent(indent_level) + comment + NEWLINE
 				}
 			}
 
@@ -350,17 +350,15 @@ export function format(css, { minify = false } = {}) {
 					buffer += NEWLINE
 				}
 			}
-
-			let comment = print_comment(end_offset(/** @type {import('css-tree').CssNode} */(children.last)), end_offset(node))
-			if (comment) {
-				buffer += NEWLINE + indent(indent_level) + comment
-			}
 		})
 
-		indent_level--
+		let closing_comment = print_comment(end_offset(/** @type {import('css-tree').CssNode} */(children.last)), end_offset(node))
+		if (closing_comment) {
+			buffer += NEWLINE + indent(indent_level) + closing_comment
+		}
 
-		buffer += NEWLINE
-		buffer += indent(indent_level) + CLOSE_BRACE
+		indent_level--
+		buffer += NEWLINE + indent(indent_level) + CLOSE_BRACE
 
 		return buffer
 	}

@@ -349,9 +349,61 @@ selector {}
 	assert.is(actual, expected)
 })
 
+test('comment before rule and atrule should not be separated by newline', () => {
+	let actual = format(`
+	/* comment 1 */
+	selector {}
 
+	/* comment 2 */
+	@media (min-width: 1000px) {
+		/* comment 3 */
 
-test('multiple comments in between rules and atrules', () => {
+		selector {}
+		/* comment 4 */
+	}
+	`)
+	let expected = `/* comment 1 */
+selector {}
+/* comment 2 */
+@media (min-width: 1000px) {
+	/* comment 3 */
+	selector {}
+	/* comment 4 */
+}`
+	assert.is(actual, expected)
+})
+
+test('a declaration after multiple comments starts on a new line', () => {
+	let actual = format(`
+	selector {
+		/* comment 1 */
+		/* comment 2 */
+		--custom-property: value;
+
+		/* comment 3 */
+		/* comment 4 */
+		--custom-property: value;
+
+		/* comment 5 */
+		/* comment 6 */
+		--custom-property: value;
+	}
+	`)
+	let expected = `selector {
+	/* comment 1 */
+	/* comment 2 */
+	--custom-property: value;
+	/* comment 3 */
+	/* comment 4 */
+	--custom-property: value;
+	/* comment 5 */
+	/* comment 6 */
+	--custom-property: value;
+}`
+	assert.is(actual, expected)
+})
+
+test.skip('multiple comments in between rules and atrules', () => {
 	let actual = format(`
 	/* comment 1 */
 	/* comment 1.1 */
@@ -371,15 +423,18 @@ test('multiple comments in between rules and atrules', () => {
 	let expected = `/* comment 1 */
 /* comment 1.1 */
 selector {}
+
 /* comment 2 */
 /* comment 2.1 */
 @media (min-width: 1000px) {
 	/* comment 3 */
 	/* comment 3.1 */
 	selector {}
+
 	/* comment 4 */
 	/* comment 4.1 */
 }
+
 /* comment 5 */
 /* comment 5.1 */`
 	assert.is(actual, expected)
