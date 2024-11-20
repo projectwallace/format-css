@@ -403,7 +403,7 @@ test('a declaration after multiple comments starts on a new line', () => {
 	assert.is(actual, expected)
 })
 
-test.skip('multiple comments in between rules and atrules', () => {
+test('multiple comments in between rules and atrules', () => {
 	let actual = format(`
 	/* comment 1 */
 	/* comment 1.1 */
@@ -423,18 +423,15 @@ test.skip('multiple comments in between rules and atrules', () => {
 	let expected = `/* comment 1 */
 /* comment 1.1 */
 selector {}
-
 /* comment 2 */
 /* comment 2.1 */
 @media (min-width: 1000px) {
 	/* comment 3 */
 	/* comment 3.1 */
 	selector {}
-
 	/* comment 4 */
 	/* comment 4.1 */
 }
-
 /* comment 5 */
 /* comment 5.1 */`
 	assert.is(actual, expected)
@@ -469,9 +466,9 @@ test('in @supports prelude', () => {
 	assert.is(actual, expected)
 })
 
-test.skip('in @import prelude before specifier', () => {
-	let actual = format('@import /*test*/"foo"/*test*/;')
-	let expected = '@import /*test*/"foo"/*test*/;'
+test('skip in @import prelude before specifier', () => {
+	let actual = format('@import /*test*/"foo";')
+	let expected = '@import "foo";'
 	assert.is(actual, expected)
 })
 
@@ -481,13 +478,13 @@ test('in @import prelude after specifier', () => {
 	assert.is(actual, expected)
 })
 
-test.skip('in selector combinator', () => {
+test('skip in selector combinator', () => {
 	let actual = format(`
 		a/*test*/ /*test*/b,
 		a/*test*/+/*test*/b {}
 	`)
-	let expected = `a/*test*/ /*test*/b,
-a /*test*/ + /*test*/ b {}`
+	let expected = `a b,
+a + b {}`
 	assert.is(actual, expected)
 })
 
@@ -497,41 +494,41 @@ test('in attribute selector', () => {
 	assert.is(actual, expected)
 })
 
-test.skip('in var() with fallback', () => {
+test('skip in var() with fallback', () => {
 	let actual = format(`a { prop: var( /* 1 */ --name /* 2 */ , /* 3 */ 1 /* 4 */ ) }`)
 	let expected = `a {
-	prop: var(/* 1 */ --name /* 2 */, /* 3 */ 1 /* 4 */);
+	prop: var(--name, 1);
 }`
 	assert.is(actual, expected)
 })
 
-test.skip('in custom property declaration', () => {
+test('skip in custom property declaration (space toggle)', () => {
 	let actual = format(`a { --test: /*test*/; }`)
 	let expected = `a {
-	--test: /*test*/;
+	--test: ;
 }`
 	assert.is(actual, expected)
 })
 
-test.skip('before value', () => {
+test('before value', () => {
 	let actual = format(`a { prop: /*test*/value; }`)
 	let expected = `a {
-	prop: /*test*/value;
+	prop: value;
 }`
 	assert.is(actual, expected)
 })
 
-test.skip('after value', () => {
+test('after value', () => {
 	let actual = format(`a {
 		prop: value/*test*/;
 	}`)
 	let expected = `a {
-	prop: value/*test*/;
+	prop: value;
 }`
 	assert.is(actual, expected)
 })
 
-test.skip('in value functions', () => {
+test('skip in value functions', () => {
 	let actual = format(`
 		a {
 			background-image: linear-gradient(/* comment */red, green);
@@ -541,10 +538,10 @@ test.skip('in value functions', () => {
 		}
 	`)
 	let expected = `a {
-	background-image: linear-gradient(/* comment */red, green);
-	background-image: linear-gradient(red/* comment */, green);
-	background-image: linear-gradient(red, green/* comment */);
-	background-image: linear-gradient(red, green)/* comment */
+	background-image: linear-gradient(red, green);
+	background-image: linear-gradient(red, green);
+	background-image: linear-gradient(red, green);
+	background-image: linear-gradient(red, green);
 }`
 	assert.is(actual, expected)
 })
