@@ -440,6 +440,21 @@ selector {}
 	assert.is(actual, expected)
 })
 
+test('puts every comment on a new line', () => {
+	let actual = format(`
+		x {
+			/*--font-family: inherit;*/ /*--font-style: normal;*/
+		--border-top-color: var(--root-color--support);
+	}
+`)
+	let expected = `x {
+	/*--font-family: inherit;*/
+	/*--font-style: normal;*/
+	--border-top-color: var(--root-color--support);
+}`
+	assert.is(actual, expected)
+})
+
 test('in @media prelude', () => {
 	// from CSSTree https://github.com/csstree/csstree/blob/ba6dfd8bb0e33055c05f13803d04825d98dd2d8d/fixtures/ast/mediaQuery/MediaQuery.json#L147
 	let actual = format('@media all /*0*/ (/*1*/foo/*2*/:/*3*/1/*4*/) {}')
