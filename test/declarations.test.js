@@ -73,14 +73,18 @@ test('does not lowercase custom properties', () => {
 	assert.is(actual, expected)
 })
 
-test.skip('preserves comments', () => {
-	let actual = format(`a {
-		/* comment */color: green;
-		color/* comment */: green;
-	}`)
+test('!important is added', () => {
+	let actual = format(`a { color: green !important}`)
 	let expected = `a {
-	/* comment */color: green;
-	color/* comment */: green;
+	color: green !important;
+}`
+	assert.is(actual, expected)
+})
+
+test('!important is lowercase', () => {
+	let actual = format(`a { color: green !IMPORTANT }`)
+	let expected = `a {
+	color: green !important;
 }`
 	assert.is(actual, expected)
 })

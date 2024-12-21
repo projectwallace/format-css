@@ -428,6 +428,10 @@ export function format(css, { minify = false } = {}) {
 			value += SPACE
 		}
 
+		if (node.important) {
+			value += OPTIONAL_SPACE + '!important'
+		}
+
 		return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value
 	}
 
