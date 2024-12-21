@@ -77,4 +77,10 @@ test('minified Vadims example', () => {
 	assert.equal(actual, expected)
 })
 
+test('removes whitespace before !important', () => {
+	let actual = minify(`a { color: green !important }`)
+	let expected = `a{color:green!important}`
+	assert.equal(actual, expected)
+})
+
 test.run()
