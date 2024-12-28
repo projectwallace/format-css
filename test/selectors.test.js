@@ -180,6 +180,14 @@ li:nth-child() {}`
 	assert.equal(actual, expected)
 })
 
+test(`formats ::highlight and ::highlight(Name) correctly`, () => {
+	let actual = format(`::highlight,::highlight(Name),::highlight(my-thing) {}`)
+	let expected = `::highlight,
+::highlight(Name),
+::highlight(my-thing) {}`
+	assert.equal(actual, expected)
+})
+
 test('formats unknown pseudos correctly', () => {
 	let actual = format(`
 		::foo-bar,

@@ -163,7 +163,7 @@ export function format(css, { minify = false } = {}) {
 		return buffer
 	}
 
-	/** @param {import('css-tree').Selector|import('css-tree').PseudoClassSelector} node */
+	/** @param {import('css-tree').Selector|import('css-tree').PseudoClassSelector|import('css-tree').PseudoElementSelector} node */
 	function print_simple_selector(node) {
 		let buffer = EMPTY_STRING
 		let children = node.children || []
@@ -183,19 +183,15 @@ export function format(css, { minify = false } = {}) {
 					}
 					break
 				}
+				case 'PseudoClassSelector':
 				case 'PseudoElementSelector': {
-					buffer += COLON + COLON
-					buffer += lowercase(child.name)
-					break
-				}
-				case 'PseudoClassSelector': {
 					buffer += COLON
 
 					// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
 					// as `:before` and `:after`, but we want to print them as `::before` and `::after`
 					let pseudo = lowercase(child.name)
 
-					if (pseudo === 'before' || pseudo === 'after') {
+					if (pseudo === 'before' || pseudo === 'after' || child.type === 'PseudoElementSelector') {
 						buffer += COLON
 					}
 
