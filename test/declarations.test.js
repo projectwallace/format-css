@@ -89,4 +89,20 @@ test('!important is lowercase', () => {
 	assert.is(actual, expected)
 })
 
+test('browserhack !ie is printed', () => {
+	let actual = format(`a { color: green !ie}`)
+	let expected = `a {
+	color: green !ie;
+}`
+	assert.is(actual, expected)
+})
+
+test('browserhack !IE is lowercased', () => {
+	let actual = format(`a { color: green !IE}`)
+	let expected = `a {
+	color: green !ie;
+}`
+	assert.is(actual, expected)
+})
+
 test.run()
