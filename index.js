@@ -424,8 +424,10 @@ export function format(css, { minify = false } = {}) {
 			value += SPACE
 		}
 
-		if (node.important) {
+		if (node.important === true) {
 			value += OPTIONAL_SPACE + '!important'
+		} else if (typeof node.important === 'string') {
+			value += OPTIONAL_SPACE + '!' + lowercase(node.important)
 		}
 
 		return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value
