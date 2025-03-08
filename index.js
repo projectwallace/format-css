@@ -13,6 +13,7 @@ const CLOSE_BRACKET = ']'
 const OPEN_BRACE = '{'
 const CLOSE_BRACE = '}'
 const EMPTY_BLOCK = '{}'
+const COMMA = ','
 const TYPE_ATRULE = 'Atrule'
 const TYPE_RULE = 'Rule'
 const TYPE_BLOCK = 'Block'
@@ -150,7 +151,7 @@ export function format(css, { minify = false } = {}) {
 			}
 
 			if (item.next !== null) {
-				buffer += `,` + NEWLINE
+				buffer += COMMA + NEWLINE
 			}
 
 			let end = item.next !== null ? start_offset(item.next.data) : end_offset(node)
@@ -203,13 +204,13 @@ export function format(css, { minify = false } = {}) {
 					break
 				}
 				case TYPE_SELECTORLIST: {
-					child.children.forEach((grandchild, item) => {
-						if (grandchild.type === TYPE_SELECTOR) {
-							buffer += print_simple_selector(grandchild)
+					child.children.forEach((selector_list_item, item) => {
+						if (selector_list_item.type === TYPE_SELECTOR) {
+							buffer += print_simple_selector(selector_list_item)
 						}
 
-						if (item.next) {
-							buffer += ',' + SPACE
+						if (item.next && item.next.data.type === TYPE_SELECTOR) {
+							buffer += COMMA + OPTIONAL_SPACE
 						}
 					})
 					break

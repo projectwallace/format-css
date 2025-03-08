@@ -83,4 +83,10 @@ test('removes whitespace before !important', () => {
 	assert.equal(actual, expected)
 })
 
+test.only('minifies complex selectors', () => {
+	let actual = minify(`:is(a, b) { color: green }`)
+	let expected = `:is(a,b){color:green}`
+	assert.equal(actual, expected)
+})
+
 test.run()
