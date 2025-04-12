@@ -27,11 +27,9 @@
   },
   "devDependencies": {
     "@codecov/vite-plugin": "^1.4.0",
-    "@codspeed/tinybench-plugin": "^3.1.1",
     "@types/css-tree": "^2.3.9",
     "c8": "^10.1.2",
     "prettier": "^3.3.3",
-    "tinybench": "^2.8.0",
     "typescript": "^5.6.3",
     "uvu": "^0.5.6",
     "vite": "^5.4.11",
