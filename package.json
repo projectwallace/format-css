@@ -9,17 +9,16 @@
   "homepage": "https://github.com/projectwallace/format-css",
   "issues": "https://github.com/projectwallace/format-css/issues",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "type": "module",
-  "source": "index.js",
+  "main": "./dist/format-css.js",
   "exports": {
     "types": "./dist/index.d.ts",
-    "require": "./dist/format-css.umd.cjs",
     "default": "./dist/format-css.js"
   },
   "types": "./dist/index.d.ts",
-  "main": "./dist/format-css.umd.cjs",
-  "module": "./dist/format-css.js",
-  "unpkg": "./dist/format-css.umd.cjs",
   "scripts": {
     "build": "vite build",
     "test": "c8 --reporter=lcov uvu",
