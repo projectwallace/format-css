@@ -1,6 +1,6 @@
 {
   "name": "@projectwallace/format-css",
-  "version": "1.5.4",
+  "version": "2.0.0-alpha.1",
   "description": "Fast, small, zero-config library to format CSS with basic rules.",
   "repository": {
     "type": "git",
