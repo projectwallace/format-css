@@ -397,7 +397,7 @@ export function format(css, { minify = false } = {}) {
 			.replace(/\s*([:,])/g, buffer.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
 			.replace(/\s*(=>|<=)\s*/g, ' $1 ') // force whitespace around => and <=
 			.replace(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
-			.replace(/(?<!<=)(?<!=>)(?<!<= )([<>])(?![<= ])(?![=> ])(?![ =>])/g, ' $1 ')
+			.replace(/([^<>=\s])([<>])([^<>=\s])/g, '$1 $2 $3') // add spacing around < or > except when it's part of <=, >=, =>
 			.replace(/calc\(([^*]*)\*([^*])/g, 'calc($1 * $2') // force correct whitespace around * in calc()
 			.replace(/\s+/g, SPACE) // collapse multiple whitespaces into one
 			.replace(/selector|url|supports|layer\(/ig, (match) => lowercase(match)) // lowercase function names
