@@ -395,11 +395,15 @@ export function format(css, { minify = false } = {}) {
 
 		return buffer
 			.replace(/\s*([:,])/g, buffer.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
-			.replace(/\s*(=>|<=)\s*/g, ' $1 ') // force whitespace around => and <=
 			.replace(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
-			.replace(/([^<>=\s])([<>])([^<>=\s])/g, '$1 $2 $3') // add spacing around < or > except when it's part of <=, >=, =>
-			.replace(/calc\(([^*]*)\*([^*])/g, 'calc($1 * $2') // force correct whitespace around * in calc()
-			.replace(/\s+/g, SPACE) // collapse multiple whitespaces into one
+			.replace(/\s*(=>|<=)\s*/g, ' $1 ') // force whitespace around => and <=
+			.replace(/([^<>=\s])([<>])([^<>=\s])/g, `$1${OPTIONAL_SPACE}$2${OPTIONAL_SPACE}$3`) // add spacing around < or > except when it's part of <=, >=, =>
+			.replace(/\s+/g, OPTIONAL_SPACE) // collapse multiple whitespaces into one
+			.replace(/calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g, (_, left, operator, right) => {
+				// force required or optional whitespace around * and / in calc()
+				let space = operator === '+' || operator === '-' ? SPACE : OPTIONAL_SPACE
+				return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
+			})
 			.replace(/selector|url|supports|layer\(/ig, (match) => lowercase(match)) // lowercase function names
 	}
 

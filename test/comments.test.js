@@ -558,7 +558,7 @@ test('strips comments in minification mode', () => {
 	}
 	/* comment 5 */
 	`, { minify: true })
-	let expected = `selector{}@media (min-width: 1000px){selector{}}`
+	let expected = `selector{}@media (min-width:1000px){selector{}}`
 	assert.is(actual, expected)
 })
 
