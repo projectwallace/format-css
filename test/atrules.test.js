@@ -1,6 +1,6 @@
 import { suite } from 'uvu'
 import * as assert from 'uvu/assert'
-import { format } from '../index.js'
+import { format, minify } from '../index.js'
 
 let test = suite('Atrules')
 
@@ -166,6 +166,24 @@ test('calc() inside @media', () => {
 	assert.equal(actual, expected)
 })
 
+test('minify: calc(*) inside @media', () => {
+	let actual = minify(`@media (min-width: calc(1px*1)) {}`)
+	let expected = `@media (min-width:calc(1px*1)){}`
+	assert.equal(actual, expected)
+})
+
+test('minify: calc(+) inside @media', () => {
+	let actual = minify(`@media (min-width: calc(1px + 1em)) {}`)
+	let expected = `@media (min-width:calc(1px + 1em)){}`
+	assert.equal(actual, expected)
+})
+
+test('minify: calc(-) inside @media', () => {
+	let actual = minify(`@media (min-width: calc(1em - 1px)) {}`)
+	let expected = `@media (min-width:calc(1em - 1px)){}`
+	assert.equal(actual, expected)
+})
+
 test('@import prelude formatting', () => {
 	let fixtures = [
 		['@import url("fineprint.css") print;', '@import url("fineprint.css") print;'],
@@ -200,6 +218,18 @@ test('@layer prelude formatting', () => {
 
 	for (let [css, expected] of fixtures) {
 		let actual = format(css)
+		assert.equal(actual, expected)
+	}
+})
+
+test('minify: @layer prelude formatting', () => {
+	let fixtures = [
+		[`@layer    test;`, `@layer test;`],
+		[`@layer tbody,thead;`, `@layer tbody,thead;`],
+	]
+
+	for (let [css, expected] of fixtures) {
+		let actual = minify(css)
 		assert.equal(actual, expected)
 	}
 })
@@ -311,6 +341,12 @@ test('new-fangled comparators (width > 1000px)', () => {
 @media (width <= 1000px) {}
 
 @media (200px < width < 1000px) {}`
+	assert.is(actual, expected)
+})
+
+test('minify: new-fangled comparators (width > 1000px)', () => {
+	let actual = minify(`@container (width>1000px) {}`)
+	let expected = `@container (width>1000px){}`
 	assert.is(actual, expected)
 })
 
