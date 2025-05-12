@@ -34,13 +34,22 @@ function lowercase(str) {
 /**
  * @typedef {Object} Options
  * @property {boolean} [minify] Whether to minify the CSS or keep it formatted
+ * @property {number} [tab_size] Tell the formatter to use N spaces instead of tabs
  *
  * Format a string of CSS using some simple rules
  * @param {string} css The original CSS
  * @param {Options} options
  * @returns {string} The formatted CSS
  */
-export function format(css, { minify = false } = {}) {
+export function format(css, {
+	minify = false,
+	tab_size = undefined,
+} = Object.create(null)) {
+
+	if (tab_size !== undefined && Number(tab_size) < 1) {
+		throw new TypeError('tab_size must be a number greater than 0')
+	}
+
 	/** @type {number[]} */
 	let comments = []
 
@@ -64,10 +73,16 @@ export function format(css, { minify = false } = {}) {
 	/**
 	 * Indent a string
 	 * @param {number} size
-	 * @returns {string} A string with {size} tabs
+	 * @returns {string} A string with [size] tabs/spaces
 	 */
 	function indent(size) {
-		return minify ? EMPTY_STRING : '\t'.repeat(size)
+		if (minify) return EMPTY_STRING
+
+		if (tab_size) {
+			return SPACE.repeat(tab_size * size)
+		}
+
+		return '\t'.repeat(size)
 	}
 
 	/** @param {import('css-tree').CssNode} node */

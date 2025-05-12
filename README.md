@@ -79,6 +79,18 @@ let minified = minify("a {}");
 let formatted_mini = format("a {}", { minify: true });
 ```
 
+## Tab size
+
+For cases where you cannot control the tab size with CSS there is an option to override the default tabbed indentation with N spaces.
+
+```js
+import { format } from "@projectwallace/format-css";
+
+let formatted = format("a { color: red; }", {
+	tab_size: 2
+});
+```
+
 ## Acknowledgements
 
 - Thanks to [CSSTree](https://github.com/csstree/csstree) for providing the necessary parser and the interfaces for our CSS Types (the **bold** elements in the list above)
