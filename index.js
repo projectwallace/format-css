@@ -14,6 +14,8 @@ const OPEN_BRACE = '{'
 const CLOSE_BRACE = '}'
 const EMPTY_BLOCK = '{}'
 const COMMA = ','
+const PLUS = '+'
+const MINUS = '-'
 const TYPE_ATRULE = 'Atrule'
 const TYPE_RULE = 'Rule'
 const TYPE_BLOCK = 'Block'
@@ -121,7 +123,7 @@ export function format(css, { minify = false } = {}) {
 
 	/** @param {import('css-tree').Rule} node */
 	function print_rule(node) {
-		let buffer
+		let buffer = ''
 		let prelude = node.prelude
 		let block = node.block
 
@@ -173,6 +175,10 @@ export function format(css, { minify = false } = {}) {
 			switch (child.type) {
 				case 'TypeSelector': {
 					buffer += lowercase(child.name)
+					break
+				}
+				case 'NestingSelector': {
+					buffer += '&'
 					break
 				}
 				case 'Combinator': {
@@ -232,8 +238,8 @@ export function format(css, { minify = false } = {}) {
 
 							if (b !== null) {
 								// When (1n + x) but not (1n - x)
-								if (a !== null && !b.startsWith('-')) {
-									buffer += '+' + SPACE
+								if (a !== null && !b.startsWith(MINUS)) {
+									buffer += PLUS + SPACE
 								}
 
 								buffer += b
@@ -401,7 +407,10 @@ export function format(css, { minify = false } = {}) {
 			.replace(/\s+/g, OPTIONAL_SPACE) // collapse multiple whitespaces into one
 			.replace(/calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g, (_, left, operator, right) => {
 				// force required or optional whitespace around * and / in calc()
-				let space = operator === '+' || operator === '-' ? SPACE : OPTIONAL_SPACE
+				// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
+				// The + and - operators must be surrounded by whitespace
+				// Whitespace around other operators is optional
+				let space = operator === PLUS || operator === MINUS ? SPACE : OPTIONAL_SPACE
 				return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
 			})
 			.replace(/selector|url|supports|layer\(/ig, (match) => lowercase(match)) // lowercase function names
@@ -527,7 +536,24 @@ export function format(css, { minify = false } = {}) {
 	 * @returns {string} A formatted unknown CSS string
 	 */
 	function print_unknown(node, indent_level) {
-		return indent(indent_level) + substr(node).trim()
+		try {
+			// Try parsing the node as a new CSS Rule because it might be a nested rule
+			// and CSSTree doesn't support nested rules fully yet
+			let nested_tree = parse(substr(node), {
+				context: 'rule',
+				positions: true,
+			})
+
+			if (nested_tree.type === 'Rule') {
+				return print_rule(nested_tree)
+			}
+
+			// We tried but no luck so we just return the original string
+			throw new Error('Parsing rule failed')
+		} catch (error) {
+			// Parsing failed, so we just return the original string
+			return indent(indent_level) + substr(node).trim()
+		}
 	}
 
 	/** @type {import('css-tree').List<import('css-tree').CssNode>} */
