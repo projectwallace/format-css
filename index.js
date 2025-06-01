@@ -110,14 +110,14 @@ export function format(css, {
 	 * Get a comment from the CSS string after the first offset and before the second offset
 	 * @param {number | undefined} after After which offset to look for comments
 	 * @param {number | undefined} before Before which offset to look for comments
-	 * @returns {string | undefined} The comment string, if found
+	 * @returns {string[] | undefined} The comment string, if found
 	 */
 	function print_comment(after, before) {
 		if (minify || after === undefined || before === undefined) {
-			return EMPTY_STRING
+			return undefined
 		}
 
-		let buffer = ''
+		let buffer = []
 		for (let i = 0; i < comments.length; i += 2) {
 			// Check that the comment is within the range
 			let start = comments[i]
@@ -127,30 +127,32 @@ export function format(css, {
 
 			// Special case for comments that follow another comment:
 			if (buffer.length > 0) {
-				buffer += NEWLINE + indent(indent_level)
+				buffer.push(NEWLINE, indent(indent_level))
 			}
-			buffer += css.slice(start, end)
+			buffer.push(css.slice(start, end))
 		}
 		return buffer
 	}
 
 	/** @param {import('css-tree').Rule} node */
 	function print_rule(node) {
-		let buffer
+		/** @type {string[]} */
+		let buffer = []
 		let prelude = node.prelude
 		let block = node.block
 
 		if (prelude.type === TYPE_SELECTORLIST) {
-			buffer = print_selectorlist(prelude)
+			buffer.push(...print_selectorlist(prelude))
 		}
 
 		let comment = print_comment(end_offset(prelude), start_offset(block))
 		if (comment) {
-			buffer += NEWLINE + indent(indent_level) + comment
+			buffer.push(NEWLINE, indent(indent_level))
+			buffer.push(...comment)
 		}
 
 		if (block.type === TYPE_BLOCK) {
-			buffer += print_block(block)
+			buffer.push(...print_block(block))
 		}
 
 		return buffer
@@ -158,21 +160,24 @@ export function format(css, {
 
 	/** @param {import('css-tree').SelectorList} node */
 	function print_selectorlist(node) {
-		let buffer = EMPTY_STRING
+		/** @type {string[]} */
+		let buffer = []
 
 		node.children.forEach((selector, item) => {
 			if (selector.type === TYPE_SELECTOR) {
-				buffer += indent(indent_level) + print_simple_selector(selector)
+				buffer.push(indent(indent_level), ...print_simple_selector(selector))
 			}
 
 			if (item.next !== null) {
-				buffer += COMMA + NEWLINE
+				buffer.push(COMMA, NEWLINE)
 			}
 
 			let end = item.next !== null ? start_offset(item.next.data) : end_offset(node)
 			let comment = print_comment(end_offset(selector), end)
 			if (comment) {
-				buffer += indent(indent_level) + comment + NEWLINE
+				buffer.push(indent(indent_level))
+				buffer.push(...comment)
+				buffer.push(NEWLINE)
 			}
 		})
 
@@ -181,51 +186,54 @@ export function format(css, {
 
 	/** @param {import('css-tree').Selector|import('css-tree').PseudoClassSelector|import('css-tree').PseudoElementSelector} node */
 	function print_simple_selector(node) {
-		let buffer = EMPTY_STRING
+		/** @type {string[]} */
+		let buffer = []
 		let children = node.children || []
 
 		children.forEach((child) => {
 			switch (child.type) {
 				case 'TypeSelector': {
-					buffer += lowercase(child.name)
+					buffer.push(lowercase(child.name))
 					break
 				}
 				case 'Combinator': {
 					// putting spaces around `child.name` (+ > ~ or ' '), unless the combinator is ' '
-					buffer += SPACE
+					buffer.push(SPACE)
 
 					if (child.name !== ' ') {
-						buffer += child.name + SPACE
+						buffer.push(child.name, SPACE)
 					}
 					break
 				}
 				case 'PseudoClassSelector':
 				case 'PseudoElementSelector': {
-					buffer += COLON
+					buffer.push(COLON)
 
 					// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
 					// as `:before` and `:after`, but we want to print them as `::before` and `::after`
 					let pseudo = lowercase(child.name)
 
 					if (pseudo === 'before' || pseudo === 'after' || child.type === 'PseudoElementSelector') {
-						buffer += COLON
+						buffer.push(COLON)
 					}
 
-					buffer += pseudo
+					buffer.push(pseudo)
 
 					if (child.children) {
-						buffer += OPEN_PARENTHESES + print_simple_selector(child) + CLOSE_PARENTHESES
+						buffer.push(OPEN_PARENTHESES)
+						buffer.push(...print_simple_selector(child))
+						buffer.push(CLOSE_PARENTHESES)
 					}
 					break
 				}
 				case TYPE_SELECTORLIST: {
 					child.children.forEach((selector_list_item, item) => {
 						if (selector_list_item.type === TYPE_SELECTOR) {
-							buffer += print_simple_selector(selector_list_item)
+							buffer.push(...print_simple_selector(selector_list_item))
 						}
 
 						if (item.next && item.next.data.type === TYPE_SELECTOR) {
-							buffer += COMMA + OPTIONAL_SPACE
+							buffer.push(COMMA, OPTIONAL_SPACE)
 						}
 					})
 					break
@@ -238,59 +246,60 @@ export function format(css, {
 							let b = nth.b
 
 							if (a !== null) {
-								buffer += a + 'n'
+								buffer.push(a, 'n')
 							}
 
 							if (a !== null && b !== null) {
-								buffer += SPACE
+								buffer.push(SPACE)
 							}
 
 							if (b !== null) {
 								// When (1n + x) but not (1n - x)
 								if (a !== null && !b.startsWith('-')) {
-									buffer += '+' + SPACE
+									buffer.push('+', SPACE)
 								}
 
-								buffer += b
+								buffer.push(b)
 							}
 						} else {
 							// For odd/even or maybe other identifiers later on
-							buffer += substr(nth)
+							buffer.push(substr(nth))
 						}
 					}
 
 					if (child.selector !== null) {
 						// `of .selector`
+						buffer.push(SPACE, 'of', SPACE)
 						// @ts-expect-error Typing of child.selector is SelectorList, which doesn't seem to be correct
-						buffer += SPACE + 'of' + SPACE + print_simple_selector(child.selector)
+						buffer.push(...print_simple_selector(child.selector))
 					}
 					break
 				}
 				case 'AttributeSelector': {
-					buffer += OPEN_BRACKET
-					buffer += child.name.name
+					buffer.push(OPEN_BRACKET)
+					buffer.push(child.name.name)
 
 					if (child.matcher && child.value) {
-						buffer += child.matcher
-						buffer += QUOTE
+						buffer.push(child.matcher)
+						buffer.push(QUOTE)
 
 						if (child.value.type === 'String') {
-							buffer += child.value.value
+							buffer.push(child.value.value)
 						} else if (child.value.type === 'Identifier') {
-							buffer += child.value.name
+							buffer.push(child.value.name)
 						}
-						buffer += QUOTE
+						buffer.push(QUOTE)
 					}
 
 					if (child.flags) {
-						buffer += SPACE + child.flags
+						buffer.push(SPACE, child.flags)
 					}
 
-					buffer += CLOSE_BRACKET
+					buffer.push(CLOSE_BRACKET)
 					break
 				}
 				default: {
-					buffer += substr(child)
+					buffer.push(substr(child))
 					break
 				}
 			}
@@ -302,96 +311,103 @@ export function format(css, {
 	/** @param {import('css-tree').Block} node */
 	function print_block(node) {
 		let children = node.children
-		let buffer = OPTIONAL_SPACE
+		/** @type {string[]} */
+		let buffer = [OPTIONAL_SPACE]
 
 		if (children.isEmpty) {
 			// Check if the block maybe contains comments
 			let comment = print_comment(start_offset(node), end_offset(node))
 			if (comment) {
-				buffer += OPEN_BRACE + NEWLINE
-				buffer += indent(indent_level + 1) + comment
-				buffer += NEWLINE + indent(indent_level) + CLOSE_BRACE
+				buffer.push(OPEN_BRACE, NEWLINE)
+				buffer.push(indent(indent_level + 1))
+				buffer.push(...comment)
+				buffer.push(NEWLINE, indent(indent_level), CLOSE_BRACE)
 				return buffer
 			}
-			return buffer + EMPTY_BLOCK
+			buffer.push(EMPTY_BLOCK)
+			return buffer
 		}
 
-		buffer += OPEN_BRACE + NEWLINE
+		buffer.push(OPEN_BRACE, NEWLINE)
 
 		indent_level++
 
 		let opening_comment = print_comment(start_offset(node), start_offset(/** @type {import('css-tree').CssNode} */(children.first)))
 		if (opening_comment) {
-			buffer += indent(indent_level) + opening_comment + NEWLINE
+			buffer.push(indent(indent_level))
+			buffer.push(...opening_comment)
+			buffer.push(NEWLINE)
 		}
 
 		children.forEach((child, item) => {
 			if (item.prev !== null) {
 				let comment = print_comment(end_offset(item.prev.data), start_offset(child))
 				if (comment) {
-					buffer += indent(indent_level) + comment + NEWLINE
+					buffer.push(indent(indent_level))
+					buffer.push(...comment)
+					buffer.push(NEWLINE)
 				}
 			}
 
 			if (child.type === TYPE_DECLARATION) {
-				buffer += print_declaration(child)
+				buffer.push(...print_declaration(child))
 
 				if (item.next === null) {
-					buffer += LAST_SEMICOLON
+					buffer.push(LAST_SEMICOLON)
 				} else {
-					buffer += SEMICOLON
+					buffer.push(SEMICOLON)
 				}
 			} else {
 				if (item.prev !== null && item.prev.data.type === TYPE_DECLARATION) {
-					buffer += NEWLINE
+					buffer.push(NEWLINE)
 				}
 
 				if (child.type === TYPE_RULE) {
-					buffer += print_rule(child)
+					buffer.push(...print_rule(child))
 				} else if (child.type === TYPE_ATRULE) {
-					buffer += print_atrule(child)
+					buffer.push(...print_atrule(child))
 				} else {
-					buffer += print_unknown(child, indent_level)
+					buffer.push(...print_unknown(child, indent_level))
 				}
 			}
 
 			if (item.next !== null) {
-				buffer += NEWLINE
+				buffer.push(NEWLINE)
 
 				if (child.type !== TYPE_DECLARATION) {
-					buffer += NEWLINE
+					buffer.push(NEWLINE)
 				}
 			}
 		})
 
 		let closing_comment = print_comment(end_offset(/** @type {import('css-tree').CssNode} */(children.last)), end_offset(node))
 		if (closing_comment) {
-			buffer += NEWLINE + indent(indent_level) + closing_comment
+			buffer.push(NEWLINE, indent(indent_level))
+			buffer.push(...closing_comment)
 		}
 
 		indent_level--
-		buffer += NEWLINE + indent(indent_level) + CLOSE_BRACE
+		buffer.push(NEWLINE, indent(indent_level), CLOSE_BRACE)
 
 		return buffer
 	}
 
 	/** @param {import('css-tree').Atrule} node */
 	function print_atrule(node) {
-		let buffer = indent(indent_level) + '@'
 		let prelude = node.prelude
 		let block = node.block
-		buffer += lowercase(node.name)
+		let buffer = [indent(indent_level), '@', lowercase(node.name)]
 
 		// @font-face and anonymous @layer have no prelude
 		if (prelude !== null) {
-			buffer += SPACE + print_prelude(prelude)
+			buffer.push(SPACE, print_prelude(prelude))
 		}
 
 		if (block === null) {
 			// `@import url(style.css);` has no block, neither does `@layer layer1;`
-			buffer += SEMICOLON
+			buffer.push(SEMICOLON)
 		} else if (block.type === TYPE_BLOCK) {
-			buffer += print_block(block)
+			buffer.push(...print_block(block))
 		}
 
 		return buffer
@@ -432,57 +448,61 @@ export function format(css, {
 			property = lowercase(property)
 		}
 
-		let value = print_value(node.value)
+		let value = print_value(node.value).join('')
 
 		// Special case for `font` shorthand: remove whitespace around /
 		if (property === 'font') {
 			value = value.replace(/\s*\/\s*/, '/')
 		}
 
+		/** @type {string[]} */
+		let buffer = [property, COLON, OPTIONAL_SPACE, value]
+
 		// Hacky: add a space in case of a `space toggle` during minification
 		if (value === EMPTY_STRING && minify) {
-			value += SPACE
+			buffer.push(SPACE)
 		}
 
 		if (node.important === true) {
-			value += OPTIONAL_SPACE + '!important'
+			buffer.push(OPTIONAL_SPACE, '!important')
 		} else if (typeof node.important === 'string') {
-			value += OPTIONAL_SPACE + '!' + lowercase(node.important)
+			buffer.push(OPTIONAL_SPACE, '!', lowercase(node.important))
 		}
 
-		return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value
+		return buffer
 	}
 
 	/** @param {import('css-tree').List<import('css-tree').CssNode>} children */
 	function print_list(children) {
-		let buffer = EMPTY_STRING
+		/** @type {string[]} */
+		let buffer = []
 
 		children.forEach((node, item) => {
 			if (node.type === 'Identifier') {
-				buffer += node.name
+				buffer.push(node.name)
 			} else if (node.type === 'Function') {
-				buffer += lowercase(node.name) + OPEN_PARENTHESES + print_list(node.children) + CLOSE_PARENTHESES
+				buffer.push(lowercase(node.name), OPEN_PARENTHESES, ...print_list(node.children), CLOSE_PARENTHESES)
 			} else if (node.type === 'Dimension') {
-				buffer += node.value + lowercase(node.unit)
+				buffer.push(node.value, lowercase(node.unit))
 			} else if (node.type === 'Value') {
 				// Values can be inside var() as fallback
 				// var(--prop, VALUE)
-				buffer += print_value(node)
+				buffer.push(...print_value(node))
 			} else if (node.type === TYPE_OPERATOR) {
-				buffer += print_operator(node)
+				buffer.push(...print_operator(node))
 			} else if (node.type === 'Parentheses') {
-				buffer += OPEN_PARENTHESES + print_list(node.children) + CLOSE_PARENTHESES
+				buffer.push(OPEN_PARENTHESES, ...print_list(node.children), CLOSE_PARENTHESES)
 			} else if (node.type === 'Url') {
-				buffer += 'url(' + QUOTE + node.value + QUOTE + CLOSE_PARENTHESES
+				buffer.push('url(', QUOTE, node.value, QUOTE, CLOSE_PARENTHESES)
 			} else {
-				buffer += substr(node)
+				buffer.push(substr(node))
 			}
 
 			// Add space after the item coming after an operator
 			if (node.type !== TYPE_OPERATOR) {
 				if (item.next !== null) {
 					if (item.next.data.type !== TYPE_OPERATOR) {
-						buffer += SPACE
+						buffer.push(SPACE)
 					}
 				}
 			}
@@ -493,7 +513,8 @@ export function format(css, {
 
 	/** @param {import('css-tree').Operator} node */
 	function print_operator(node) {
-		let buffer = EMPTY_STRING
+		/** @type {string[]} */
+		let buffer = []
 		// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
 		// The + and - operators must be surrounded by whitespace
 		// Whitespace around other operators is optional
@@ -505,23 +526,23 @@ export function format(css, {
 		if (code === 43 || code === 45) {
 			// + or -
 			// Add required space before + and - operators
-			buffer += SPACE
+			buffer.push(SPACE)
 		} else if (code !== 44) {
 			// ,
 			// Add optional space before operator
-			buffer += OPTIONAL_SPACE
+			buffer.push(OPTIONAL_SPACE)
 		}
 
 		// FINALLY, render the operator
-		buffer += operator
+		buffer.push(operator)
 
 		if (code === 43 || code === 45) {
 			// + or -
 			// Add required space after + and - operators
-			buffer += SPACE
+			buffer.push(SPACE)
 		} else {
 			// Add optional space after other operators (like *, /, and ,)
-			buffer += OPTIONAL_SPACE
+			buffer.push(OPTIONAL_SPACE)
 		}
 
 		return buffer
@@ -539,53 +560,57 @@ export function format(css, {
 	/**
 	 * @param {import('css-tree').CssNode} node
 	 * @param {number} indent_level
-	 * @returns {string} A formatted unknown CSS string
+	 * @returns {string[]} A formatted unknown CSS string
 	 */
 	function print_unknown(node, indent_level) {
-		return indent(indent_level) + substr(node).trim()
+		return [indent(indent_level) + substr(node).trim()]
 	}
 
 	/** @type {import('css-tree').List<import('css-tree').CssNode>} */
 	// @ts-expect-error Property 'children' does not exist on type 'AnPlusB', but we're never using that
 	let children = ast.children
-	let buffer = EMPTY_STRING
+	/** @type {string[]} */
+	let buffer = []
 
 	if (children.first) {
 		let opening_comment = print_comment(0, start_offset(children.first))
 		if (opening_comment) {
-			buffer += opening_comment + NEWLINE
+			buffer.push(...opening_comment, NEWLINE)
 		}
 
 		children.forEach((child, item) => {
 			if (child.type === TYPE_RULE) {
-				buffer += print_rule(child)
+				buffer.push(...print_rule(child))
 			} else if (child.type === TYPE_ATRULE) {
-				buffer += print_atrule(child)
+				buffer.push(...print_atrule(child))
 			} else {
-				buffer += print_unknown(child, indent_level)
+				buffer.push(...print_unknown(child, indent_level))
 			}
 
 			if (item.next !== null) {
-				buffer += NEWLINE
+				buffer.push(NEWLINE)
 
 				let comment = print_comment(end_offset(child), start_offset(item.next.data))
 				if (comment) {
-					buffer += indent(indent_level) + comment
+					buffer.push(indent(indent_level), ...comment)
 				}
 
-				buffer += NEWLINE
+				buffer.push(NEWLINE)
 			}
 		})
 
 		let closing_comment = print_comment(end_offset(/** @type {import('css-tree').CssNode} */(children.last)), end_offset(ast))
 		if (closing_comment) {
-			buffer += NEWLINE + closing_comment
+			buffer.push(NEWLINE, ...closing_comment)
 		}
 	} else {
-		buffer += print_comment(0, end_offset(ast))
+		let comment = print_comment(0, end_offset(ast))
+		if (comment) {
+			buffer.push(...comment)
+		}
 	}
 
-	return buffer
+	return buffer.join('')
 }
 
 /**
