@@ -311,7 +311,6 @@ export function format(css, {
 	/** @param {import('css-tree').Block} node */
 	function print_block(node) {
 		let children = node.children
-		/** @type {string[]} */
 		let buffer = [OPTIONAL_SPACE]
 
 		if (children.isEmpty) {
@@ -456,7 +455,7 @@ export function format(css, {
 		}
 
 		/** @type {string[]} */
-		let buffer = [property, COLON, OPTIONAL_SPACE, value]
+		let buffer = [indent(indent_level), property, COLON, OPTIONAL_SPACE, value]
 
 		// Hacky: add a space in case of a `space toggle` during minification
 		if (value === EMPTY_STRING && minify) {
@@ -563,7 +562,7 @@ export function format(css, {
 	 * @returns {string[]} A formatted unknown CSS string
 	 */
 	function print_unknown(node, indent_level) {
-		return [indent(indent_level) + substr(node).trim()]
+		return [indent(indent_level), substr(node).trim()]
 	}
 
 	/** @type {import('css-tree').List<import('css-tree').CssNode>} */
@@ -610,7 +609,7 @@ export function format(css, {
 		}
 	}
 
-	return buffer.join('')
+	return buffer.join(EMPTY_STRING)
 }
 
 /**
