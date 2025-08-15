@@ -38,7 +38,7 @@ function lowercase(str) {
  *
  * Format a string of CSS using some simple rules
  * @param {string} css The original CSS
- * @param {Options} options
+ * @param {Options} [options]
  * @returns {string} The formatted CSS
  */
 export function format(css, {
@@ -50,10 +50,10 @@ export function format(css, {
 		throw new TypeError('tab_size must be a number greater than 0')
 	}
 
-	/** @type {number[]} */
+	/** @type {number[]} [start0, end0, start1, end1, etc.]*/
 	let comments = []
 
-	/** @type {import('css-tree').CssNode} */
+	/** @type {import('css-tree').StyleSheet} */
 	let ast = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
@@ -76,9 +76,9 @@ export function format(css, {
 	 * @returns {string} A string with [size] tabs/spaces
 	 */
 	function indent(size) {
-		if (minify) return EMPTY_STRING
+		if (minify === true) return EMPTY_STRING
 
-		if (tab_size) {
+		if (tab_size !== undefined) {
 			return SPACE.repeat(tab_size * size)
 		}
 
@@ -90,7 +90,7 @@ export function format(css, {
 		let loc = node.loc
 		// If the node has no location, return an empty string
 		// This is necessary for space toggles
-		if (!loc) return EMPTY_STRING
+		if (loc === undefined || loc === null) return EMPTY_STRING
 		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
@@ -113,7 +113,7 @@ export function format(css, {
 	 * @returns {string | undefined} The comment string, if found
 	 */
 	function print_comment(after, before) {
-		if (minify || after === undefined || before === undefined) {
+		if (minify === true || after === undefined || before === undefined) {
 			return EMPTY_STRING
 		}
 
@@ -213,7 +213,7 @@ export function format(css, {
 
 					buffer += pseudo
 
-					if (child.children) {
+					if (child.children !== null) {
 						buffer += OPEN_PARENTHESES + print_simple_selector(child) + CLOSE_PARENTHESES
 					}
 					break
@@ -224,7 +224,7 @@ export function format(css, {
 							buffer += print_simple_selector(selector_list_item)
 						}
 
-						if (item.next && item.next.data.type === TYPE_SELECTOR) {
+						if (item.next !== null && item.next.data.type === TYPE_SELECTOR) {
 							buffer += COMMA + OPTIONAL_SPACE
 						}
 					})
@@ -232,31 +232,29 @@ export function format(css, {
 				}
 				case 'Nth': {
 					let nth = child.nth
-					if (nth) {
-						if (nth.type === 'AnPlusB') {
-							let a = nth.a
-							let b = nth.b
+					if (nth.type === 'AnPlusB') {
+						let a = nth.a
+						let b = nth.b
 
-							if (a !== null) {
-								buffer += a + 'n'
-							}
-
-							if (a !== null && b !== null) {
-								buffer += SPACE
-							}
-
-							if (b !== null) {
-								// When (1n + x) but not (1n - x)
-								if (a !== null && !b.startsWith('-')) {
-									buffer += '+' + SPACE
-								}
-
-								buffer += b
-							}
-						} else {
-							// For odd/even or maybe other identifiers later on
-							buffer += substr(nth)
+						if (a !== null) {
+							buffer += a + 'n'
 						}
+
+						if (a !== null && b !== null) {
+							buffer += SPACE
+						}
+
+						if (b !== null) {
+							// When (1n + x) but not (1n - x)
+							if (a !== null && !b.startsWith('-')) {
+								buffer += '+' + SPACE
+							}
+
+							buffer += b
+						}
+					} else {
+						// For odd/even or maybe other identifiers later on
+						buffer += substr(nth)
 					}
 
 					if (child.selector !== null) {
@@ -270,7 +268,7 @@ export function format(css, {
 					buffer += OPEN_BRACKET
 					buffer += child.name.name
 
-					if (child.matcher && child.value) {
+					if (child.matcher !== null && child.value !== null) {
 						buffer += child.matcher
 						buffer += QUOTE
 
@@ -282,11 +280,15 @@ export function format(css, {
 						buffer += QUOTE
 					}
 
-					if (child.flags) {
+					if (child.flags !== null) {
 						buffer += SPACE + child.flags
 					}
 
 					buffer += CLOSE_BRACKET
+					break
+				}
+				case 'NestingSelector': {
+					buffer += '&'
 					break
 				}
 				default: {
@@ -440,7 +442,7 @@ export function format(css, {
 		}
 
 		// Hacky: add a space in case of a `space toggle` during minification
-		if (value === EMPTY_STRING && minify) {
+		if (value === EMPTY_STRING && minify === true) {
 			value += SPACE
 		}
 
@@ -545,12 +547,10 @@ export function format(css, {
 		return indent(indent_level) + substr(node).trim()
 	}
 
-	/** @type {import('css-tree').List<import('css-tree').CssNode>} */
-	// @ts-expect-error Property 'children' does not exist on type 'AnPlusB', but we're never using that
 	let children = ast.children
 	let buffer = EMPTY_STRING
 
-	if (children.first) {
+	if (children.first !== null) {
 		let opening_comment = print_comment(0, start_offset(children.first))
 		if (opening_comment) {
 			buffer += opening_comment + NEWLINE
