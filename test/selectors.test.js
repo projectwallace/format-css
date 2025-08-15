@@ -149,6 +149,17 @@ test('formats multiline selectors', () => {
 	assert.is(actual, expected)
 })
 
+test('format nesting selectors', () => {
+	let actual = format(`
+		& a {}
+		b & c {}
+	`)
+	let expected = `& a {}
+
+b & c {}`
+	assert.is(actual, expected)
+})
+
 test('forces attribute selectors to have quoted values', () => {
 	let actual = format(`
 		[title=foo],
