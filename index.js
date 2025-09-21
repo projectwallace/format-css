@@ -1,6 +1,25 @@
 // @ts-expect-error Typing of css-tree is incomplete
 import parse from 'css-tree/parser'
 
+/**
+ * @typedef {import('css-tree').CssNode} CssNode
+ * @typedef {import('css-tree').List<CssNode>} List
+ * @typedef {import('css-tree').CssLocation} CssLocation
+ * @typedef {import('css-tree').Raw} Raw
+ * @typedef {import('css-tree').StyleSheet} StyleSheet
+ * @typedef {import('css-tree').Atrule} Atrule
+ * @typedef {import('css-tree').AtrulePrelude} AtrulePrelude
+ * @typedef {import('css-tree').Rule} Rule
+ * @typedef {import('css-tree').SelectorList} SelectorList
+ * @typedef {import('css-tree').Selector} Selector
+ * @typedef {import('css-tree').PseudoClassSelector} PseudoClassSelector
+ * @typedef {import('css-tree').PseudoElementSelector} PseudoElementSelector
+ * @typedef {import('css-tree').Block} Block
+ * @typedef {import('css-tree').Declaration} Declaration
+ * @typedef {import('css-tree').Value} Value
+ * @typedef {import('css-tree').Operator} Operator
+ */
+
 const SPACE = ' '
 const EMPTY_STRING = ''
 const COLON = ':'
@@ -19,6 +38,7 @@ const TYPE_RULE = 'Rule'
 const TYPE_BLOCK = 'Block'
 const TYPE_SELECTORLIST = 'SelectorList'
 const TYPE_SELECTOR = 'Selector'
+const TYPE_PSEUDO_ELEMENT_SELECTOR = 'PseudoElementSelector'
 const TYPE_DECLARATION = 'Declaration'
 const TYPE_OPERATOR = 'Operator'
 
@@ -53,15 +73,21 @@ export function format(css, {
 	/** @type {number[]} [start0, end0, start1, end1, etc.]*/
 	let comments = []
 
-	/** @type {import('css-tree').StyleSheet} */
+	/**
+	 * @param {string} _ The comment text
+	 * @param {CssLocation} position
+	 */
+	function on_comment(_, position) {
+		comments.push(position.start.offset, position.end.offset)
+	}
+
+	/** @type {StyleSheet} */
 	let ast = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
 		parseCustomProperty: true,
 		parseValue: true,
-		onComment: (/** @type {string} */ _, /** @type {import('css-tree').CssLocation} */ position) => {
-			comments.push(position.start.offset, position.end.offset)
-		}
+		onComment: on_comment,
 	})
 
 	const NEWLINE = minify ? EMPTY_STRING : '\n'
@@ -85,7 +111,7 @@ export function format(css, {
 		return '\t'.repeat(size)
 	}
 
-	/** @param {import('css-tree').CssNode} node */
+	/** @param {CssNode} node */
 	function substr(node) {
 		let loc = node.loc
 		// If the node has no location, return an empty string
@@ -94,15 +120,15 @@ export function format(css, {
 		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
-	/** @param {import('css-tree').CssNode} node */
+	/** @param {CssNode} node */
 	function start_offset(node) {
-		let loc = /** @type {import('css-tree').CssLocation} */(node.loc)
+		let loc = /** @type {CssLocation} */(node.loc)
 		return loc.start.offset
 	}
 
-	/** @param {import('css-tree').CssNode} node */
+	/** @param {CssNode} node */
 	function end_offset(node) {
-		let loc = /** @type {import('css-tree').CssLocation} */(node.loc)
+		let loc = /** @type {CssLocation} */(node.loc)
 		return loc.end.offset
 	}
 
@@ -117,7 +143,7 @@ export function format(css, {
 			return EMPTY_STRING
 		}
 
-		let buffer = ''
+		let buffer = EMPTY_STRING
 		for (let i = 0; i < comments.length; i += 2) {
 			// Check that the comment is within the range
 			let start = comments[i]
@@ -134,7 +160,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {import('css-tree').Rule} node */
+	/** @param {Rule} node */
 	function print_rule(node) {
 		let buffer
 		let prelude = node.prelude
@@ -156,7 +182,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {import('css-tree').SelectorList} node */
+	/** @param {SelectorList} node */
 	function print_selectorlist(node) {
 		let buffer = EMPTY_STRING
 
@@ -179,7 +205,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {import('css-tree').Selector|import('css-tree').PseudoClassSelector|import('css-tree').PseudoElementSelector} node */
+	/** @param {Selector | PseudoClassSelector | PseudoElementSelector} node */
 	function print_simple_selector(node) {
 		let buffer = EMPTY_STRING
 		let children = node.children || []
@@ -200,14 +226,14 @@ export function format(css, {
 					break
 				}
 				case 'PseudoClassSelector':
-				case 'PseudoElementSelector': {
+				case TYPE_PSEUDO_ELEMENT_SELECTOR: {
 					buffer += COLON
 
 					// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
 					// as `:before` and `:after`, but we want to print them as `::before` and `::after`
 					let pseudo = lowercase(child.name)
 
-					if (pseudo === 'before' || pseudo === 'after' || child.type === 'PseudoElementSelector') {
+					if (pseudo === 'before' || pseudo === 'after' || child.type === TYPE_PSEUDO_ELEMENT_SELECTOR) {
 						buffer += COLON
 					}
 
@@ -301,7 +327,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {import('css-tree').Block} node */
+	/** @param {Block} node */
 	function print_block(node) {
 		let children = node.children
 		let buffer = OPTIONAL_SPACE
@@ -322,7 +348,7 @@ export function format(css, {
 
 		indent_level++
 
-		let opening_comment = print_comment(start_offset(node), start_offset(/** @type {import('css-tree').CssNode} */(children.first)))
+		let opening_comment = print_comment(start_offset(node), start_offset(/** @type {CssNode} */(children.first)))
 		if (opening_comment) {
 			buffer += indent(indent_level) + opening_comment + NEWLINE
 		}
@@ -366,7 +392,7 @@ export function format(css, {
 			}
 		})
 
-		let closing_comment = print_comment(end_offset(/** @type {import('css-tree').CssNode} */(children.last)), end_offset(node))
+		let closing_comment = print_comment(end_offset(/** @type {CssNode} */(children.last)), end_offset(node))
 		if (closing_comment) {
 			buffer += NEWLINE + indent(indent_level) + closing_comment
 		}
@@ -377,7 +403,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {import('css-tree').Atrule} node */
+	/** @param {Atrule} node */
 	function print_atrule(node) {
 		let buffer = indent(indent_level) + '@'
 		let prelude = node.prelude
@@ -405,7 +431,7 @@ export function format(css, {
 	 * here to force some nice formatting.
 	 * Should be OK perf-wise, since the amount of atrules in most
 	 * stylesheets are limited, so this won't be called too often.
-	 * @param {import('css-tree').AtrulePrelude | import('css-tree').Raw} node
+	 * @param {AtrulePrelude | Raw} node
 	 */
 	function print_prelude(node) {
 		let buffer = substr(node)
@@ -424,7 +450,7 @@ export function format(css, {
 			.replace(/selector|url|supports|layer\(/ig, (match) => lowercase(match)) // lowercase function names
 	}
 
-	/** @param {import('css-tree').Declaration} node */
+	/** @param {Declaration} node */
 	function print_declaration(node) {
 		let property = node.property
 
@@ -455,7 +481,7 @@ export function format(css, {
 		return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value
 	}
 
-	/** @param {import('css-tree').List<import('css-tree').CssNode>} children */
+	/** @param {List} children */
 	function print_list(children) {
 		let buffer = EMPTY_STRING
 
@@ -493,7 +519,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {import('css-tree').Operator} node */
+	/** @param {Operator} node */
 	function print_operator(node) {
 		let buffer = EMPTY_STRING
 		// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
@@ -529,7 +555,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {import('css-tree').Value | import('css-tree').Raw} node */
+	/** @param {Value | Raw} node */
 	function print_value(node) {
 		if (node.type === 'Raw') {
 			return print_unknown(node, 0)
@@ -539,7 +565,7 @@ export function format(css, {
 	}
 
 	/**
-	 * @param {import('css-tree').CssNode} node
+	 * @param {CssNode} node
 	 * @param {number} indent_level
 	 * @returns {string} A formatted unknown CSS string
 	 */
@@ -577,7 +603,7 @@ export function format(css, {
 			}
 		})
 
-		let closing_comment = print_comment(end_offset(/** @type {import('css-tree').CssNode} */(children.last)), end_offset(ast))
+		let closing_comment = print_comment(end_offset(/** @type {CssNode} */(children.last)), end_offset(ast))
 		if (closing_comment) {
 			buffer += NEWLINE + closing_comment
 		}
