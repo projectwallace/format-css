@@ -3,6 +3,7 @@ import parse from 'css-tree/parser'
 
 /**
  * @typedef {import('css-tree').CssNode} CssNode
+ * @typedef {import('css-tree').List<CssNode>} List
  * @typedef {import('css-tree').CssLocation} CssLocation
  * @typedef {import('css-tree').Raw} Raw
  * @typedef {import('css-tree').StyleSheet} StyleSheet
@@ -37,6 +38,7 @@ const TYPE_RULE = 'Rule'
 const TYPE_BLOCK = 'Block'
 const TYPE_SELECTORLIST = 'SelectorList'
 const TYPE_SELECTOR = 'Selector'
+const TYPE_PSEUDO_ELEMENT_SELECTOR = 'PseudoElementSelector'
 const TYPE_DECLARATION = 'Declaration'
 const TYPE_OPERATOR = 'Operator'
 
@@ -203,7 +205,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {Selector|PseudoClassSelector|PseudoElementSelector} node */
+	/** @param {Selector | PseudoClassSelector | PseudoElementSelector} node */
 	function print_simple_selector(node) {
 		let buffer = EMPTY_STRING
 		let children = node.children || []
@@ -224,14 +226,14 @@ export function format(css, {
 					break
 				}
 				case 'PseudoClassSelector':
-				case 'PseudoElementSelector': {
+				case TYPE_PSEUDO_ELEMENT_SELECTOR: {
 					buffer += COLON
 
 					// Special case for `:before` and `:after` which were used in CSS2 and are usually minified
 					// as `:before` and `:after`, but we want to print them as `::before` and `::after`
 					let pseudo = lowercase(child.name)
 
-					if (pseudo === 'before' || pseudo === 'after' || child.type === 'PseudoElementSelector') {
+					if (pseudo === 'before' || pseudo === 'after' || child.type === TYPE_PSEUDO_ELEMENT_SELECTOR) {
 						buffer += COLON
 					}
 
@@ -479,7 +481,7 @@ export function format(css, {
 		return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value
 	}
 
-	/** @param {import('css-tree').List<CssNode>} children */
+	/** @param {List} children */
 	function print_list(children) {
 		let buffer = EMPTY_STRING
 
