@@ -70,24 +70,12 @@ export function format(css, {
 		throw new TypeError('tab_size must be a number greater than 0')
 	}
 
-	/** @type {number[]} [start0, end0, start1, end1, etc.]*/
-	let comments = []
-
-	/**
-	 * @param {string} _ The comment text
-	 * @param {CssLocation} position
-	 */
-	function on_comment(_, position) {
-		comments.push(position.start.offset, position.end.offset)
-	}
-
 	/** @type {StyleSheet} */
 	let ast = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
 		parseCustomProperty: true,
 		parseValue: true,
-		onComment: on_comment,
 	})
 
 	const NEWLINE = minify ? EMPTY_STRING : '\n'
@@ -120,46 +108,6 @@ export function format(css, {
 		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
-	/** @param {CssNode} node */
-	function start_offset(node) {
-		let loc = /** @type {CssLocation} */(node.loc)
-		return loc.start.offset
-	}
-
-	/** @param {CssNode} node */
-	function end_offset(node) {
-		let loc = /** @type {CssLocation} */(node.loc)
-		return loc.end.offset
-	}
-
-	/**
-	 * Get a comment from the CSS string after the first offset and before the second offset
-	 * @param {number | undefined} after After which offset to look for comments
-	 * @param {number | undefined} before Before which offset to look for comments
-	 * @returns {string | undefined} The comment string, if found
-	 */
-	function print_comment(after, before) {
-		if (minify === true || after === undefined || before === undefined) {
-			return EMPTY_STRING
-		}
-
-		let buffer = EMPTY_STRING
-		for (let i = 0; i < comments.length; i += 2) {
-			// Check that the comment is within the range
-			let start = comments[i]
-			if (start === undefined || start < after) continue
-			let end = comments[i + 1]
-			if (end === undefined || end > before) break
-
-			// Special case for comments that follow another comment:
-			if (buffer.length > 0) {
-				buffer += NEWLINE + indent(indent_level)
-			}
-			buffer += css.slice(start, end)
-		}
-		return buffer
-	}
-
 	/** @param {Rule} node */
 	function print_rule(node) {
 		let buffer
@@ -168,11 +116,6 @@ export function format(css, {
 
 		if (prelude.type === TYPE_SELECTORLIST) {
 			buffer = print_selectorlist(prelude)
-		}
-
-		let comment = print_comment(end_offset(prelude), start_offset(block))
-		if (comment) {
-			buffer += NEWLINE + indent(indent_level) + comment
 		}
 
 		if (block.type === TYPE_BLOCK) {
@@ -193,12 +136,6 @@ export function format(css, {
 
 			if (item.next !== null) {
 				buffer += COMMA + NEWLINE
-			}
-
-			let end = item.next !== null ? start_offset(item.next.data) : end_offset(node)
-			let comment = print_comment(end_offset(selector), end)
-			if (comment) {
-				buffer += indent(indent_level) + comment + NEWLINE
 			}
 		})
 
@@ -333,14 +270,6 @@ export function format(css, {
 		let buffer = OPTIONAL_SPACE
 
 		if (children.isEmpty) {
-			// Check if the block maybe contains comments
-			let comment = print_comment(start_offset(node), end_offset(node))
-			if (comment) {
-				buffer += OPEN_BRACE + NEWLINE
-				buffer += indent(indent_level + 1) + comment
-				buffer += NEWLINE + indent(indent_level) + CLOSE_BRACE
-				return buffer
-			}
 			return buffer + EMPTY_BLOCK
 		}
 
@@ -348,19 +277,7 @@ export function format(css, {
 
 		indent_level++
 
-		let opening_comment = print_comment(start_offset(node), start_offset(/** @type {CssNode} */(children.first)))
-		if (opening_comment) {
-			buffer += indent(indent_level) + opening_comment + NEWLINE
-		}
-
 		children.forEach((child, item) => {
-			if (item.prev !== null) {
-				let comment = print_comment(end_offset(item.prev.data), start_offset(child))
-				if (comment) {
-					buffer += indent(indent_level) + comment + NEWLINE
-				}
-			}
-
 			if (child.type === TYPE_DECLARATION) {
 				buffer += print_declaration(child)
 
@@ -391,11 +308,6 @@ export function format(css, {
 				}
 			}
 		})
-
-		let closing_comment = print_comment(end_offset(/** @type {CssNode} */(children.last)), end_offset(node))
-		if (closing_comment) {
-			buffer += NEWLINE + indent(indent_level) + closing_comment
-		}
 
 		indent_level--
 		buffer += NEWLINE + indent(indent_level) + CLOSE_BRACE
@@ -577,11 +489,6 @@ export function format(css, {
 	let buffer = EMPTY_STRING
 
 	if (children.first !== null) {
-		let opening_comment = print_comment(0, start_offset(children.first))
-		if (opening_comment) {
-			buffer += opening_comment + NEWLINE
-		}
-
 		children.forEach((child, item) => {
 			if (child.type === TYPE_RULE) {
 				buffer += print_rule(child)
@@ -593,22 +500,9 @@ export function format(css, {
 
 			if (item.next !== null) {
 				buffer += NEWLINE
-
-				let comment = print_comment(end_offset(child), start_offset(item.next.data))
-				if (comment) {
-					buffer += indent(indent_level) + comment
-				}
-
 				buffer += NEWLINE
 			}
 		})
-
-		let closing_comment = print_comment(end_offset(/** @type {CssNode} */(children.last)), end_offset(ast))
-		if (closing_comment) {
-			buffer += NEWLINE + closing_comment
-		}
-	} else {
-		buffer += print_comment(0, end_offset(ast))
 	}
 
 	return buffer
