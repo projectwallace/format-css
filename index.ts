@@ -1,24 +1,22 @@
-// @ts-expect-error Typing of css-tree is incomplete
-import parse from 'css-tree/parser'
-
-/**
- * @typedef {import('css-tree').CssNode} CssNode
- * @typedef {import('css-tree').List<CssNode>} List
- * @typedef {import('css-tree').CssLocation} CssLocation
- * @typedef {import('css-tree').Raw} Raw
- * @typedef {import('css-tree').StyleSheet} StyleSheet
- * @typedef {import('css-tree').Atrule} Atrule
- * @typedef {import('css-tree').AtrulePrelude} AtrulePrelude
- * @typedef {import('css-tree').Rule} Rule
- * @typedef {import('css-tree').SelectorList} SelectorList
- * @typedef {import('css-tree').Selector} Selector
- * @typedef {import('css-tree').PseudoClassSelector} PseudoClassSelector
- * @typedef {import('css-tree').PseudoElementSelector} PseudoElementSelector
- * @typedef {import('css-tree').Block} Block
- * @typedef {import('css-tree').Declaration} Declaration
- * @typedef {import('css-tree').Value} Value
- * @typedef {import('css-tree').Operator} Operator
- */
+import {
+	parse,
+	type CssNode,
+	type List,
+	type CssLocation,
+	type Raw,
+	type StyleSheet,
+	type Atrule,
+	type AtrulePrelude,
+	type Rule,
+	type SelectorList,
+	type Selector,
+	type PseudoClassSelector,
+	type PseudoElementSelector,
+	type Block,
+	type Declaration,
+	type Value,
+	type Operator,
+} from 'css-tree'
 
 const SPACE = ' '
 const EMPTY_STRING = ''
@@ -42,8 +40,7 @@ const TYPE_PSEUDO_ELEMENT_SELECTOR = 'PseudoElementSelector'
 const TYPE_DECLARATION = 'Declaration'
 const TYPE_OPERATOR = 'Operator'
 
-/** @param {string} str */
-function lowercase(str) {
+function lowercase(str: string) {
 	// Only create new strings in memory if we need to
 	if (/[A-Z]/.test(str)) {
 		return str.toLowerCase()
@@ -51,44 +48,35 @@ function lowercase(str) {
 	return str
 }
 
-/**
- * @typedef {Object} Options
- * @property {boolean} [minify] Whether to minify the CSS or keep it formatted
- * @property {number} [tab_size] Tell the formatter to use N spaces instead of tabs
- *
- * Format a string of CSS using some simple rules
- * @param {string} css The original CSS
- * @param {Options} [options]
- * @returns {string} The formatted CSS
- */
-export function format(css, {
-	minify = false,
-	tab_size = undefined,
-} = Object.create(null)) {
+export type FormatOptions = {
+	/** Whether to minify the CSS or keep it formatted */
+	minify?: boolean
+	/** Tell the formatter to use N spaces instead of tabs  */
+	tab_size?: number
+}
 
+/**
+ * Format a string of CSS using some simple rules
+ */
+export function format(css: string, { minify = false, tab_size = undefined }: FormatOptions = Object.create(null)): string {
 	if (tab_size !== undefined && Number(tab_size) < 1) {
 		throw new TypeError('tab_size must be a number greater than 0')
 	}
 
-	/** @type {number[]} [start0, end0, start1, end1, etc.]*/
-	let comments = []
+	/** [start0, end0, start1, end1, etc.]*/
+	let comments: number[] = []
 
-	/**
-	 * @param {string} _ The comment text
-	 * @param {CssLocation} position
-	 */
-	function on_comment(_, position) {
+	function on_comment(_: string, position: CssLocation) {
 		comments.push(position.start.offset, position.end.offset)
 	}
 
-	/** @type {StyleSheet} */
 	let ast = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
 		parseCustomProperty: true,
 		parseValue: true,
 		onComment: on_comment,
-	})
+	}) as StyleSheet
 
 	const NEWLINE = minify ? EMPTY_STRING : '\n'
 	const OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE
@@ -96,12 +84,7 @@ export function format(css, {
 
 	let indent_level = 0
 
-	/**
-	 * Indent a string
-	 * @param {number} size
-	 * @returns {string} A string with [size] tabs/spaces
-	 */
-	function indent(size) {
+	function indent(size: number) {
 		if (minify === true) return EMPTY_STRING
 
 		if (tab_size !== undefined) {
@@ -111,8 +94,7 @@ export function format(css, {
 		return '\t'.repeat(size)
 	}
 
-	/** @param {CssNode} node */
-	function substr(node) {
+	function substr(node: CssNode) {
 		let loc = node.loc
 		// If the node has no location, return an empty string
 		// This is necessary for space toggles
@@ -120,25 +102,21 @@ export function format(css, {
 		return css.slice(loc.start.offset, loc.end.offset)
 	}
 
-	/** @param {CssNode} node */
-	function start_offset(node) {
-		let loc = /** @type {CssLocation} */(node.loc)
-		return loc.start.offset
+	function start_offset(node: CssNode) {
+		return node.loc?.start.offset
 	}
 
-	/** @param {CssNode} node */
-	function end_offset(node) {
-		let loc = /** @type {CssLocation} */(node.loc)
-		return loc.end.offset
+	function end_offset(node: CssNode) {
+		return node.loc?.end.offset
 	}
 
 	/**
 	 * Get a comment from the CSS string after the first offset and before the second offset
-	 * @param {number | undefined} after After which offset to look for comments
-	 * @param {number | undefined} before Before which offset to look for comments
-	 * @returns {string | undefined} The comment string, if found
+	 * @param after After which offset to look for comments
+	 * @param before Before which offset to look for comments
+	 * @returns The comment string, if found
 	 */
-	function print_comment(after, before) {
+	function print_comment(after?: number, before?: number): string | undefined {
 		if (minify === true || after === undefined || before === undefined) {
 			return EMPTY_STRING
 		}
@@ -160,9 +138,8 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {Rule} node */
-	function print_rule(node) {
-		let buffer
+	function print_rule(node: Rule) {
+		let buffer = ''
 		let prelude = node.prelude
 		let block = node.block
 
@@ -182,8 +159,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {SelectorList} node */
-	function print_selectorlist(node) {
+	function print_selectorlist(node: SelectorList) {
 		let buffer = EMPTY_STRING
 
 		node.children.forEach((selector, item) => {
@@ -205,12 +181,11 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {Selector | PseudoClassSelector | PseudoElementSelector} node */
-	function print_simple_selector(node) {
+	function print_simple_selector(node: Selector | PseudoClassSelector | PseudoElementSelector) {
 		let buffer = EMPTY_STRING
-		let children = node.children || []
+		let children = node.children
 
-		children.forEach((child) => {
+		children?.forEach((child) => {
 			switch (child.type) {
 				case 'TypeSelector': {
 					buffer += lowercase(child.name)
@@ -327,8 +302,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {Block} node */
-	function print_block(node) {
+	function print_block(node: Block) {
 		let children = node.children
 		let buffer = OPTIONAL_SPACE
 
@@ -348,7 +322,7 @@ export function format(css, {
 
 		indent_level++
 
-		let opening_comment = print_comment(start_offset(node), start_offset(/** @type {CssNode} */(children.first)))
+		let opening_comment = print_comment(start_offset(node), start_offset(children.first!))
 		if (opening_comment) {
 			buffer += indent(indent_level) + opening_comment + NEWLINE
 		}
@@ -392,7 +366,7 @@ export function format(css, {
 			}
 		})
 
-		let closing_comment = print_comment(end_offset(/** @type {CssNode} */(children.last)), end_offset(node))
+		let closing_comment = print_comment(end_offset(children.last!), end_offset(node))
 		if (closing_comment) {
 			buffer += NEWLINE + indent(indent_level) + closing_comment
 		}
@@ -403,8 +377,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {Atrule} node */
-	function print_atrule(node) {
+	function print_atrule(node: Atrule) {
 		let buffer = indent(indent_level) + '@'
 		let prelude = node.prelude
 		let block = node.block
@@ -431,9 +404,8 @@ export function format(css, {
 	 * here to force some nice formatting.
 	 * Should be OK perf-wise, since the amount of atrules in most
 	 * stylesheets are limited, so this won't be called too often.
-	 * @param {AtrulePrelude | Raw} node
 	 */
-	function print_prelude(node) {
+	function print_prelude(node: AtrulePrelude | Raw) {
 		let buffer = substr(node)
 
 		return buffer
@@ -447,11 +419,10 @@ export function format(css, {
 				let space = operator === '+' || operator === '-' ? SPACE : OPTIONAL_SPACE
 				return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
 			})
-			.replace(/selector|url|supports|layer\(/ig, (match) => lowercase(match)) // lowercase function names
+			.replace(/selector|url|supports|layer\(/gi, (match) => lowercase(match)) // lowercase function names
 	}
 
-	/** @param {Declaration} node */
-	function print_declaration(node) {
+	function print_declaration(node: Declaration) {
 		let property = node.property
 
 		// Lowercase the property, unless it's a custom property (starts with --)
@@ -481,8 +452,7 @@ export function format(css, {
 		return indent(indent_level) + property + COLON + OPTIONAL_SPACE + value
 	}
 
-	/** @param {List} children */
-	function print_list(children) {
+	function print_list(children: List<CssNode>) {
 		let buffer = EMPTY_STRING
 
 		children.forEach((node, item) => {
@@ -519,8 +489,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {Operator} node */
-	function print_operator(node) {
+	function print_operator(node: Operator) {
 		let buffer = EMPTY_STRING
 		// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
 		// The + and - operators must be surrounded by whitespace
@@ -555,8 +524,7 @@ export function format(css, {
 		return buffer
 	}
 
-	/** @param {Value | Raw} node */
-	function print_value(node) {
+	function print_value(node: Value | Raw) {
 		if (node.type === 'Raw') {
 			return print_unknown(node, 0)
 		}
@@ -564,12 +532,7 @@ export function format(css, {
 		return print_list(node.children)
 	}
 
-	/**
-	 * @param {CssNode} node
-	 * @param {number} indent_level
-	 * @returns {string} A formatted unknown CSS string
-	 */
-	function print_unknown(node, indent_level) {
+	function print_unknown(node: CssNode, indent_level: number) {
 		return indent(indent_level) + substr(node).trim()
 	}
 
@@ -603,7 +566,7 @@ export function format(css, {
 			}
 		})
 
-		let closing_comment = print_comment(end_offset(/** @type {CssNode} */(children.last)), end_offset(ast))
+		let closing_comment = print_comment(end_offset(children.last!), end_offset(ast))
 		if (closing_comment) {
 			buffer += NEWLINE + closing_comment
 		}
@@ -619,6 +582,6 @@ export function format(css, {
  * @param {string} css The original CSS
  * @returns {string} The minified CSS
  */
-export function minify(css) {
+export function minify(css: string): string {
 	return format(css, { minify: true })
 }

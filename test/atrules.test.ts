@@ -1,8 +1,5 @@
-import { suite } from 'uvu'
-import * as assert from 'uvu/assert'
+import { test, expect } from 'vitest'
 import { format, minify } from '../index.js'
-
-let test = suite('Atrules')
 
 test('AtRules start on a new line', () => {
 	let actual = format(`
@@ -25,7 +22,7 @@ test('AtRules start on a new line', () => {
 	}
 }`
 
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('Atrule blocks are surrounded by {} with correct spacing and indentation', () => {
@@ -51,49 +48,49 @@ test('Atrule blocks are surrounded by {} with correct spacing and indentation', 
 	}
 }`
 
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('adds whitespace between prelude and {', () => {
 	let actual = format(`@media all{}`)
 	let expected = `@media all {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('collapses whitespaces in prelude', () => {
 	let actual = format(`@media all   and   (min-width: 1000px) {}`)
 	let expected = `@media all and (min-width: 1000px) {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('adds whitespace to @media (min-width:1000px)', () => {
 	let actual = format(`@media (min-width:1000px) {}`)
 	let expected = `@media (min-width: 1000px) {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('removes excess whitespace around min-width : 1000px', () => {
 	let actual = format(`@media (min-width : 1000px) {}`)
 	let expected = `@media (min-width: 1000px) {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats @layer with excess whitespace', () => {
 	let actual = format(`@layer    test;`)
 	let expected = `@layer test;`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('adds whitespace to @layer tbody,thead', () => {
 	let actual = format(`@layer tbody,thead;`)
 	let expected = `@layer tbody, thead;`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('adds whitespace to @supports (display:grid)', () => {
 	let actual = format(`@supports (display:grid){}`)
 	let expected = `@supports (display: grid) {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('@media prelude formatting', () => {
@@ -120,7 +117,7 @@ test('@media prelude formatting', () => {
 
 	for (let [css, expected] of fixtures) {
 		let actual = format(css)
-		assert.equal(actual, expected)
+		expect(actual).toEqual(expected)
 	}
 })
 
@@ -132,7 +129,7 @@ test('lowercases functions inside atrule preludes', () => {
 	let expected = `@import url("style.css") layer(test) supports(display: grid);
 
 @supports selector([popover]:open) {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats @scope', () => {
@@ -143,7 +140,7 @@ test('formats @scope', () => {
 	let expected = `@scope (.light-scheme) {}
 
 @scope (.media-object) to (.content > *) {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('calc() inside @media', () => {
@@ -163,37 +160,40 @@ test('calc() inside @media', () => {
 @media (min-width: calc(4px * 4)) {}
 
 @media (min-width: calc(5px * 5)) {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('minify: calc(*) inside @media', () => {
 	let actual = minify(`@media (min-width: calc(1px*1)) {}`)
 	let expected = `@media (min-width:calc(1px*1)){}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('minify: calc(+) inside @media', () => {
 	let actual = minify(`@media (min-width: calc(1px + 1em)) {}`)
 	let expected = `@media (min-width:calc(1px + 1em)){}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('minify: calc(-) inside @media', () => {
 	let actual = minify(`@media (min-width: calc(1em - 1px)) {}`)
 	let expected = `@media (min-width:calc(1em - 1px)){}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('@import prelude formatting', () => {
 	let fixtures = [
 		['@import url("fineprint.css") print;', '@import url("fineprint.css") print;'],
 		['@import url("style.css") layer;', '@import url("style.css") layer;'],
-		['@import url("style.css") layer(test.first) supports(display:grid);', '@import url("style.css") layer(test.first) supports(display: grid);'],
+		[
+			'@import url("style.css") layer(test.first) supports(display:grid);',
+			'@import url("style.css") layer(test.first) supports(display: grid);',
+		],
 	]
 
 	for (let [css, expected] of fixtures) {
 		let actual = format(css)
-		assert.equal(actual, expected)
+		expect(actual).toEqual(expected)
 	}
 })
 
@@ -206,7 +206,7 @@ test('@supports prelude formatting', () => {
 
 	for (let [css, expected] of fixtures) {
 		let actual = format(css)
-		assert.equal(actual, expected)
+		expect(actual).toEqual(expected)
 	}
 })
 
@@ -218,7 +218,7 @@ test('@layer prelude formatting', () => {
 
 	for (let [css, expected] of fixtures) {
 		let actual = format(css)
-		assert.equal(actual, expected)
+		expect(actual).toEqual(expected)
 	}
 })
 
@@ -230,7 +230,7 @@ test('minify: @layer prelude formatting', () => {
 
 	for (let [css, expected] of fixtures) {
 		let actual = minify(css)
-		assert.equal(actual, expected)
+		expect(actual).toEqual(expected)
 	}
 })
 
@@ -250,7 +250,7 @@ test('single empty line after a rule, before atrule', () => {
 		property: value;
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('single empty line in between atrules', () => {
@@ -267,7 +267,7 @@ test('single empty line in between atrules', () => {
 		property: value;
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('newline between last declaration and nested atrule', () => {
@@ -286,19 +286,19 @@ test('newline between last declaration and nested atrule', () => {
 		property2: value2;
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('lowercases the atrule name', () => {
 	let actual = format(`@LAYER test {}`)
 	let expected = `@layer test {}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('does not lowercase the atrule value', () => {
 	let actual = format('@keyframes TEST {}')
 	let expected = '@keyframes TEST {}'
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('Atrules w/o Block are terminated with a semicolon', () => {
@@ -309,7 +309,7 @@ test('Atrules w/o Block are terminated with a semicolon', () => {
 	let expected = `@layer test;
 
 @import url('test');`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('Empty atrule braces are placed on the same line', () => {
@@ -321,7 +321,7 @@ test('Empty atrule braces are placed on the same line', () => {
 	let expected = `@media all {}
 
 @supports (display: grid) {}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('new-fangled comparators (width > 1000px)', () => {
@@ -341,13 +341,13 @@ test('new-fangled comparators (width > 1000px)', () => {
 @media (width <= 1000px) {}
 
 @media (200px < width < 1000px) {}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('minify: new-fangled comparators (width > 1000px)', () => {
 	let actual = minify(`@container (width>1000px) {}`)
 	let expected = `@container (width>1000px){}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test.skip('preserves comments', () => {
@@ -368,7 +368,5 @@ test.skip('preserves comments', () => {
 
 @layer /* comment */ {}
 `
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
-
-test.run()

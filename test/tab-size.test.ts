@@ -1,8 +1,5 @@
-import { suite } from 'uvu'
-import * as assert from 'uvu/assert'
+import { test, expect } from 'vitest'
 import { format } from '../index.js'
-
-let test = suite('Tab Size')
 
 let fixture = `
 	selector {
@@ -11,7 +8,8 @@ let fixture = `
 `
 
 test('tab_size: 2', () => {
-	let actual = format(`
+	let actual = format(
+		`
 		selector {
 			color: red;
 		}
@@ -21,7 +19,9 @@ test('tab_size: 2', () => {
 				color: blue;
 			}
 		}
-	`, { tab_size: 2 })
+	`,
+		{ tab_size: 2 },
+	)
 	let expected = `selector {
   color: red;
 }
@@ -31,24 +31,22 @@ test('tab_size: 2', () => {
     color: blue;
   }
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('invalid tab_size: 0', () => {
-	assert.throws(() => format(fixture, { tab_size: 0 }))
+	expect(() => format(fixture, { tab_size: 0 })).toThrow()
 })
 
 test('invalid tab_size: negative', () => {
-	assert.throws(() => format(fixture, { tab_size: -1 }))
+	expect(() => format(fixture, { tab_size: -1 })).toThrow()
 })
 
 test('combine tab_size and minify', () => {
 	let actual = format(fixture, {
 		tab_size: 2,
-		minify: true
+		minify: true,
 	})
 	let expected = `selector{color:red}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
-
-test.run()

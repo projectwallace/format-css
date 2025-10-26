@@ -1,8 +1,5 @@
-import { suite } from 'uvu'
-import * as assert from 'uvu/assert'
+import { test, expect } from 'vitest'
 import { format } from '../index.js'
-
-let test = suite('Declarations')
 
 test('Declarations end with a semicolon (;)', () => {
 	let actual = format(`
@@ -52,7 +49,7 @@ css {
 	}
 }`
 
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('lowercases properties', () => {
@@ -60,7 +57,7 @@ test('lowercases properties', () => {
 	let expected = `a {
 	color: green;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('does not lowercase custom properties', () => {
@@ -70,7 +67,7 @@ test('does not lowercase custom properties', () => {
 	let expected = `a {
 	--myVar: 1;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('!important is added', () => {
@@ -78,7 +75,7 @@ test('!important is added', () => {
 	let expected = `a {
 	color: green !important;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('!important is lowercase', () => {
@@ -86,7 +83,7 @@ test('!important is lowercase', () => {
 	let expected = `a {
 	color: green !important;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('browserhack !ie is printed', () => {
@@ -94,7 +91,7 @@ test('browserhack !ie is printed', () => {
 	let expected = `a {
 	color: green !ie;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('browserhack !IE is lowercased', () => {
@@ -102,7 +99,5 @@ test('browserhack !IE is lowercased', () => {
 	let expected = `a {
 	color: green !ie;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
-
-test.run()

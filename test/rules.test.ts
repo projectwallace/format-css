@@ -1,8 +1,5 @@
-import { suite } from 'uvu'
-import * as assert from 'uvu/assert'
+import { test, expect } from 'vitest'
 import { format } from '../index.js'
-
-let test = suite('Rules')
 
 test('AtRules and Rules start on a new line', () => {
 	let actual = format(`
@@ -35,7 +32,7 @@ selector {
 	}
 }`
 
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('An empty line is rendered in between Rules', () => {
@@ -50,7 +47,7 @@ test('An empty line is rendered in between Rules', () => {
 rule2 {
 	property: value;
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('single empty line after a rule, before atrule', () => {
@@ -69,7 +66,7 @@ test('single empty line after a rule, before atrule', () => {
 		property: value;
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('newline between last declaration and nested ruleset', () => {
@@ -95,7 +92,7 @@ test('newline between last declaration and nested ruleset', () => {
 		}
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('newline between last declaration and nested atrule', () => {
@@ -114,7 +111,7 @@ test('newline between last declaration and nested atrule', () => {
 		property2: value2;
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('no trailing newline on empty nested rule', () => {
@@ -126,7 +123,7 @@ test('no trailing newline on empty nested rule', () => {
 	let expected = `@layer test {
 	empty {}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats nested rules with selectors starting with', () => {
@@ -142,7 +139,7 @@ test('formats nested rules with selectors starting with', () => {
 		property: value;
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('newlines between declarations, nested rules and more declarations', () => {
@@ -156,7 +153,7 @@ test('newlines between declarations, nested rules and more declarations', () => 
 
 	color: green;
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats nested rules with a selector starting with &', () => {
@@ -170,7 +167,7 @@ test('formats nested rules with a selector starting with &', () => {
 		color: red;
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats unknown stuff in curly braces', () => {
@@ -182,7 +179,7 @@ test('formats unknown stuff in curly braces', () => {
 	let expected = `selector {
 	{ color: red; }
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('[check broken test] Relaxed nesting: formats nested rules with a selector with a &', () => {
@@ -194,7 +191,7 @@ test('[check broken test] Relaxed nesting: formats nested rules with a selector 
 	let expected = `selector {
 	a & { color:red }
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test.skip('Relaxed nesting: formats nested rules with a selector with a &', () => {
@@ -208,7 +205,7 @@ test.skip('Relaxed nesting: formats nested rules with a selector with a &', () =
 		color: red;
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('[check broken test] Relaxed nesting: formats nested rules with a selector without a &', () => {
@@ -220,7 +217,7 @@ test('[check broken test] Relaxed nesting: formats nested rules with a selector 
 	let expected = `selector {
 	a { color:red }
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test.skip('Relaxed nesting: formats nested rules with a selector without a &', () => {
@@ -234,7 +231,7 @@ test.skip('Relaxed nesting: formats nested rules with a selector without a &', (
 		color: red;
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('[check broken test] Relaxed nesting: formats nested rules with a selector starting with a selector combinator', () => {
@@ -250,7 +247,7 @@ test('[check broken test] Relaxed nesting: formats nested rules with a selector 
 			~ a { color:red }
 			+ a { color:red }
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test.skip('Relaxed nesting: formats nested rules with a selector starting with a selector combinator', () => {
@@ -274,7 +271,17 @@ test.skip('Relaxed nesting: formats nested rules with a selector starting with a
 		color: red;
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
-test.run()
+test('handles syntax errors: unclosed block', () => {
+	let actual = format(`a { mumblejumble`)
+	let expected = 'a {\n\tmumblejumble\n}'
+	expect(actual).toEqual(expected)
+})
+
+test('handles syntax errors: premature closed block', () => {
+	let actual = format(`a { mumblejumble: }`)
+	let expected = 'a {\n\tmumblejumble: ;\n}'
+	expect(actual).toEqual(expected)
+})
