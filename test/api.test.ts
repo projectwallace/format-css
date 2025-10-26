@@ -1,18 +1,16 @@
-import { test } from 'uvu'
-import * as assert from 'uvu/assert'
+import { test, expect } from 'vitest'
 import { format } from '../index.js'
 
 test('empty input', () => {
 	let actual = format(``)
 	let expected = ``
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('handles invalid input', () => {
 	let actual = format(`;`)
 	let expected = `;`
-
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('Vadim Makeevs example works', () => {
@@ -40,7 +38,7 @@ test('Vadim Makeevs example works', () => {
 		}
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('minified Vadims example', () => {
@@ -55,7 +53,5 @@ test('minified Vadims example', () => {
 		}
 	}
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
-
-test.run()

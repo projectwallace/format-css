@@ -1,8 +1,5 @@
-import { suite } from 'uvu'
-import * as assert from 'uvu/assert'
+import { test, expect } from 'vitest'
 import { format } from '../index.js'
-
-let test = suite('Values')
 
 test('collapses abundant whitespace', () => {
 	let actual = format(`a {
@@ -15,7 +12,7 @@ test('collapses abundant whitespace', () => {
 	color: rgb(0, 0, 0);
 	color: red;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats simple value lists', () => {
@@ -39,7 +36,7 @@ test('formats simple value lists', () => {
 	content: 'Test';
 	background-image: url("EXAMPLE.COM");
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats nested value lists', () => {
@@ -51,7 +48,7 @@ test('formats nested value lists', () => {
 	let expected = `a {
 	background: red, linear-gradient(to bottom, red 10%, green 50%, blue 100%);
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats nested var()', () => {
@@ -65,7 +62,7 @@ test('formats nested var()', () => {
 	color: var(--test1, var(--test2, green));
 	color: var(--test3, rgb(0, 0, 0));
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats multiline values on a single line', () => {
@@ -86,7 +83,7 @@ a {
 	background: linear-gradient(red, 10% blue, 20% green, 100% yellow);
 	color: rgb(0, 0, 0);
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('does not break font shorthand', () => {
@@ -100,7 +97,7 @@ test('does not break font shorthand', () => {
 	font: 2em/2 sans-serif;
 	font: 2em/2 sans-serif;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats whitespace around operators (*/+-) correctly', () => {
@@ -118,7 +115,7 @@ test('formats whitespace around operators (*/+-) correctly', () => {
 	font-size: calc(2em + 2px);
 	font-size: calc(2em - 2px);
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats whitespace around operators (*/+-) correctly in nested parenthesis', () => {
@@ -134,7 +131,7 @@ test('formats whitespace around operators (*/+-) correctly in nested parenthesis
 	width: calc(((100% - var(--x)) / 12 * 6) + (-1 * var(--y)));
 	width: calc(((100% - var(--x)) / 12 * 6) + (-1 * var(--y)));
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats parenthesis correctly', () => {
@@ -150,7 +147,7 @@ test('formats parenthesis correctly', () => {
 	width: calc(100% - (var(--x)));
 	width: calc((100% - (var(--x))));
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('does not lowercase grid-area names', () => {
@@ -158,7 +155,7 @@ test('does not lowercase grid-area names', () => {
 	let expected = `a {
 	grid-area: emailInputBox;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('does not lowercase custom properties in var()', () => {
@@ -166,7 +163,7 @@ test('does not lowercase custom properties in var()', () => {
 	let expected = `a {
 	color: var(--MyColor);
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('lowercases CSS functions', () => {
@@ -178,7 +175,7 @@ test('lowercases CSS functions', () => {
 	color: rgb(0, 0, 0);
 	transform: translatex(100px);
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('relative colors', () => {
@@ -194,7 +191,7 @@ test('relative colors', () => {
 	color: hwb(from var(--base-color) h w b / var(--standard-opacity));
 	color: lch(from var(--base-color) calc(l + 20) c h);
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('does not change casing of `NaN`', () => {
@@ -204,7 +201,7 @@ test('does not change casing of `NaN`', () => {
 	let expected = `a {
 	height: calc(1 * NaN);
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('does not change casing of URLs', () => {
@@ -214,7 +211,7 @@ test('does not change casing of URLs', () => {
 	let expected = `a {
 	background-image: url("My-Url.png");
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('lowercases dimensions', () => {
@@ -226,7 +223,7 @@ test('lowercases dimensions', () => {
 	font-size: 12px;
 	width: var(--test, 33rem);
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats unknown content in value', () => {
@@ -236,7 +233,7 @@ test('formats unknown content in value', () => {
 	let expected = `a {
 	content: 'Test' : counter(page);
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('does not break space toggles', () => {
@@ -248,7 +245,7 @@ test('does not break space toggles', () => {
 	--ON: initial;
 	--OFF: ;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('does not break space toggles (minified)', () => {
@@ -260,7 +257,7 @@ test('does not break space toggles (minified)', () => {
 		{ minify: true },
 	)
 	let expected = `a{--ON:initial;--OFF: }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('adds quotes around strings in url()', () => {
@@ -284,7 +281,5 @@ test('adds quotes around strings in url()', () => {
 	offset-path: url("#path");
 	mask-image: url("masks.svg#mask1");
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
-
-test.run()

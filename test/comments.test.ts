@@ -1,13 +1,10 @@
-import { suite } from 'uvu'
-import * as assert from 'uvu/assert'
+import { test, expect } from 'vitest'
 import { format } from '../index.js'
-
-let test = suite('Comments')
 
 test('only comment', () => {
 	let actual = format(`/* comment */`)
 	let expected = `/* comment */`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('bang comment before rule', () => {
@@ -18,7 +15,7 @@ test('bang comment before rule', () => {
 	let expected = `/*! comment */
 
 selector {}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('before selectors', () => {
@@ -34,7 +31,7 @@ selector1,
 selector2 {
 	property: value;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('before nested selectors', () => {
@@ -54,7 +51,7 @@ test('before nested selectors', () => {
 		property: value;
 	}
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('after selectors', () => {
@@ -70,7 +67,7 @@ selector2
 /* comment */ {
 	property: value;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('in between selectors', () => {
@@ -86,7 +83,7 @@ test('in between selectors', () => {
 selector2 {
 	property: value;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('in between nested selectors', () => {
@@ -106,7 +103,7 @@ test('in between nested selectors', () => {
 		property: value;
 	}
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as first child in rule', () => {
@@ -120,7 +117,7 @@ test('as first child in rule', () => {
 	/* comment */
 	property: value;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as last child in rule', () => {
@@ -134,7 +131,7 @@ test('as last child in rule', () => {
 	property: value;
 	/* comment */
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as last child in nested rule', () => {
@@ -152,7 +149,7 @@ test('as last child in nested rule', () => {
 		/* comment */
 	}
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as only child in rule', () => {
@@ -164,7 +161,7 @@ test('as only child in rule', () => {
 	let expected = `selector {
 	/* comment */
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as only child in nested rule', () => {
@@ -178,7 +175,7 @@ test('as only child in nested rule', () => {
 		/* comment */
 	}
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('in between declarations', () => {
@@ -194,7 +191,7 @@ test('in between declarations', () => {
 	/* comment */
 	property: value;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('in between nested declarations', () => {
@@ -214,7 +211,7 @@ test('in between nested declarations', () => {
 		property: value;
 	}
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as first child in atrule', () => {
@@ -232,7 +229,7 @@ test('as first child in atrule', () => {
 		property: value;
 	}
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as first child in nested atrule', () => {
@@ -254,7 +251,7 @@ test('as first child in nested atrule', () => {
 		}
 	}
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as last child in atrule', () => {
@@ -272,7 +269,7 @@ test('as last child in atrule', () => {
 	}
 	/* comment */
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as last child in nested atrule', () => {
@@ -294,7 +291,7 @@ test('as last child in nested atrule', () => {
 		/* comment */
 	}
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as only child in atrule', () => {
@@ -306,7 +303,7 @@ test('as only child in atrule', () => {
 	let expected = `@media (min-width: 1000px) {
 	/* comment */
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('as only child in nested atrule', () => {
@@ -322,7 +319,7 @@ test('as only child in nested atrule', () => {
 		/* comment */
 	}
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('in between rules and atrules', () => {
@@ -346,7 +343,7 @@ selector {}
 	/* comment 4 */
 }
 /* comment 5 */`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('comment before rule and atrule should not be separated by newline', () => {
@@ -370,7 +367,7 @@ selector {}
 	selector {}
 	/* comment 4 */
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('a declaration after multiple comments starts on a new line', () => {
@@ -400,7 +397,7 @@ test('a declaration after multiple comments starts on a new line', () => {
 	/* comment 6 */
 	--custom-property: value;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('multiple comments in between rules and atrules', () => {
@@ -434,7 +431,7 @@ selector {}
 }
 /* comment 5 */
 /* comment 5.1 */`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('puts every comment on a new line', () => {
@@ -449,33 +446,33 @@ test('puts every comment on a new line', () => {
 	/*--font-style: normal;*/
 	--border-top-color: var(--root-color--support);
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('in @media prelude', () => {
 	// from CSSTree https://github.com/csstree/csstree/blob/ba6dfd8bb0e33055c05f13803d04825d98dd2d8d/fixtures/ast/mediaQuery/MediaQuery.json#L147
 	let actual = format('@media all /*0*/ (/*1*/foo/*2*/:/*3*/1/*4*/) {}')
 	let expected = '@media all /*0*/ (/*1*/foo/*2*/: /*3*/1/*4*/) {}'
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('in @supports prelude', () => {
 	// from CSSTree https://github.com/csstree/csstree/blob/ba6dfd8bb0e33055c05f13803d04825d98dd2d8d/fixtures/ast/atrule/atrule/supports.json#L119
 	let actual = format('@supports not /*0*/(/*1*/flex :/*3*/1/*4*/)/*5*/{}')
 	let expected = '@supports not /*0*/(/*1*/flex: /*3*/1/*4*/)/*5*/ {}'
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('skip in @import prelude before specifier', () => {
 	let actual = format('@import /*test*/"foo";')
 	let expected = '@import "foo";'
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('in @import prelude after specifier', () => {
 	let actual = format('@import "foo"/*test*/;')
 	let expected = '@import "foo"/*test*/;'
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('skip in selector combinator', () => {
@@ -485,13 +482,13 @@ test('skip in selector combinator', () => {
 	`)
 	let expected = `a b,
 a + b {}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('in attribute selector', () => {
 	let actual = format(`[/*test*/a/*test*/=/*test*/'b'/*test*/i/*test*/]`)
 	let expected = `[/*test*/a/*test*/=/*test*/'b'/*test*/i/*test*/]`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('skip in var() with fallback', () => {
@@ -499,7 +496,7 @@ test('skip in var() with fallback', () => {
 	let expected = `a {
 	prop: var(--name, 1);
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('skip in custom property declaration (space toggle)', () => {
@@ -507,7 +504,7 @@ test('skip in custom property declaration (space toggle)', () => {
 	let expected = `a {
 	--test: ;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('before value', () => {
@@ -515,7 +512,7 @@ test('before value', () => {
 	let expected = `a {
 	prop: value;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('after value', () => {
@@ -525,7 +522,7 @@ test('after value', () => {
 	let expected = `a {
 	prop: value;
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('skip in value functions', () => {
@@ -543,11 +540,12 @@ test('skip in value functions', () => {
 	background-image: linear-gradient(red, green);
 	background-image: linear-gradient(red, green);
 }`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('strips comments in minification mode', () => {
-	let actual = format(`
+	let actual = format(
+		`
 	/* comment 1 */
 	selector {}
 	/* comment 2 */
@@ -557,9 +555,9 @@ test('strips comments in minification mode', () => {
 		/* comment 4 */
 	}
 	/* comment 5 */
-	`, { minify: true })
+	`,
+		{ minify: true },
+	)
 	let expected = `selector{}@media (min-width:1000px){selector{}}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
-
-test.run()

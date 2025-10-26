@@ -1,13 +1,10 @@
-import { suite } from 'uvu'
-import * as assert from 'uvu/assert'
+import { test, expect } from 'vitest'
 import { format } from '../index.js'
-
-let test = suite('Selectors')
 
 test('A single selector is rendered without a trailing comma', () => {
 	let actual = format('a {}')
 	let expected = 'a {}'
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('Multiple selectors are placed on a new line, separated by commas', () => {
@@ -28,7 +25,7 @@ selector1aa,
 selector2,
 selector3 {}`
 
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats multiline selectors on a single line', () => {
@@ -41,7 +38,7 @@ color: green }
 	let expected = `a.b .c .d .e .f {
 	color: green;
 }`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats simple selector combinators', () => {
@@ -53,7 +50,7 @@ test('formats simple selector combinators', () => {
 	let expected = `a > b,
 a > b ~ c d,
 .article-content ol li > * {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('lowercases type selectors', () => {
@@ -65,7 +62,7 @@ test('lowercases type selectors', () => {
 	let expected = `a,
 b,
 c {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats nested selector combinators', () => {
@@ -78,7 +75,7 @@ test('formats nested selector combinators', () => {
 
 	for (let [css, expected] of fixtures) {
 		let actual = format(css)
-		assert.equal(actual, expected)
+		expect(actual).toEqual(expected)
 	}
 })
 
@@ -97,7 +94,7 @@ b::after,
 c::first-letter {}`
 
 	let actual = format(css)
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats pseudo elements with odd casing', () => {
@@ -117,7 +114,7 @@ c::after,
 d::first-letter {}`
 
 	let actual = format(css)
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats selectors with Nth', () => {
@@ -133,7 +130,7 @@ test('formats selectors with Nth', () => {
 
 	for (let [css, expected] of fixtures) {
 		let actual = format(css)
-		assert.equal(actual, expected)
+		expect(actual).toEqual(expected)
 	}
 })
 
@@ -146,7 +143,7 @@ test('formats multiline selectors', () => {
 		) {}
 	`)
 	let expected = `a:is(a, b, c) {}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('format nesting selectors', () => {
@@ -157,7 +154,7 @@ test('format nesting selectors', () => {
 	let expected = `& a {}
 
 b & c {}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('forces attribute selectors to have quoted values', () => {
@@ -169,7 +166,7 @@ test('forces attribute selectors to have quoted values', () => {
 	let expected = `[title="foo"],
 [title="bar"],
 [title="baz"] {}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('adds a space before attribute selector flags', () => {
@@ -181,14 +178,14 @@ test('adds a space before attribute selector flags', () => {
 	let expected = `[title="foo" i],
 [title="baz" i],
 [title="foo" i] {}`
-	assert.is(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats :lang correctly', () => {
 	let actual = format(`:lang("nl","de"),li:nth-child() {}`)
 	let expected = `:lang("nl","de"),
 li:nth-child() {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test(`formats ::highlight and ::highlight(Name) correctly`, () => {
@@ -196,7 +193,7 @@ test(`formats ::highlight and ::highlight(Name) correctly`, () => {
 	let expected = `::highlight,
 ::highlight(Name),
 ::highlight(my-thing) {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
 test('formats unknown pseudos correctly', () => {
@@ -208,7 +205,14 @@ test('formats unknown pseudos correctly', () => {
 	let expected = `::foo-bar,
 :unkown-thing(),
 :unnowkn(kjsa.asddk,asd) {}`
-	assert.equal(actual, expected)
+	expect(actual).toEqual(expected)
 })
 
-test.run()
+test('handles syntax errors', () => {
+	let actual = format(`
+		test,
+		@test {}
+	`)
+	let expected = ` {}`
+	expect(actual).toEqual(expected)
+})
