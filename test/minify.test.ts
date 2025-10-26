@@ -15,13 +15,13 @@ test('simple declaration', () => {
 
 test('simple atrule', () => {
 	let actual = minify(`@media (min-width: 100px) { body { color: red; } }`)
-	let expected = `@media (min-width: 100px){body{color:red}}`
+	let expected = `@media (min-width:100px){body{color:red}}`
 	expect(actual).toEqual(expected)
 })
 
 test('empty atrule', () => {
 	let actual = minify(`@media (min-width: 100px) {}`)
-	let expected = `@media (min-width: 100px){}`
+	let expected = `@media (min-width:100px){}`
 	expect(actual).toEqual(expected)
 })
 
@@ -64,13 +64,13 @@ test('Vadim Makeevs example works', () => {
 		}
 	}
 	`)
-	let expected = `@layer what{@container (width > 0){ul:has(:nth-child(1 of li)){@media (height > 0){&:hover{--is:this}}}}}`
+	let expected = `@layer what{@container (width>0){ul:has(:nth-child(1 of li)){@media (height>0){&:hover{--is:this}}}}}`
 	expect(actual).toEqual(expected)
 })
 
 test('minified Vadims example', () => {
 	let actual = minify(`@layer what{@container (width>0){@media (min-height:.001px){ul:has(:nth-child(1 of li)):hover{--is:this}}}}`)
-	let expected = `@layer what{@container (width > 0){@media (min-height: .001px){ul:has(:nth-child(1 of li)):hover{--is:this}}}}`
+	let expected = `@layer what{@container (width>0){@media (min-height:.001px){ul:has(:nth-child(1 of li)):hover{--is:this}}}}`
 	expect(actual).toEqual(expected)
 })
 
@@ -80,7 +80,7 @@ test('removes whitespace before !important', () => {
 	expect(actual).toEqual(expected)
 })
 
-test.only('minifies complex selectors', () => {
+test('minifies complex selectors', () => {
 	let actual = minify(`:is(a, b) { color: green }`)
 	let expected = `:is(a,b){color:green}`
 	expect(actual).toEqual(expected)
