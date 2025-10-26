@@ -14,26 +14,82 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           cache: 'npm'
-      - name: Install dependencies
-        run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Unit tests
-        run: npm test
-      - name: Check types
-        run: npm run check
-      - name: Lint JS
-        run: npx oxlint@latest -D perf
-      - name: Build package
-        run: npm run build
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+
+  check:
+    name: Check types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          cache: 'npm'
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run check
+
+  build:
+    name: Build & collect coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          cache: 'npm'
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      - name: 'Publint'
-        run: 'npx --yes publint'
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4.0.1
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Use Node.js
+        uses: actions/setup-node@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          cache: 'npm'
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
+      - run: npm run lint
+
+  lint-package:
+    name: Lint package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          cache: 'npm'
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
+      - run: npm run lint-package
+
+  npm-audit:
+    name: Audit packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          cache: 'npm'
+          node-version: 22
+      - run: npm audit --audit-level=high
