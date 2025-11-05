@@ -2,7 +2,6 @@ import {
 	parse,
 	type CssNode,
 	type List,
-	type CssLocation,
 	type Raw,
 	type StyleSheet,
 	type Atrule,
@@ -16,6 +15,7 @@ import {
 	type Declaration,
 	type Value,
 	type Operator,
+	type CssLocationRange,
 } from '@eslint/css-tree'
 
 const SPACE = ' '
@@ -66,7 +66,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	/** [start0, end0, start1, end1, etc.]*/
 	let comments: number[] = []
 
-	function on_comment(_: string, position: CssLocation) {
+	function on_comment(_: string, position: CssLocationRange) {
 		comments.push(position.start.offset, position.end.offset)
 	}
 
