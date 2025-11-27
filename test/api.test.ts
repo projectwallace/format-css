@@ -9,7 +9,7 @@ test('empty input', () => {
 
 test('handles invalid input', () => {
 	let actual = format(`;`)
-	let expected = `;`
+	let expected = ``
 	expect(actual).toEqual(expected)
 })
 

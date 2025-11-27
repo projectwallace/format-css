@@ -182,14 +182,16 @@ test('formats unknown stuff in curly braces', () => {
 	expect(actual).toEqual(expected)
 })
 
-test('[check broken test] Relaxed nesting: formats nested rules with a selector with a &', () => {
+test('Relaxed nesting: formats nested rules with a selector with a &', () => {
 	let actual = format(`
 		selector {
 			a & { color:red }
 		}
 	`)
 	let expected = `selector {
-	a & { color:red }
+	a & {
+		color: red;
+	}
 }`
 	expect(actual).toEqual(expected)
 })
@@ -208,14 +210,16 @@ test.skip('Relaxed nesting: formats nested rules with a selector with a &', () =
 	expect(actual).toEqual(expected)
 })
 
-test('[check broken test] Relaxed nesting: formats nested rules with a selector without a &', () => {
+test('Relaxed nesting: formats nested rules with a selector without a &', () => {
 	let actual = format(`
 		selector {
 			a { color:red }
 		}
 	`)
 	let expected = `selector {
-	a { color:red }
+	a {
+		color: red;
+	}
 }`
 	expect(actual).toEqual(expected)
 })
@@ -243,9 +247,17 @@ test('[check broken test] Relaxed nesting: formats nested rules with a selector 
 		}
 	`)
 	let expected = `selector {
-	> a { color:red }
-			~ a { color:red }
-			+ a { color:red }
+	> a {
+		color: red;
+	}
+
+	~ a {
+		color: red;
+	}
+
+	+ a {
+		color: red;
+	}
 }`
 	expect(actual).toEqual(expected)
 })
@@ -276,7 +288,7 @@ test.skip('Relaxed nesting: formats nested rules with a selector starting with a
 
 test('handles syntax errors: unclosed block', () => {
 	let actual = format(`a { mumblejumble`)
-	let expected = 'a {\n\tmumblejumble\n}'
+	let expected = 'a {}'
 	expect(actual).toEqual(expected)
 })
 

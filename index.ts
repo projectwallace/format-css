@@ -1,4 +1,31 @@
-import { parse } from '@projectwallace/css-parser'
+import {
+	CSSNode,
+	parse,
+	NODE_AT_RULE,
+	NODE_STYLE_RULE,
+	NODE_DECLARATION,
+	NODE_SELECTOR,
+	NODE_SELECTOR_LIST,
+	NODE_SELECTOR_COMBINATOR,
+	NODE_SELECTOR_TYPE,
+	NODE_SELECTOR_PSEUDO_ELEMENT,
+	NODE_SELECTOR_PSEUDO_CLASS,
+	NODE_SELECTOR_ATTRIBUTE,
+	ATTR_OPERATOR_NONE,
+	ATTR_OPERATOR_EQUAL,
+	ATTR_OPERATOR_TILDE_EQUAL,
+	ATTR_OPERATOR_PIPE_EQUAL,
+	ATTR_OPERATOR_CARET_EQUAL,
+	ATTR_OPERATOR_DOLLAR_EQUAL,
+	ATTR_OPERATOR_STAR_EQUAL,
+	NODE_VALUE_KEYWORD,
+	NODE_SELECTOR_NTH,
+	NODE_SELECTOR_NTH_OF,
+	NODE_VALUE_FUNCTION,
+	NODE_VALUE_OPERATOR,
+	NODE_VALUE_DIMENSION,
+	NODE_VALUE_STRING,
+} from '../css-parser'
 
 const SPACE = ' '
 const EMPTY_STRING = ''
@@ -33,6 +60,12 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	const OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE
 	const LAST_SEMICOLON = minify ? EMPTY_STRING : SEMICOLON
 
+	let ast = parse(css, {
+		skip_comments: minify,
+	})
+
+	let depth = 0
+
 	function indent(size: number) {
 		if (minify === true) return EMPTY_STRING
 
@@ -42,6 +75,334 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 		return '\t'.repeat(size)
 	}
+
+	function unquote(str: string): string {
+		return str.replace(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
+	}
+
+	function print_string(str: string | number | null): string {
+		str = str?.toString() || ''
+		return QUOTE + unquote(str) + QUOTE
+	}
+
+	function print_operator(node: CSSNode): string {
+		let parts = []
+		// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
+		// The + and - operators must be surrounded by whitespace
+		// Whitespace around other operators is optional
+
+		let operator = node.text
+		let code = operator.charCodeAt(0)
+
+		if (code === 43 || code === 45) {
+			// + or -
+			// Add required space before + and - operators
+			parts.push(SPACE)
+		} else if (code !== 44) {
+			// ,
+			// Add optional space before operator
+			parts.push(OPTIONAL_SPACE)
+		}
+
+		// FINALLY, render the operator
+		parts.push(operator)
+
+		if (code === 43 || code === 45) {
+			// + or -
+			// Add required space after + and - operators
+			parts.push(SPACE)
+		} else {
+			// Add optional space after other operators (like *, /, and ,)
+			parts.push(OPTIONAL_SPACE)
+		}
+
+		return parts.join(EMPTY_STRING)
+	}
+
+	function print_list(nodes: CSSNode[]): string {
+		let parts = []
+		for (let node of nodes) {
+			if (node.type === NODE_VALUE_FUNCTION) {
+				let fn = node.name.toLowerCase()
+				parts.push(fn, OPEN_PARENTHESES)
+				if (fn === 'url') {
+					parts.push(print_string(node.first_child?.text || EMPTY_STRING))
+				} else {
+					parts.push(print_list(node.children))
+				}
+				parts.push(CLOSE_PARENTHESES)
+			} else if (node.type === NODE_VALUE_DIMENSION) {
+				parts.push(node.value, node.unit?.toLowerCase())
+			} else if (node.type === NODE_VALUE_STRING) {
+				parts.push(print_string(node.text))
+			} else if (node.type === NODE_VALUE_OPERATOR) {
+				parts.push(print_operator(node))
+			} else {
+				parts.push(node.text)
+			}
+
+			if (node.type !== NODE_VALUE_OPERATOR) {
+				if (node.has_next) {
+					if (node.next_sibling?.type !== NODE_VALUE_OPERATOR) {
+						parts.push(SPACE)
+					}
+				}
+			}
+		}
+
+		return parts.join(EMPTY_STRING)
+	}
+
+	function print_values(nodes: CSSNode[] | null): string {
+		if (nodes === null) return EMPTY_STRING
+		return print_list(nodes)
+	}
+
+	function print_declaration(node: CSSNode): string {
+		let important = []
+		if (node.is_important) {
+			let text = node.text
+			let has_semicolon = text.endsWith(SEMICOLON)
+			let start = text.indexOf('!')
+			let end = has_semicolon ? -1 : undefined
+			important.push(OPTIONAL_SPACE, text.slice(start, end).toLowerCase())
+		}
+		let value = print_values(node.values)
+		let property = node.property
+		if (!property.startsWith('--')) {
+			property = property.toLowerCase()
+		}
+		return property + COLON + OPTIONAL_SPACE + value + important.join(EMPTY_STRING)
+	}
+
+	function print_attribute_selector_operator(operator: number) {
+		switch (operator) {
+			case ATTR_OPERATOR_NONE:
+				return ''
+			case ATTR_OPERATOR_EQUAL:
+				return '='
+			case ATTR_OPERATOR_TILDE_EQUAL:
+				return '~='
+			case ATTR_OPERATOR_PIPE_EQUAL:
+				return '|='
+			case ATTR_OPERATOR_CARET_EQUAL:
+				return '^='
+			case ATTR_OPERATOR_DOLLAR_EQUAL:
+				return '$='
+			case ATTR_OPERATOR_STAR_EQUAL:
+				return '*='
+			default:
+				return ''
+		}
+	}
+
+	function print_nth(node: CSSNode): string {
+		let parts = []
+		let a = node.nth_a
+		let b = node.nth_b
+
+		if (a !== null) {
+			parts.push(a)
+		}
+		if (a !== null && b !== null) {
+			parts.push(OPTIONAL_SPACE)
+		}
+		if (b !== null) {
+			if (a !== null && !b.startsWith('-')) {
+				parts.push('+', OPTIONAL_SPACE)
+			}
+			parts.push(b)
+		}
+
+		return parts.join(EMPTY_STRING)
+	}
+
+	function print_nth_of(node: CSSNode): string {
+		let parts = []
+		if (node.children[0]?.type === NODE_SELECTOR_NTH) {
+			parts.push(print_nth(node.children[0]))
+			parts.push(SPACE, 'of', SPACE)
+		}
+		if (node.children[1]?.type === NODE_SELECTOR_LIST) {
+			parts.push(print_inline_selector_list(node.children[1]))
+		}
+		return parts.join(EMPTY_STRING)
+	}
+
+	function print_selector(node: CSSNode): string {
+		let parts = []
+
+		if (node.type === NODE_SELECTOR_NTH) {
+			return print_nth(node)
+		}
+
+		if (node.type === NODE_SELECTOR_NTH_OF) {
+			return print_nth_of(node)
+		}
+
+		if (node.type === NODE_SELECTOR_LIST) {
+			return print_inline_selector_list(node)
+		}
+
+		for (let child of node.children) {
+			switch (child.type) {
+				case NODE_SELECTOR_TYPE: {
+					parts.push(child.text.toLowerCase())
+					break
+				}
+				case NODE_SELECTOR_COMBINATOR: {
+					let text = child.text
+					if (/^\s+$/.test(text)) {
+						parts.push(SPACE)
+					} else {
+						parts.push(OPTIONAL_SPACE, text, OPTIONAL_SPACE)
+					}
+					break
+				}
+				case NODE_SELECTOR_PSEUDO_ELEMENT: {
+					parts.push(COLON, COLON, child.name.toLowerCase())
+					break
+				}
+				case NODE_SELECTOR_PSEUDO_CLASS: {
+					parts.push(COLON, child.name.toLowerCase())
+					if (child.first_child) {
+						parts.push(OPEN_PARENTHESES)
+						parts.push(print_selector(child.first_child))
+						parts.push(CLOSE_PARENTHESES)
+					}
+					break
+				}
+				case NODE_SELECTOR_ATTRIBUTE: {
+					parts.push(OPEN_BRACKET, child.name.toLowerCase())
+					if (child.attr_operator !== ATTR_OPERATOR_NONE) {
+						parts.push(print_attribute_selector_operator(child.attr_operator))
+						parts.push(print_string(child.value))
+					}
+					parts.push(CLOSE_BRACKET)
+					break
+				}
+				default: {
+					parts.push(child.text)
+					break
+				}
+			}
+		}
+
+		return parts.join(EMPTY_STRING)
+	}
+
+	function print_inline_selector_list(node: CSSNode): string {
+		let parts = []
+		for (let selector of node) {
+			parts.push(print_selector(selector))
+			if (selector.has_next) {
+				parts.push(COMMA, OPTIONAL_SPACE)
+			}
+		}
+		return parts.join(EMPTY_STRING)
+	}
+
+	function print_selector_list(node: CSSNode): string {
+		let lines = []
+		for (let selector of node) {
+			let printed = print_selector(selector)
+			if (selector.has_next) {
+				printed += COMMA
+			}
+			lines.push(indent(depth) + printed)
+		}
+		return lines.join(NEWLINE)
+	}
+
+	function print_block(node: CSSNode): string {
+		let lines = []
+		depth++
+
+		for (let child of node.children) {
+			let is_last = child.next_sibling?.type !== NODE_DECLARATION
+
+			if (child.type === NODE_DECLARATION) {
+				let declaration = print_declaration(child)
+				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
+				lines.push(indent(depth) + declaration + semi)
+			} else if (child.type === NODE_STYLE_RULE) {
+				if (lines.length !== 0) {
+					lines.push(EMPTY_STRING)
+				}
+				lines.push(print_rule(child))
+			} else if (child.type === NODE_AT_RULE) {
+				if (lines.length !== 0) {
+					lines.push(EMPTY_STRING)
+				}
+				lines.push(indent(depth) + print_atrule(child))
+			}
+		}
+
+		depth--
+		lines.push(indent(depth) + CLOSE_BRACE)
+		return lines.join(NEWLINE)
+	}
+
+	function print_rule(node: CSSNode): string {
+		let lines = []
+
+		if (node.first_child?.type === NODE_SELECTOR_LIST) {
+			let list = print_selector_list(node.first_child) + OPTIONAL_SPACE + OPEN_BRACE
+			if (!node.block?.has_children) {
+				list += CLOSE_BRACE
+			}
+			lines.push(list)
+		}
+
+		if (node.block && !node.block.is_empty) {
+			lines.push(print_block(node.block))
+		}
+
+		return lines.join(NEWLINE)
+	}
+
+	function print_atrule(node: CSSNode): string {
+		let lines = []
+		let name = [`@`, node.name]
+		if (node.prelude !== null) {
+			name.push(SPACE, node.prelude)
+		}
+		if (node.block === null) {
+			name.push(SEMICOLON)
+		} else {
+			name.push(OPTIONAL_SPACE, OPEN_BRACE)
+			if (node.block?.is_empty) {
+				name.push(CLOSE_BRACE)
+			}
+		}
+		lines.push(name.join(EMPTY_STRING))
+
+		if (node.block !== null && !node.block.is_empty) {
+			lines.push(print_block(node.block))
+		}
+
+		return lines.join(NEWLINE)
+	}
+
+	function print_stylesheet(node: CSSNode): string {
+		let lines = []
+
+		for (let child of node) {
+			if (child.type === NODE_STYLE_RULE) {
+				lines.push(print_rule(child))
+			} else if (child.type === NODE_AT_RULE) {
+				lines.push(print_atrule(child))
+			}
+
+			if (child.has_next) {
+				lines.push(EMPTY_STRING)
+			}
+		}
+
+		return lines.join(NEWLINE)
+	}
+
+	return print_stylesheet(ast).trimEnd()
 }
 
 /**

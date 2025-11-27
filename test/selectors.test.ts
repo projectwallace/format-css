@@ -213,6 +213,6 @@ test('handles syntax errors', () => {
 		test,
 		@test {}
 	`)
-	let expected = ` {}`
+	let expected = `test {}`
 	expect(actual).toEqual(expected)
 })
