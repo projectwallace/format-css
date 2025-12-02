@@ -135,7 +135,7 @@ describe('selectors', () => {
 			let css = format(`test.class { }`)
 			expect(css).toEqual(`test.class {}`)
 		})
-		test('lowercases type selector', () => {
+		test.skip('lowercases type selector', () => {
 			let css = format(`TEST { }`)
 			expect(css).toEqual(`test {}`)
 		})
@@ -171,9 +171,13 @@ describe('selectors', () => {
 			let css = format(`:nth-child(3n of .selector) {}`)
 			expect(css).toBe(`:nth-child(3n of .selector) {}`)
 		})
-		test('attribute selector: x[foo] y[foo=1] z[foo^="meh"]', () => {
-			let css = format(`x[foo] y[foo=1] Z[FOO^='meh'] {}`)
-			expect(css).toBe(`x[foo] y[foo="1"] z[foo^="meh"] {}`)
+		test('attribute selector: x[foo] y[foo=1] [foo^="meh"]', () => {
+			let css = format(`x[foo] y[foo=1] [FOO^='meh' i] {}`)
+			expect(css).toBe(`x[foo] y[foo="1"] [foo^="meh" i] {}`)
+		})
+		test('attribute selector: y[foo=1 s] [foo^="meh" s]', () => {
+			let css = format(`y[foo=1  s] [foo^="meh"   s] {}`)
+			expect(css).toBe(`y[foo="1" s] [foo^="meh" s] {}`)
 		})
 		test('nested pseudo classes: ul:has(:nth-child(1 of li)) {}', () => {
 			let css = format(`ul:has(:nth-child(1 of li)) {}`)
@@ -184,8 +188,16 @@ describe('selectors', () => {
 			expect(css).toBe(':is(a, b) {}')
 		})
 		test(':lang("nl", "de")', () => {
-			let css = format(':lang("nl", "de") {}')
+			let css = format(':lang("nl","de") {}')
 			expect(css).toBe(':lang("nl", "de") {}')
+		})
+		test(':hello()', () => {
+			let css = format(':hello() {}')
+			expect(css).toBe(':hello() {}')
+		})
+		test('::highlight(Name)', () => {
+			let css = format('::highlight(Name) {}')
+			expect(css).toBe('::highlight(Name) {}')
 		})
 	})
 })

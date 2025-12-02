@@ -4,7 +4,6 @@ import {
 	NODE_AT_RULE,
 	NODE_STYLE_RULE,
 	NODE_DECLARATION,
-	NODE_SELECTOR,
 	NODE_SELECTOR_LIST,
 	NODE_SELECTOR_COMBINATOR,
 	NODE_SELECTOR_TYPE,
@@ -18,13 +17,16 @@ import {
 	ATTR_OPERATOR_CARET_EQUAL,
 	ATTR_OPERATOR_DOLLAR_EQUAL,
 	ATTR_OPERATOR_STAR_EQUAL,
-	NODE_VALUE_KEYWORD,
 	NODE_SELECTOR_NTH,
 	NODE_SELECTOR_NTH_OF,
 	NODE_VALUE_FUNCTION,
 	NODE_VALUE_OPERATOR,
 	NODE_VALUE_DIMENSION,
 	NODE_VALUE_STRING,
+	NODE_SELECTOR_LANG,
+	ATTR_FLAG_NONE,
+	ATTR_FLAG_CASE_INSENSITIVE,
+	ATTR_FLAG_CASE_SENSITIVE,
 } from '../css-parser'
 
 const SPACE = ' '
@@ -229,9 +231,69 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		return parts.join(EMPTY_STRING)
 	}
 
-	function print_selector(node: CSSNode): string {
-		let parts = []
+	function print_simple_selector(node: CSSNode): string {
+		switch (node.type) {
+			case NODE_SELECTOR_TYPE: {
+				return node.name
+			}
 
+			case NODE_SELECTOR_COMBINATOR: {
+				let text = node.text
+				if (/^\s+$/.test(text)) {
+					return SPACE
+				}
+				return OPTIONAL_SPACE + text + OPTIONAL_SPACE
+			}
+
+			case NODE_SELECTOR_PSEUDO_ELEMENT:
+			case NODE_SELECTOR_PSEUDO_CLASS: {
+				let parts = [COLON]
+				let name = node.name.toLowerCase()
+
+				// Legacy pseudo-elements or actual pseudo-elements use double colon
+				if (name === 'before' || name === 'after' || node.type === NODE_SELECTOR_PSEUDO_ELEMENT) {
+					parts.push(COLON)
+				}
+
+				parts.push(name)
+
+				if (node.has_children) {
+					parts.push(OPEN_PARENTHESES)
+					if (node.children.length > 0) {
+						parts.push(print_inline_selector_list(node))
+					}
+					parts.push(CLOSE_PARENTHESES)
+				}
+
+				return parts.join(EMPTY_STRING)
+			}
+
+			case NODE_SELECTOR_ATTRIBUTE: {
+				let parts = [OPEN_BRACKET, node.name.toLowerCase()]
+
+				if (node.attr_operator !== ATTR_OPERATOR_NONE) {
+					parts.push(print_attribute_selector_operator(node.attr_operator))
+					parts.push(print_string(node.value))
+
+					if (node.attr_flags === ATTR_FLAG_CASE_INSENSITIVE) {
+						parts.push(SPACE, 'i')
+					} else if (node.attr_flags === ATTR_FLAG_CASE_SENSITIVE) {
+						parts.push(SPACE, 's')
+					}
+				}
+
+				parts.push(CLOSE_BRACKET)
+				return parts.join(EMPTY_STRING)
+			}
+
+			default: {
+				return node.text
+			}
+		}
+	}
+
+	function print_selector(node: CSSNode): string {
+		// Handle special selector types
 		if (node.type === NODE_SELECTOR_NTH) {
 			return print_nth(node)
 		}
@@ -244,48 +306,14 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			return print_inline_selector_list(node)
 		}
 
+		if (node.type === NODE_SELECTOR_LANG) {
+			return print_string(node.text)
+		}
+
+		// Handle compound selector (combination of simple selectors)
+		let parts = []
 		for (let child of node.children) {
-			switch (child.type) {
-				case NODE_SELECTOR_TYPE: {
-					parts.push(child.text.toLowerCase())
-					break
-				}
-				case NODE_SELECTOR_COMBINATOR: {
-					let text = child.text
-					if (/^\s+$/.test(text)) {
-						parts.push(SPACE)
-					} else {
-						parts.push(OPTIONAL_SPACE, text, OPTIONAL_SPACE)
-					}
-					break
-				}
-				case NODE_SELECTOR_PSEUDO_ELEMENT: {
-					parts.push(COLON, COLON, child.name.toLowerCase())
-					break
-				}
-				case NODE_SELECTOR_PSEUDO_CLASS: {
-					parts.push(COLON, child.name.toLowerCase())
-					if (child.first_child) {
-						parts.push(OPEN_PARENTHESES)
-						parts.push(print_selector(child.first_child))
-						parts.push(CLOSE_PARENTHESES)
-					}
-					break
-				}
-				case NODE_SELECTOR_ATTRIBUTE: {
-					parts.push(OPEN_BRACKET, child.name.toLowerCase())
-					if (child.attr_operator !== ATTR_OPERATOR_NONE) {
-						parts.push(print_attribute_selector_operator(child.attr_operator))
-						parts.push(print_string(child.value))
-					}
-					parts.push(CLOSE_BRACKET)
-					break
-				}
-				default: {
-					parts.push(child.text)
-					break
-				}
-			}
+			parts.push(print_simple_selector(child))
 		}
 
 		return parts.join(EMPTY_STRING)
@@ -363,7 +391,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 	function print_atrule(node: CSSNode): string {
 		let lines = []
-		let name = [`@`, node.name]
+		let name = [`@`, node.name.toLowerCase()]
 		if (node.prelude !== null) {
 			name.push(SPACE, node.prelude)
 		}

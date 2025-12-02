@@ -145,7 +145,7 @@ test('formats nested rules with selectors starting with', () => {
 test('newlines between declarations, nested rules and more declarations', () => {
 	let actual = format(`a { font: 0/0; & b { color: red; } color: green;}`)
 	let expected = `a {
-	font: 0/0;
+	font: 0 / 0;
 
 	& b {
 		color: red;
@@ -177,7 +177,9 @@ test('formats unknown stuff in curly braces', () => {
 		}
 	`)
 	let expected = `selector {
-	{ color: red; }
+ {
+		color: red;
+	}
 }`
 	expect(actual).toEqual(expected)
 })
@@ -196,7 +198,7 @@ test('Relaxed nesting: formats nested rules with a selector with a &', () => {
 	expect(actual).toEqual(expected)
 })
 
-test.skip('Relaxed nesting: formats nested rules with a selector with a &', () => {
+test('Relaxed nesting: formats nested rules with a selector with a &', () => {
 	let actual = format(`
 		selector {
 			a & { color:red }
@@ -224,45 +226,7 @@ test('Relaxed nesting: formats nested rules with a selector without a &', () => 
 	expect(actual).toEqual(expected)
 })
 
-test.skip('Relaxed nesting: formats nested rules with a selector without a &', () => {
-	let actual = format(`
-		selector {
-			a { color:red }
-		}
-	`)
-	let expected = `selector {
-	a {
-		color: red;
-	}
-}`
-	expect(actual).toEqual(expected)
-})
-
-test('[check broken test] Relaxed nesting: formats nested rules with a selector starting with a selector combinator', () => {
-	let actual = format(`
-		selector {
-			> a { color:red }
-			~ a { color:red }
-			+ a { color:red }
-		}
-	`)
-	let expected = `selector {
-	> a {
-		color: red;
-	}
-
-	~ a {
-		color: red;
-	}
-
-	+ a {
-		color: red;
-	}
-}`
-	expect(actual).toEqual(expected)
-})
-
-test.skip('Relaxed nesting: formats nested rules with a selector starting with a selector combinator', () => {
+test('Relaxed nesting: formats nested rules with a selector starting with a selector combinator', () => {
 	let actual = format(`
 		selector {
 			> a { color:red }

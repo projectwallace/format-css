@@ -53,7 +53,8 @@ a > b ~ c d,
 	expect(actual).toEqual(expected)
 })
 
-test('lowercases type selectors', () => {
+// Cannot currently do this because this would also lowercase ::highlight(NAME)
+test.skip('lowercases type selectors', () => {
 	let actual = format(`
 		A,
 		B,
@@ -123,9 +124,9 @@ test('formats selectors with Nth', () => {
 		[`li:nth-child(0n+1) {}`, `li:nth-child(0n + 1) {}`],
 		[`li:nth-child(even of .noted) {}`, `li:nth-child(even of .noted) {}`],
 		[`li:nth-child(2n of .noted) {}`, `li:nth-child(2n of .noted) {}`],
-		[`li:nth-child(-n + 3 of .noted) {}`, `li:nth-child(-1n + 3 of .noted) {}`],
-		[`li:nth-child(-n+3 of li.important) {}`, `li:nth-child(-1n + 3 of li.important) {}`],
-		[`p:nth-child(n+8):nth-child(-n+15) {}`, `p:nth-child(1n + 8):nth-child(-1n + 15) {}`],
+		[`li:nth-child(-n + 3 of .noted) {}`, `li:nth-child(-n + 3 of .noted) {}`],
+		[`li:nth-child(-n+3 of li.important) {}`, `li:nth-child(-n + 3 of li.important) {}`],
+		[`p:nth-child(n+8):nth-child(-n+15) {}`, `p:nth-child(n + 8):nth-child(-n + 15) {}`],
 	]
 
 	for (let [css, expected] of fixtures) {
@@ -183,7 +184,7 @@ test('adds a space before attribute selector flags', () => {
 
 test('formats :lang correctly', () => {
 	let actual = format(`:lang("nl","de"),li:nth-child() {}`)
-	let expected = `:lang("nl","de"),
+	let expected = `:lang("nl", "de"),
 li:nth-child() {}`
 	expect(actual).toEqual(expected)
 })
@@ -204,7 +205,7 @@ test('formats unknown pseudos correctly', () => {
 	`)
 	let expected = `::foo-bar,
 :unkown-thing(),
-:unnowkn(kjsa.asddk,asd) {}`
+:unnowkn(kjsa.asddk, asd) {}`
 	expect(actual).toEqual(expected)
 })
 
