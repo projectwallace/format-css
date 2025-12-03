@@ -27,7 +27,7 @@ import {
 	ATTR_FLAG_CASE_INSENSITIVE,
 	ATTR_FLAG_CASE_SENSITIVE,
 	NODE_VALUE_PARENTHESIS,
-} from '../css-parser'
+} from '@projectwallace/css-parser'
 
 const SPACE = ' '
 const EMPTY_STRING = ''
