@@ -2,7 +2,63 @@
 
 Based on implementing the formatter, here are recommendations for improving the CSS parser to better support formatting and other tooling use cases.
 
-## 1. Attribute Selector Flags
+## 1. Parentheses in Value Expressions (CRITICAL)
+
+**Current Issue:** Parentheses in value expressions (particularly in `calc()`, `clamp()`, `min()`, `max()`, etc.) are not preserved in the AST. The parser flattens expressions into a simple sequence of values and operators, losing all grouping information.
+
+**Example:**
+```css
+/* Input */
+calc(((100% - var(--x)) / 12 * 6) + (-1 * var(--y)))
+
+/* Parser output (flat list) */
+100% - var(--x) / 12 * 6 + -1 * var(--y)
+```
+
+**Impact:** **CRITICAL** - Without parentheses, the mathematical meaning changes completely due to operator precedence:
+- `(100% - var(--x)) / 12` ≠ `100% - var(--x) / 12`
+- Division happens before subtraction, producing incorrect results
+- Browsers will compute different values, breaking layouts
+
+**Comparison with csstree:** The csstree parser has a `Parentheses` node type that wraps grouped expressions:
+```typescript
+if (node.type === 'Parentheses') {
+  buffer += '(' + print_list(node.children) + ')'
+}
+```
+
+**Recommendation:** Add a new node type `NODE_VALUE_PARENTHESES` (or `NODE_VALUE_GROUP`) that represents parenthesized expressions:
+
+```typescript
+// New node type constant
+export const NODE_VALUE_PARENTHESES = 17
+
+// Example AST structure for: calc((100% - 50px) / 2)
+{
+  type: NODE_VALUE_FUNCTION,
+  name: 'calc',
+  children: [
+    {
+      type: NODE_VALUE_PARENTHESES,  // ✅ Parentheses preserved!
+      children: [
+        { type: NODE_VALUE_DIMENSION, value: '100', unit: '%' },
+        { type: NODE_VALUE_OPERATOR, text: '-' },
+        { type: NODE_VALUE_DIMENSION, value: '50', unit: 'px' }
+      ]
+    },
+    { type: NODE_VALUE_OPERATOR, text: '/' },
+    { type: NODE_VALUE_NUMBER, text: '2' }
+  ]
+}
+```
+
+**Workaround:** Currently impossible. The formatter cannot reconstruct parentheses because the information is lost during parsing. Falling back to raw text defeats the purpose of having a structured AST.
+
+**Priority:** CRITICAL - This is blocking the migration from csstree to wallace-css-parser, as it causes semantic changes to CSS that break user styles.
+
+---
+
+## 2. Attribute Selector Flags
 
 **Current Issue:** Attribute selector flags (case-insensitive `i` and case-sensitive `s`) are not exposed as a property on `CSSNode`.
 
@@ -39,7 +95,7 @@ let content_match = text.match(/::[^(]+(\([^)]*\))/)
 
 ---
 
-## 3. Pseudo-Class Content Type Indication
+## 4. Pseudo-Class Content Type Indication
 
 **Current Issue:** No way to distinguish what type of content a pseudo-class contains without hardcoding known pseudo-class names.
 
@@ -71,7 +127,7 @@ get pseudo_content_type(): PseudoContentType
 
 ---
 
-## 4. Empty Parentheses Detection
+## 5. Empty Parentheses Detection
 
 **Current Issue:** When a pseudo-class has empty parentheses (e.g., `:nth-child()`), there's no indication in the AST that parentheses exist at all. `first_child` is null, so formatters can't distinguish `:nth-child` from `:nth-child()`.
 
@@ -93,7 +149,7 @@ get has_parentheses(): boolean  // True even if content is empty
 
 ---
 
-## 5. Legacy Pseudo-Element Detection
+## 6. Legacy Pseudo-Element Detection
 
 **Current Issue:** Legacy pseudo-elements (`:before`, `:after`, `:first-letter`, `:first-line`) can be written with single colons but should be normalized to double colons. Parser treats them as `NODE_SELECTOR_PSEUDO_CLASS` rather than `NODE_SELECTOR_PSEUDO_ELEMENT`.
 
@@ -113,7 +169,7 @@ if (name === 'before' || name === 'after' || name === 'first-letter' || name ===
 
 ---
 
-## 6. Nth Expression Coefficient Normalization
+## 7. Nth Expression Coefficient Normalization
 
 **Current Issue:** Nth expressions like `-n` need to be normalized to `-1n` for consistency, but parser returns raw text.
 
@@ -134,7 +190,7 @@ else if (a === '+n') a = '+1n'
 
 ---
 
-## 7. Pseudo-Class/Element Content as Structured Data
+## 8. Pseudo-Class/Element Content as Structured Data
 
 **Current Issue:** Content inside pseudo-classes like `:lang("en", "fr")` is not parsed into structured data. Must preserve as raw text.
 
@@ -152,7 +208,7 @@ parts.push(content_match[1])  // "(\"en\", \"fr\")"
 
 ---
 
-## 8. Unknown/Custom Pseudo-Class Handling
+## 9. Unknown/Custom Pseudo-Class Handling
 
 **Current Issue:** For unknown or custom pseudo-classes, there's no way to know if they should be formatted or preserved as-is.
 
@@ -172,19 +228,22 @@ This would allow formatters to make informed decisions about processing unknown 
 
 ## Priority Summary
 
+**CRITICAL Priority:**
+1. **Parentheses in value expressions** - Blocks migration, causes semantic CSS changes
+
 **High Priority:**
-1. Attribute selector flags (`attr_flags` property)
-2. Pseudo-class content type indication
-3. Empty parentheses detection
+2. Attribute selector flags (`attr_flags` property)
+3. Pseudo-class content type indication
+4. Empty parentheses detection
 
 **Medium Priority:**
-4. Pseudo-element content access
-5. Pseudo-class/element content as structured data
+5. Pseudo-element content access
+6. Pseudo-class/element content as structured data
 
 **Low Priority:**
-6. Legacy pseudo-element detection
-7. Nth coefficient normalization
-8. Unknown pseudo-class handling
+7. Legacy pseudo-element detection
+8. Nth coefficient normalization
+9. Unknown pseudo-class handling
 
 ---
 

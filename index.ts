@@ -27,6 +27,7 @@ import {
 	ATTR_FLAG_NONE,
 	ATTR_FLAG_CASE_INSENSITIVE,
 	ATTR_FLAG_CASE_SENSITIVE,
+	NODE_VALUE_PARENTHESIS,
 } from '../css-parser'
 
 const SPACE = ' '
@@ -139,6 +140,8 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 				parts.push(print_string(node.text))
 			} else if (node.type === NODE_VALUE_OPERATOR) {
 				parts.push(print_operator(node))
+			} else if (node.type === NODE_VALUE_PARENTHESIS) {
+				parts.push(OPEN_PARENTHESES, print_list(node.children), CLOSE_PARENTHESES)
 			} else {
 				parts.push(node.text)
 			}
@@ -171,6 +174,17 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		}
 		let value = print_values(node.values)
 		let property = node.property
+
+		// Special case for `font` shorthand: remove whitespace around /
+		if (property === 'font') {
+			value = value.replace(/\s*\/\s*/, '/')
+		}
+
+		// Hacky: add a space in case of a `space toggle` during minification
+		if (value === EMPTY_STRING && minify === true) {
+			value += SPACE
+		}
+
 		if (!property.startsWith('--')) {
 			property = property.toLowerCase()
 		}
