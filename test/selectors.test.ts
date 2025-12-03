@@ -158,6 +158,24 @@ b & c {}`
 	expect(actual).toEqual(expected)
 })
 
+test('prints all possible attribute selectors', () => {
+	let actual = format(`
+		[title="test"],
+		[title|="test"],
+		[title^="test"],
+		[title*="test"],
+		[title$="test"],
+		[title~="test"] {}
+	`)
+	let expected = `[title="test"],
+[title|="test"],
+[title^="test"],
+[title*="test"],
+[title$="test"],
+[title~="test"] {}`
+	expect(actual).toEqual(expected)
+})
+
 test('forces attribute selectors to have quoted values', () => {
 	let actual = format(`
 		[title=foo],
@@ -174,11 +192,11 @@ test('adds a space before attribute selector flags', () => {
 	let actual = format(`
 		[title="foo" i],
 		[title="baz"i],
-		[title=foo i] {}
+		[title=foo S] {}
 	`)
 	let expected = `[title="foo" i],
 [title="baz" i],
-[title="foo" i] {}`
+[title="foo" s] {}`
 	expect(actual).toEqual(expected)
 })
 
