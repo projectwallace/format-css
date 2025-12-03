@@ -128,8 +128,8 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			if (node.type === NODE_VALUE_FUNCTION) {
 				let fn = node.name.toLowerCase()
 				parts.push(fn, OPEN_PARENTHESES)
-				if (fn === 'url') {
-					parts.push(print_string(node.first_child?.text || EMPTY_STRING))
+				if (fn === 'url' || fn === 'src') {
+					parts.push(print_string(node.value))
 				} else {
 					parts.push(print_list(node.children))
 				}
@@ -245,7 +245,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		return parts.join(EMPTY_STRING)
 	}
 
-	function print_simple_selector(node: CSSNode): string {
+	function print_simple_selector(node: CSSNode, is_first: boolean = false): string {
 		switch (node.type) {
 			case NODE_SELECTOR_TYPE: {
 				return node.name
@@ -256,7 +256,9 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 				if (/^\s+$/.test(text)) {
 					return SPACE
 				}
-				return OPTIONAL_SPACE + text + OPTIONAL_SPACE
+				// Skip leading space if this is the first node in the selector
+				let leading_space = is_first ? EMPTY_STRING : OPTIONAL_SPACE
+				return leading_space + text + OPTIONAL_SPACE
 			}
 
 			case NODE_SELECTOR_PSEUDO_ELEMENT:
@@ -326,8 +328,10 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 		// Handle compound selector (combination of simple selectors)
 		let parts = []
+		let index = 0
 		for (let child of node.children) {
-			parts.push(print_simple_selector(child))
+			parts.push(print_simple_selector(child, index === 0))
+			index++
 		}
 
 		return parts.join(EMPTY_STRING)

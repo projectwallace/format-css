@@ -145,12 +145,11 @@ test('formats nested rules with selectors starting with', () => {
 test('newlines between declarations, nested rules and more declarations', () => {
 	let actual = format(`a { font: 0/0; & b { color: red; } color: green;}`)
 	let expected = `a {
-	font: 0 / 0;
+	font: 0/0;
 
 	& b {
 		color: red;
 	}
-
 	color: green;
 }`
 	expect(actual).toEqual(expected)

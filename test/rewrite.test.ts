@@ -246,6 +246,10 @@ describe('values', () => {
 		let css = format(`a { src: url(test), url('test'), url("test"); }`)
 		expect(css).toBe(`a {\n\tsrc: url("test"), url("test"), url("test");\n}`)
 	})
+	test('cursor: url(mycursor.cur);', () => {
+		let css = format('a { cursor: url(mycursor.cur); }')
+		expect(css).toBe('a {\n\tcursor: url("mycursor.cur");\n}')
+	})
 	test('"string"', () => {
 		let css = format(`a { content: 'string'; }`)
 		expect(css).toBe(`a {\n\tcontent: "string";\n}`)

@@ -58,7 +58,132 @@ export const NODE_VALUE_PARENTHESES = 17
 
 ---
 
-## 2. Attribute Selector Flags
+## 2. Relaxed CSS Nesting Selectors (CRITICAL)
+
+**Current Issue:** The parser completely fails to parse selectors in nested rules when they start with combinators (`>`, `~`, `+`, `||`). It creates an empty selector list with the raw text stored but no child nodes.
+
+**Example:**
+```css
+/* Input - CSS Nesting Module Level 1 (relaxed nesting) */
+.parent {
+  > a { color: red; }
+  ~ span { color: blue; }
+}
+
+/* Parser output */
+NODE_STYLE_RULE {
+  first_child: NODE_SELECTOR_LIST {
+    text: "> a",           // ✅ Raw text preserved
+    has_children: false,   // ❌ Not parsed!
+    children: []           // ❌ Empty!
+  }
+}
+```
+
+**Impact:** **CRITICAL** - CSS Nesting is a standard feature now supported in all modern browsers (2023+). The formatter outputs completely invalid CSS with missing selectors:
+
+```css
+/* Expected output */
+.parent {
+  > a {
+    color: red;
+  }
+}
+
+/* Actual output */
+.parent {
+   {
+    color: red;
+  }
+}
+```
+
+**Workaround:** Currently impossible. While the selector text exists in the `.text` property, the formatter is designed to work with structured AST nodes. Falling back to raw text would require a complete rewrite of the selector formatting logic and could break other valid selectors.
+
+**Recommendation:** The parser must support CSS Nesting Module Level 1 relaxed nesting syntax:
+- Selectors starting with combinators (`>`, `~`, `+`, `||`) must be parsed into proper selector AST structures
+- These should be treated as compound selectors with the combinator as the first child
+- Reference: [CSS Nesting Module Level 1](https://drafts.csswg.org/css-nesting-1/#nest-selector)
+
+**Alternative approach:** If combinator-first selectors require special handling, consider:
+- Adding a `is_relaxed_nesting` flag to indicate this syntax
+- Providing the parsed combinator and following selector separately
+- Or ensure the selector is parsed with the combinator as a proper `NODE_SELECTOR_COMBINATOR` node
+
+**Priority:** CRITICAL - Breaks all modern CSS nesting with relaxed syntax, which is now standard
+
+---
+
+## 3. URL Function Content Parsing
+
+**Current Issue:** The parser incorrectly splits URL values at dots. For example, `url(mycursor.cur)` is parsed as two separate keyword nodes: `mycursor` and `cur`, with the dot separator lost.
+
+**Example:**
+```css
+/* Input */
+url(mycursor.cur)
+
+/* Parser output */
+NODE_VALUE_FUNCTION {
+  name: 'url',
+  children: [
+    { type: NODE_VALUE_KEYWORD, text: 'mycursor' },
+    { type: NODE_VALUE_KEYWORD, text: 'cur' }  // ❌ Dot is lost!
+  ]
+}
+```
+
+**Impact:** **HIGH** - URLs with file extensions are corrupted, breaking image references, fonts, cursors, etc.
+
+**Workaround Required:** Extract the full URL from the function's `text` property and manually strip the `url(` and `)`:
+```typescript
+if (fn === 'url') {
+  // Extract URL content from text property (removes 'url(' and ')')
+  let urlContent = node.text.slice(4, -1)
+  parts.push(print_string(urlContent))
+}
+```
+
+**Recommendation:** The parser should treat the entire URL content as a single value node. Options:
+- Add a `NODE_VALUE_URL` node type with a `value` property containing the full URL string
+- Or keep URL content unparsed and accessible via a single text property
+- The CSS spec allows URLs to be unquoted, quoted with single quotes, or quoted with double quotes - all should be preserved correctly
+
+**Priority:** HIGH - This breaks common CSS patterns with file extensions
+
+---
+
+## 4. Colon in Value Contexts
+
+**Current Issue:** The parser silently drops `:` characters when they appear in value contexts, losing critical syntax information.
+
+**Example:**
+```css
+/* Input */
+content: 'Test' : counter(page);
+
+/* Parser output - only 2 values */
+values: [
+  { type: NODE_VALUE_STRING, text: "'Test'" },
+  { type: NODE_VALUE_FUNCTION, text: "counter(page)" }
+  // ❌ The ':' is completely missing!
+]
+```
+
+**Impact:** **HIGH** - Colons can be valid separators in CSS values (particularly in `content` property). Dropping them corrupts the CSS syntax and changes semantic meaning.
+
+**Workaround:** Currently impossible. The colon exists in the declaration's raw `text` property but requires fragile string parsing to detect and reinsert.
+
+**Recommendation:** The parser should preserve colons as value nodes, likely as:
+- `NODE_VALUE_OPERATOR` with `text: ':'`
+- Or a new `NODE_VALUE_DELIMITER` type for non-mathematical separators
+- This would maintain consistency with how other separators (commas, operators) are handled
+
+**Priority:** HIGH - Breaks valid CSS with colons in value contexts
+
+---
+
+## 5. Attribute Selector Flags
 
 **Current Issue:** Attribute selector flags (case-insensitive `i` and case-sensitive `s`) are not exposed as a property on `CSSNode`.
 
@@ -77,7 +202,7 @@ get attr_flags(): string | null  // Returns 'i', 's', or null
 
 ---
 
-## 2. Pseudo-Element Content (e.g., `::highlight()`)
+## 6. Pseudo-Element Content (e.g., `::highlight()`)
 
 **Current Issue:** Content inside pseudo-elements like `::highlight(Name)` is not accessible as structured data.
 
@@ -95,7 +220,7 @@ let content_match = text.match(/::[^(]+(\([^)]*\))/)
 
 ---
 
-## 4. Pseudo-Class Content Type Indication
+## 7. Pseudo-Class Content Type Indication
 
 **Current Issue:** No way to distinguish what type of content a pseudo-class contains without hardcoding known pseudo-class names.
 
@@ -127,7 +252,7 @@ get pseudo_content_type(): PseudoContentType
 
 ---
 
-## 5. Empty Parentheses Detection
+## 8. Empty Parentheses Detection
 
 **Current Issue:** When a pseudo-class has empty parentheses (e.g., `:nth-child()`), there's no indication in the AST that parentheses exist at all. `first_child` is null, so formatters can't distinguish `:nth-child` from `:nth-child()`.
 
@@ -149,7 +274,7 @@ get has_parentheses(): boolean  // True even if content is empty
 
 ---
 
-## 6. Legacy Pseudo-Element Detection
+## 9. Legacy Pseudo-Element Detection
 
 **Current Issue:** Legacy pseudo-elements (`:before`, `:after`, `:first-letter`, `:first-line`) can be written with single colons but should be normalized to double colons. Parser treats them as `NODE_SELECTOR_PSEUDO_CLASS` rather than `NODE_SELECTOR_PSEUDO_ELEMENT`.
 
@@ -169,7 +294,7 @@ if (name === 'before' || name === 'after' || name === 'first-letter' || name ===
 
 ---
 
-## 7. Nth Expression Coefficient Normalization
+## 10. Nth Expression Coefficient Normalization
 
 **Current Issue:** Nth expressions like `-n` need to be normalized to `-1n` for consistency, but parser returns raw text.
 
@@ -190,7 +315,7 @@ else if (a === '+n') a = '+1n'
 
 ---
 
-## 8. Pseudo-Class/Element Content as Structured Data
+## 11. Pseudo-Class/Element Content as Structured Data
 
 **Current Issue:** Content inside pseudo-classes like `:lang("en", "fr")` is not parsed into structured data. Must preserve as raw text.
 
@@ -208,7 +333,7 @@ parts.push(content_match[1])  // "(\"en\", \"fr\")"
 
 ---
 
-## 9. Unknown/Custom Pseudo-Class Handling
+## 12. Unknown/Custom Pseudo-Class Handling
 
 **Current Issue:** For unknown or custom pseudo-classes, there's no way to know if they should be formatted or preserved as-is.
 
@@ -230,20 +355,23 @@ This would allow formatters to make informed decisions about processing unknown 
 
 **CRITICAL Priority:**
 1. **Parentheses in value expressions** - Blocks migration, causes semantic CSS changes
+2. **Relaxed CSS nesting selectors** - Breaks modern CSS nesting (standard feature)
 
 **High Priority:**
-2. Attribute selector flags (`attr_flags` property)
-3. Pseudo-class content type indication
-4. Empty parentheses detection
+3. **URL function content parsing** - Breaks file extensions in URLs
+4. **Colon in value contexts** - Drops valid syntax separators
+5. Attribute selector flags (`attr_flags` property)
+6. Pseudo-class content type indication
+7. Empty parentheses detection
 
 **Medium Priority:**
-5. Pseudo-element content access
-6. Pseudo-class/element content as structured data
+8. Pseudo-element content access
+9. Pseudo-class/element content as structured data
 
 **Low Priority:**
-7. Legacy pseudo-element detection
-8. Nth coefficient normalization
-9. Unknown pseudo-class handling
+10. Legacy pseudo-element detection
+11. Nth coefficient normalization
+12. Unknown pseudo-class handling
 
 ---
 

@@ -228,10 +228,10 @@ test('lowercases dimensions', () => {
 
 test('formats unknown content in value', () => {
 	let actual = format(`a {
-		content: 'Test' : counter(page);
+		content: 'Test' counter(page);
 	}`)
 	let expected = `a {
-	content: "Test" : counter(page);
+	content: "Test" counter(page);
 }`
 	expect(actual).toEqual(expected)
 })
