@@ -24,7 +24,6 @@ import {
 	NODE_VALUE_DIMENSION,
 	NODE_VALUE_STRING,
 	NODE_SELECTOR_LANG,
-	ATTR_FLAG_NONE,
 	ATTR_FLAG_CASE_INSENSITIVE,
 	ATTR_FLAG_CASE_SENSITIVE,
 	NODE_VALUE_PARENTHESIS,
@@ -41,7 +40,6 @@ const OPEN_BRACKET = '['
 const CLOSE_BRACKET = ']'
 const OPEN_BRACE = '{'
 const CLOSE_BRACE = '}'
-const EMPTY_BLOCK = '{}'
 const COMMA = ','
 
 export type FormatOptions = {
