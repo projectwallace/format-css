@@ -1,15 +1,15 @@
 import {
 	CSSNode,
 	parse,
-	NODE_AT_RULE,
-	NODE_STYLE_RULE,
-	NODE_DECLARATION,
-	NODE_SELECTOR_LIST,
-	NODE_SELECTOR_COMBINATOR,
-	NODE_SELECTOR_TYPE,
-	NODE_SELECTOR_PSEUDO_ELEMENT,
-	NODE_SELECTOR_PSEUDO_CLASS,
-	NODE_SELECTOR_ATTRIBUTE,
+	AT_RULE,
+	STYLE_RULE,
+	DECLARATION,
+	SELECTOR_LIST,
+	COMBINATOR,
+	TYPE_SELECTOR,
+	PSEUDO_ELEMENT_SELECTOR,
+	PSEUDO_CLASS_SELECTOR,
+	ATTRIBUTE_SELECTOR,
 	ATTR_OPERATOR_NONE,
 	ATTR_OPERATOR_EQUAL,
 	ATTR_OPERATOR_TILDE_EQUAL,
@@ -17,16 +17,18 @@ import {
 	ATTR_OPERATOR_CARET_EQUAL,
 	ATTR_OPERATOR_DOLLAR_EQUAL,
 	ATTR_OPERATOR_STAR_EQUAL,
-	NODE_SELECTOR_NTH,
-	NODE_SELECTOR_NTH_OF,
-	NODE_VALUE_FUNCTION,
-	NODE_VALUE_OPERATOR,
-	NODE_VALUE_DIMENSION,
-	NODE_VALUE_STRING,
-	NODE_SELECTOR_LANG,
+	NTH_SELECTOR,
+	NTH_OF_SELECTOR,
+	FUNCTION,
+	OPERATOR,
+	DIMENSION,
+	STRING,
+	LANG_SELECTOR,
 	ATTR_FLAG_CASE_INSENSITIVE,
 	ATTR_FLAG_CASE_SENSITIVE,
-	NODE_VALUE_PARENTHESIS,
+	PARENTHESIS,
+	URL,
+	SELECTOR,
 } from '@projectwallace/css-parser'
 
 const SPACE = ' '
@@ -123,30 +125,30 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	function print_list(nodes: CSSNode[]): string {
 		let parts = []
 		for (let node of nodes) {
-			if (node.type === NODE_VALUE_FUNCTION) {
+			if (node.type === FUNCTION) {
 				let fn = node.name.toLowerCase()
 				parts.push(fn, OPEN_PARENTHESES)
-				if (fn === 'url' || fn === 'src') {
-					parts.push(print_string(node.value))
-				} else {
-					parts.push(print_list(node.children))
-				}
+				parts.push(print_list(node.children))
 				parts.push(CLOSE_PARENTHESES)
-			} else if (node.type === NODE_VALUE_DIMENSION) {
+			} else if (node.type === DIMENSION) {
 				parts.push(node.value, node.unit?.toLowerCase())
-			} else if (node.type === NODE_VALUE_STRING) {
+			} else if (node.type === STRING) {
 				parts.push(print_string(node.text))
-			} else if (node.type === NODE_VALUE_OPERATOR) {
+			} else if (node.type === OPERATOR) {
 				parts.push(print_operator(node))
-			} else if (node.type === NODE_VALUE_PARENTHESIS) {
+			} else if (node.type === PARENTHESIS) {
 				parts.push(OPEN_PARENTHESES, print_list(node.children), CLOSE_PARENTHESES)
+			} else if (node.type === URL) {
+				parts.push('url(')
+				parts.push(print_string(node.value))
+				parts.push(CLOSE_PARENTHESES)
 			} else {
 				parts.push(node.text)
 			}
 
-			if (node.type !== NODE_VALUE_OPERATOR) {
+			if (node.type !== OPERATOR) {
 				if (node.has_next) {
-					if (node.next_sibling?.type !== NODE_VALUE_OPERATOR) {
+					if (node.next_sibling?.type !== OPERATOR) {
 						parts.push(SPACE)
 					}
 				}
@@ -166,7 +168,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		if (node.is_important) {
 			let text = node.text
 			let has_semicolon = text.endsWith(SEMICOLON)
-			let start = text.indexOf('!')
+			let start = text.lastIndexOf('!')
 			let end = has_semicolon ? -1 : undefined
 			important.push(OPTIONAL_SPACE, text.slice(start, end).toLowerCase())
 		}
@@ -223,7 +225,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			if (a !== null && !b.startsWith('-')) {
 				parts.push('+', OPTIONAL_SPACE)
 			}
-			parts.push(b)
+			parts.push(parseFloat(b))
 		}
 
 		return parts.join(EMPTY_STRING)
@@ -231,11 +233,11 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 	function print_nth_of(node: CSSNode): string {
 		let parts = []
-		if (node.children[0]?.type === NODE_SELECTOR_NTH) {
+		if (node.children[0]?.type === NTH_SELECTOR) {
 			parts.push(print_nth(node.children[0]))
 			parts.push(SPACE, 'of', SPACE)
 		}
-		if (node.children[1]?.type === NODE_SELECTOR_LIST) {
+		if (node.children[1]?.type === SELECTOR_LIST) {
 			parts.push(print_inline_selector_list(node.children[1]))
 		}
 		return parts.join(EMPTY_STRING)
@@ -243,11 +245,11 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 	function print_simple_selector(node: CSSNode, is_first: boolean = false): string {
 		switch (node.type) {
-			case NODE_SELECTOR_TYPE: {
+			case TYPE_SELECTOR: {
 				return node.name
 			}
 
-			case NODE_SELECTOR_COMBINATOR: {
+			case COMBINATOR: {
 				let text = node.text
 				if (/^\s+$/.test(text)) {
 					return SPACE
@@ -257,13 +259,13 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 				return leading_space + text + OPTIONAL_SPACE
 			}
 
-			case NODE_SELECTOR_PSEUDO_ELEMENT:
-			case NODE_SELECTOR_PSEUDO_CLASS: {
+			case PSEUDO_ELEMENT_SELECTOR:
+			case PSEUDO_CLASS_SELECTOR: {
 				let parts = [COLON]
 				let name = node.name.toLowerCase()
 
 				// Legacy pseudo-elements or actual pseudo-elements use double colon
-				if (name === 'before' || name === 'after' || node.type === NODE_SELECTOR_PSEUDO_ELEMENT) {
+				if (name === 'before' || name === 'after' || node.type === PSEUDO_ELEMENT_SELECTOR) {
 					parts.push(COLON)
 				}
 
@@ -280,7 +282,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 				return parts.join(EMPTY_STRING)
 			}
 
-			case NODE_SELECTOR_ATTRIBUTE: {
+			case ATTRIBUTE_SELECTOR: {
 				let parts = [OPEN_BRACKET, node.name.toLowerCase()]
 
 				if (node.attr_operator !== ATTR_OPERATOR_NONE) {
@@ -306,29 +308,29 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 	function print_selector(node: CSSNode): string {
 		// Handle special selector types
-		if (node.type === NODE_SELECTOR_NTH) {
+		if (node.type === NTH_SELECTOR) {
 			return print_nth(node)
 		}
 
-		if (node.type === NODE_SELECTOR_NTH_OF) {
+		if (node.type === NTH_OF_SELECTOR) {
 			return print_nth_of(node)
 		}
 
-		if (node.type === NODE_SELECTOR_LIST) {
+		if (node.type === SELECTOR_LIST) {
 			return print_inline_selector_list(node)
 		}
 
-		if (node.type === NODE_SELECTOR_LANG) {
+		if (node.type === LANG_SELECTOR) {
 			return print_string(node.text)
 		}
 
 		// Handle compound selector (combination of simple selectors)
-		let parts = []
-		let index = 0
-		for (let child of node.children) {
-			parts.push(print_simple_selector(child, index === 0))
-			index++
-		}
+		let parts: string[] = []
+		node.children.forEach((child, index) => {
+			console.log(child.type_name, child.text)
+			let sel = print_simple_selector(child, index === 0)
+			parts.push(sel)
+		})
 
 		return parts.join(EMPTY_STRING)
 	}
@@ -361,18 +363,18 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		depth++
 
 		for (let child of node.children) {
-			let is_last = child.next_sibling?.type !== NODE_DECLARATION
+			let is_last = child.next_sibling?.type !== DECLARATION
 
-			if (child.type === NODE_DECLARATION) {
+			if (child.type === DECLARATION) {
 				let declaration = print_declaration(child)
 				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
 				lines.push(indent(depth) + declaration + semi)
-			} else if (child.type === NODE_STYLE_RULE) {
+			} else if (child.type === STYLE_RULE) {
 				if (lines.length !== 0) {
 					lines.push(EMPTY_STRING)
 				}
 				lines.push(print_rule(child))
-			} else if (child.type === NODE_AT_RULE) {
+			} else if (child.type === AT_RULE) {
 				if (lines.length !== 0) {
 					lines.push(EMPTY_STRING)
 				}
@@ -388,7 +390,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	function print_rule(node: CSSNode): string {
 		let lines = []
 
-		if (node.first_child?.type === NODE_SELECTOR_LIST) {
+		if (node.first_child?.type === SELECTOR_LIST) {
 			let list = print_selector_list(node.first_child) + OPTIONAL_SPACE + OPEN_BRACE
 			if (!node.block?.has_children) {
 				list += CLOSE_BRACE
@@ -452,9 +454,9 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		let lines = []
 
 		for (let child of node) {
-			if (child.type === NODE_STYLE_RULE) {
+			if (child.type === STYLE_RULE) {
 				lines.push(print_rule(child))
-			} else if (child.type === NODE_AT_RULE) {
+			} else if (child.type === AT_RULE) {
 				lines.push(print_atrule(child))
 			}
 
