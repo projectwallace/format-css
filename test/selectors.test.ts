@@ -135,7 +135,7 @@ test('formats selectors with Nth', () => {
 	}
 })
 
-test.only('formats multiline selectors', () => {
+test('formats multiline selectors', () => {
 	let actual = format(`
 		a:is(
 			a,
