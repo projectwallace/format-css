@@ -309,9 +309,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		// Handle compound selector (combination of simple selectors)
 		let parts: string[] = []
 		node.children.forEach((child, index) => {
-			console.log(child.type_name, child.text)
-			let sel = print_simple_selector(child, index === 0)
-			parts.push(sel)
+			parts.push(print_simple_selector(child, index === 0))
 		})
 
 		return parts.join(EMPTY_STRING)
