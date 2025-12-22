@@ -175,8 +175,6 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 	function print_attribute_selector_operator(operator: number) {
 		switch (operator) {
-			case ATTR_OPERATOR_EQUAL:
-				return '='
 			case ATTR_OPERATOR_TILDE_EQUAL:
 				return '~='
 			case ATTR_OPERATOR_PIPE_EQUAL:
@@ -187,8 +185,9 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 				return '$='
 			case ATTR_OPERATOR_STAR_EQUAL:
 				return '*='
+			case ATTR_OPERATOR_EQUAL:
 			default:
-				return ''
+				return '='
 		}
 	}
 
