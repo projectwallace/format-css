@@ -117,8 +117,8 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	 * @returns The comment string, if found
 	 */
 	function print_comment(after?: number, before?: number): string | undefined {
-		if (minify === true || after === undefined || before === undefined) {
-			return EMPTY_STRING
+		if (minify || after === undefined || before === undefined) {
+			return undefined
 		}
 
 		let buffer = EMPTY_STRING
@@ -138,6 +138,27 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		return buffer
 	}
 
+	/**
+	 * Format a comment with indentation and optional prefix/suffix
+	 * @param after After which offset to look for comments
+	 * @param before Before which offset to look for comments
+	 * @param level Indentation level (default: 0)
+	 * @param prefix String to prepend (default: '')
+	 * @param suffix String to append (default: '')
+	 * @returns Formatted comment string or empty string if no comment
+	 */
+	function format_comment(
+		after?: number,
+		before?: number,
+		level: number = 0,
+		prefix: string = EMPTY_STRING,
+		suffix: string = EMPTY_STRING,
+	): string {
+		let comment = print_comment(after, before)
+		if (!comment) return EMPTY_STRING
+		return prefix + indent(level) + comment + suffix
+	}
+
 	function print_rule(node: Rule) {
 		let buffer = ''
 		let prelude = node.prelude
@@ -147,10 +168,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			buffer = print_selectorlist(prelude)
 		}
 
-		let comment = print_comment(end_offset(prelude), start_offset(block))
-		if (comment) {
-			buffer += NEWLINE + indent(indent_level) + comment
-		}
+		buffer += format_comment(end_offset(prelude), start_offset(block), indent_level, NEWLINE)
 
 		if (block.type === TYPE_BLOCK) {
 			buffer += print_block(block)
@@ -172,10 +190,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			}
 
 			let end = item.next !== null ? start_offset(item.next.data) : end_offset(node)
-			let comment = print_comment(end_offset(selector), end)
-			if (comment) {
-				buffer += indent(indent_level) + comment + NEWLINE
-			}
+			buffer += format_comment(end_offset(selector), end, indent_level, '', NEWLINE)
 		})
 
 		return buffer
@@ -308,10 +323,9 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 		if (children.isEmpty) {
 			// Check if the block maybe contains comments
-			let comment = print_comment(start_offset(node), end_offset(node))
+			let comment = format_comment(start_offset(node), end_offset(node), indent_level + 1)
 			if (comment) {
-				buffer += OPEN_BRACE + NEWLINE
-				buffer += indent(indent_level + 1) + comment
+				buffer += OPEN_BRACE + NEWLINE + comment
 				buffer += NEWLINE + indent(indent_level) + CLOSE_BRACE
 				return buffer
 			}
@@ -322,17 +336,11 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 		indent_level++
 
-		let opening_comment = print_comment(start_offset(node), start_offset(children.first!))
-		if (opening_comment) {
-			buffer += indent(indent_level) + opening_comment + NEWLINE
-		}
+		buffer += format_comment(start_offset(node), start_offset(children.first!), indent_level, '', NEWLINE)
 
 		children.forEach((child, item) => {
 			if (item.prev !== null) {
-				let comment = print_comment(end_offset(item.prev.data), start_offset(child))
-				if (comment) {
-					buffer += indent(indent_level) + comment + NEWLINE
-				}
+				buffer += format_comment(end_offset(item.prev.data), start_offset(child), indent_level, '', NEWLINE)
 			}
 
 			if (child.type === TYPE_DECLARATION) {
@@ -366,10 +374,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			}
 		})
 
-		let closing_comment = print_comment(end_offset(children.last!), end_offset(node))
-		if (closing_comment) {
-			buffer += NEWLINE + indent(indent_level) + closing_comment
-		}
+		buffer += format_comment(end_offset(children.last!), end_offset(node), indent_level, NEWLINE)
 
 		indent_level--
 		buffer += NEWLINE + indent(indent_level) + CLOSE_BRACE
@@ -540,10 +545,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	let buffer = EMPTY_STRING
 
 	if (children.first !== null) {
-		let opening_comment = print_comment(0, start_offset(children.first))
-		if (opening_comment) {
-			buffer += opening_comment + NEWLINE
-		}
+		buffer += format_comment(0, start_offset(children.first), 0, '', NEWLINE)
 
 		children.forEach((child, item) => {
 			if (child.type === TYPE_RULE) {
@@ -556,22 +558,14 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 			if (item.next !== null) {
 				buffer += NEWLINE
-
-				let comment = print_comment(end_offset(child), start_offset(item.next.data))
-				if (comment) {
-					buffer += indent(indent_level) + comment
-				}
-
+				buffer += format_comment(end_offset(child), start_offset(item.next.data), indent_level)
 				buffer += NEWLINE
 			}
 		})
 
-		let closing_comment = print_comment(end_offset(children.last!), end_offset(ast))
-		if (closing_comment) {
-			buffer += NEWLINE + closing_comment
-		}
+		buffer += format_comment(end_offset(children.last!), end_offset(ast), 0, NEWLINE)
 	} else {
-		buffer += print_comment(0, end_offset(ast))
+		buffer += format_comment(0, end_offset(ast))
 	}
 
 	return buffer
