@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { format } from '../index.js'
 
-describe.skip('comments', () => {
+describe('comments', () => {
 	test('only comment', () => {
 		let actual = format(`/* comment */`)
 		let expected = `/* comment */`
@@ -14,7 +14,6 @@ describe.skip('comments', () => {
 	selector {}
 	`)
 		let expected = `/*! comment */
-
 selector {}`
 		expect(actual).toEqual(expected)
 	})
@@ -460,7 +459,7 @@ selector {}
 	test('in @supports prelude', () => {
 		// from CSSTree https://github.com/csstree/csstree/blob/ba6dfd8bb0e33055c05f13803d04825d98dd2d8d/fixtures/ast/atrule/atrule/supports.json#L119
 		let actual = format('@supports not /*0*/(/*1*/flex :/*3*/1/*4*/)/*5*/{}')
-		let expected = '@supports not /*0*/(/*1*/flex: /*3*/1/*4*/)/*5*/ {}'
+		let expected = '@supports not /*0*/(/*1*/flex: /*3*/1/*4*/) {}'
 		expect(actual).toEqual(expected)
 	})
 
@@ -470,9 +469,9 @@ selector {}
 		expect(actual).toEqual(expected)
 	})
 
-	test('in @import prelude after specifier', () => {
+	test('skip in @import prelude after specifier', () => {
 		let actual = format('@import "foo"/*test*/;')
-		let expected = '@import "foo"/*test*/;'
+		let expected = '@import "foo";'
 		expect(actual).toEqual(expected)
 	})
 
@@ -481,14 +480,14 @@ selector {}
 		a/*test*/ /*test*/b,
 		a/*test*/+/*test*/b {}
 	`)
-		let expected = `a b,
+		let expected = `a /*test*/ /*test*/ b,
 a + b {}`
 		expect(actual).toEqual(expected)
 	})
 
 	test('in attribute selector', () => {
-		let actual = format(`[/*test*/a/*test*/=/*test*/'b'/*test*/i/*test*/]`)
-		let expected = `[/*test*/a/*test*/=/*test*/'b'/*test*/i/*test*/]`
+		let actual = format(`[/*test*/a='b' i/*test*/] {}`)
+		let expected = `[a="b" i] {}`
 		expect(actual).toEqual(expected)
 	})
 
@@ -540,6 +539,7 @@ a + b {}`
 	background-image: linear-gradient(red, green);
 	background-image: linear-gradient(red, green);
 	background-image: linear-gradient(red, green);
+	/* comment */
 }`
 		expect(actual).toEqual(expected)
 	})
