@@ -87,7 +87,7 @@ test('minifies complex selectors', () => {
 })
 
 test('removes whitespace around non-whitespace selector combinators', () => {
-	let actual = minify(`a + b {}`)
-	let expected = `a+b{}`
+	let actual = minify(`a + b {} c d {}`)
+	let expected = `a+b{}c d{}`
 	expect(actual).toEqual(expected)
 })
