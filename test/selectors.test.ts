@@ -53,7 +53,6 @@ a > b ~ c d,
 	expect(actual).toEqual(expected)
 })
 
-// Cannot currently do this because this would also lowercase ::highlight(NAME)
 test('lowercases type selectors', () => {
 	let actual = format(`
 		A,
