@@ -193,10 +193,10 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 				}
 				case 'Combinator': {
 					// putting spaces around `child.name` (+ > ~ or ' '), unless the combinator is ' '
-					buffer += SPACE
-
-					if (child.name !== ' ') {
-						buffer += child.name + SPACE
+					if (child.name === ' ') {
+						buffer += SPACE
+					} else {
+						buffer += OPTIONAL_SPACE + child.name + OPTIONAL_SPACE
 					}
 					break
 				}
