@@ -45,9 +45,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	const OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE
 	const LAST_SEMICOLON = minify ? EMPTY_STRING : SEMICOLON
 
-	let ast = parse(css, {
-		skip_comments: minify,
-	})
+	let ast = parse(css)
 
 	let depth = 0
 
@@ -120,7 +118,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 				parts.push(print_operator(node))
 			} else if (node.type === NODE.PARENTHESIS) {
 				parts.push(OPEN_PARENTHESES, print_list(node.children), CLOSE_PARENTHESES)
-			} else if (node.type === NODE.URL) {
+			} else if (node.type === NODE.URL && typeof node.value === 'string') {
 				parts.push('url(')
 				parts.push(print_string(node.value))
 				parts.push(CLOSE_PARENTHESES)
@@ -140,7 +138,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		return parts.join(EMPTY_STRING)
 	}
 
-	function print_values(nodes: CSSNode[] | null): string {
+	function print_value(nodes: CSSNode[] | null): string {
 		if (nodes === null) return EMPTY_STRING
 		return print_list(nodes)
 	}
@@ -154,7 +152,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			let end = has_semicolon ? -1 : undefined
 			important.push(OPTIONAL_SPACE, text.slice(start, end).toLowerCase())
 		}
-		let value = print_values(node.values)
+		let value = print_value(node.value as CSSNode[] | null)
 		let property = node.property
 
 		// Special case for `font` shorthand: remove whitespace around /
@@ -196,14 +194,14 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		let a = node.nth_a
 		let b = node.nth_b
 
-		if (a !== null) {
+		if (a) {
 			parts.push(a)
 		}
-		if (a !== null && b !== null) {
+		if (a && b) {
 			parts.push(OPTIONAL_SPACE)
 		}
-		if (b !== null) {
-			if (a !== null && !b.startsWith('-')) {
+		if (b) {
+			if (a && !b.startsWith('-')) {
 				parts.push('+', OPTIONAL_SPACE)
 			}
 			parts.push(parseFloat(b))
@@ -266,9 +264,11 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			case NODE.ATTRIBUTE_SELECTOR: {
 				let parts = [OPEN_BRACKET, node.name.toLowerCase()]
 
-				if (node.attr_operator !== ATTR_OPERATOR_NONE) {
+				if (node.attr_operator !== undefined && node.attr_operator !== ATTR_OPERATOR_NONE) {
 					parts.push(print_attribute_selector_operator(node.attr_operator))
-					parts.push(print_string(node.value))
+					if (typeof node.value === 'string') {
+						parts.push(print_string(node.value))
+					}
 
 					if (node.attr_flags === ATTR_FLAG_CASE_INSENSITIVE) {
 						parts.push(SPACE, 'i')
@@ -409,8 +409,8 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	function print_atrule(node: CSSNode): string {
 		let lines = []
 		let name = [`@`, node.name.toLowerCase()]
-		if (node.prelude !== null) {
-			name.push(SPACE, print_atrule_prelude(node.prelude))
+		if (node.prelude) {
+			name.push(SPACE, print_atrule_prelude(node.prelude.text))
 		}
 		if (node.block === null) {
 			name.push(SEMICOLON)
