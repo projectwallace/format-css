@@ -54,7 +54,7 @@ a > b ~ c d,
 })
 
 // Cannot currently do this because this would also lowercase ::highlight(NAME)
-test.skip('lowercases type selectors', () => {
+test('lowercases type selectors', () => {
 	let actual = format(`
 		A,
 		B,

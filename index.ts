@@ -1,7 +1,6 @@
 import {
 	CSSNode,
 	parse,
-	ATTR_OPERATOR_NONE,
 	ATTR_OPERATOR_EQUAL,
 	ATTR_OPERATOR_TILDE_EQUAL,
 	ATTR_OPERATOR_PIPE_EQUAL,
@@ -288,7 +287,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	function print_simple_selector(node: CSSNode, is_first: boolean = false): string {
 		switch (node.type) {
 			case NODE.TYPE_SELECTOR: {
-				return node.name
+				return node.name.toLowerCase()
 			}
 
 			case NODE.COMBINATOR: {
@@ -316,7 +315,11 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 				if (node.has_children) {
 					parts.push(OPEN_PARENTHESES)
 					if (node.children.length > 0) {
-						parts.push(print_inline_selector_list(node))
+						if (name === 'highlight') {
+							parts.push(print_list(node.children))
+						} else {
+							parts.push(print_inline_selector_list(node))
+						}
 					}
 					parts.push(CLOSE_PARENTHESES)
 				}
@@ -374,10 +377,6 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			const part = print_simple_selector(child, index === 0)
 			parts.push(part)
 		})
-
-		if (css.includes('a/*test*/ /*test*/b')) {
-			console.log(`DEBUG selector: children=${node.children.length}, parts=${JSON.stringify(parts)}`)
-		}
 		return parts.join(EMPTY_STRING)
 	}
 
