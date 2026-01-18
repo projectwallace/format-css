@@ -46,16 +46,9 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 	// First pass: collect all comments
 	let comments: number[] = []
-	parse(css, {
+	let ast = parse(css, {
 		on_comment: ({ start, end }) => {
 			comments.push(start, end)
-		},
-	})
-
-	// Now parse the CSS without inline comments
-	let ast = parse(css, {
-		on_comment: () => {
-			// Comments already collected in first pass
 		},
 	})
 
@@ -72,53 +65,30 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	}
 
 	/**
-	 * Get a comment from the CSS string after the first offset and before the second offset
+	 * Get and format comments from the CSS string within a range
 	 * @param after After which offset to look for comments
 	 * @param before Before which offset to look for comments
-	 * @param skip_inline Skip comments that are on the same line as other content
-	 * @returns The comment string, if found
+	 * @param level Indentation level (uses current depth if not specified)
+	 * @returns The formatted comment string, or empty string if no comment found
 	 */
-	function print_comment(after?: number, before?: number): string | undefined {
+	function get_comment(after?: number, before?: number, level: number = depth): string {
 		if (minify || after === undefined || before === undefined) {
-			return undefined
+			return EMPTY_STRING
 		}
 
 		let buffer = EMPTY_STRING
 		for (let i = 0; i < comments.length; i += 2) {
-			// Check that the comment is within the range
 			let start = comments[i]
 			if (start === undefined || start < after) continue
 			let end = comments[i + 1]
 			if (end === undefined || end > before) break
 
-			// Special case for comments that follow another comment:
 			if (buffer.length > 0) {
-				buffer += NEWLINE + indent(depth)
+				buffer += NEWLINE + indent(level)
 			}
 			buffer += css.slice(start, end)
 		}
 		return buffer
-	}
-
-	/**
-	 * Format a comment with indentation and optional prefix/suffix
-	 * @param after After which offset to look for comments
-	 * @param before Before which offset to look for comments
-	 * @param level Indentation level (default: 0)
-	 * @param prefix String to prepend (default: '')
-	 * @param suffix String to append (default: '')
-	 * @returns Formatted comment string or empty string if no comment
-	 */
-	function format_comment(
-		after?: number,
-		before?: number,
-		level: number = 0,
-		prefix: string = EMPTY_STRING,
-		suffix: string = EMPTY_STRING,
-	): string {
-		let comment = print_comment(after, before)
-		if (!comment) return EMPTY_STRING
-		return prefix + indent(level) + comment + suffix
 	}
 
 	function unquote(str: string): string {
@@ -397,11 +367,10 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		let count = 0
 		for (let selector of node) {
 			count++
-			// Add comment between selectors
 			if (prev_end !== undefined) {
-				let comment = format_comment(prev_end, selector.start, depth)
+				let comment = get_comment(prev_end, selector.start)
 				if (comment) {
-					lines.push(comment)
+					lines.push(indent(depth) + comment)
 				}
 			}
 
@@ -421,31 +390,28 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 		let children = node.children
 		if (children.length === 0) {
-			// Check if the block maybe contains comments
-			let comment = format_comment(node.start, node.end, depth)
+			let comment = get_comment(node.start, node.end)
 			if (comment) {
-				lines.push(comment)
+				lines.push(indent(depth) + comment)
 				depth--
 				lines.push(indent(depth) + CLOSE_BRACE)
 				return lines.join(NEWLINE)
 			}
 		}
 
-		// Add comment before first child
 		let first_child = children[0]
-		let comment_before_first = format_comment(node.start, first_child?.start, depth)
+		let comment_before_first = get_comment(node.start, first_child?.start)
 		if (comment_before_first) {
-			lines.push(comment_before_first)
+			lines.push(indent(depth) + comment_before_first)
 		}
 
 		let prev_end: number | undefined
 
 		for (let child of children) {
-			// Add comment between children
 			if (prev_end !== undefined) {
-				let comment = format_comment(prev_end, child.start, depth)
+				let comment = get_comment(prev_end, child.start)
 				if (comment) {
-					lines.push(comment)
+					lines.push(indent(depth) + comment)
 				}
 			}
 
@@ -470,10 +436,9 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			prev_end = child.end
 		}
 
-		// Add comment after last child
-		let comment_after_last_text = print_comment(prev_end, node.end)
-		if (comment_after_last_text) {
-			lines.push(indent(depth) + comment_after_last_text)
+		let comment_after_last = get_comment(prev_end, node.end)
+		if (comment_after_last) {
+			lines.push(indent(depth) + comment_after_last)
 		}
 
 		depth--
@@ -487,24 +452,25 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		if (node.first_child?.type === NODE.SELECTOR_LIST) {
 			let list = print_selector_list(node.first_child)
 
-			// Add comment after selectors and before opening brace
-			let comment = format_comment(node.first_child.end, node.block?.start, depth)
+			let comment = get_comment(node.first_child.end, node.block?.start)
 			if (comment) {
-				list += NEWLINE + comment
+				list += NEWLINE + indent(depth) + comment
 			}
 
 			list += OPTIONAL_SPACE + OPEN_BRACE
 
-			// Check if block is truly empty (no children and no comments)
-			let block_has_comments = node.block && print_comment(node.block.start, node.block.end)
-			if (!node.block?.has_children && !block_has_comments) {
+			let block_has_content = node.block && (node.block.has_children || get_comment(node.block.start, node.block.end))
+			if (!block_has_content) {
 				list += CLOSE_BRACE
 			}
 			lines.push(list)
 		}
 
-		if (node.block && (node.block.has_children || print_comment(node.block.start, node.block.end))) {
-			lines.push(print_block(node.block))
+		if (node.block) {
+			let block_has_content = node.block.has_children || get_comment(node.block.start, node.block.end)
+			if (block_has_content) {
+				lines.push(print_block(node.block))
+			}
 		}
 
 		return lines.join(NEWLINE)
@@ -542,16 +508,18 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			name.push(SEMICOLON)
 		} else {
 			name.push(OPTIONAL_SPACE, OPEN_BRACE)
-			// Check if block is truly empty (no children and no comments)
-			let block_has_comments = print_comment(node.block.start, node.block.end)
-			if (node.block.is_empty && !block_has_comments) {
+			let block_has_content = !node.block.is_empty || get_comment(node.block.start, node.block.end)
+			if (!block_has_content) {
 				name.push(CLOSE_BRACE)
 			}
 		}
 		lines.push(name.join(EMPTY_STRING))
 
-		if (node.block !== null && (!node.block.is_empty || print_comment(node.block.start, node.block.end))) {
-			lines.push(print_block(node.block))
+		if (node.block !== null) {
+			let block_has_content = !node.block.is_empty || get_comment(node.block.start, node.block.end)
+			if (block_has_content) {
+				lines.push(print_block(node.block))
+			}
 		}
 
 		return lines.join(NEWLINE)
@@ -562,14 +530,12 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		let children = node.children
 
 		if (children.length === 0) {
-			// Stylesheet with only comments
-			return format_comment(0, node.end) ?? EMPTY_STRING
+			return get_comment(0, node.end, 0)
 		}
 
-		// Add comment before first child
 		let first_child = children[0]
 		if (first_child) {
-			let comment_before_first = format_comment(0, first_child.start, 0)
+			let comment_before_first = get_comment(0, first_child.start, 0)
 			if (comment_before_first) {
 				lines.push(comment_before_first)
 			}
@@ -578,9 +544,8 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		let prev_end: number | undefined
 
 		for (let child of node) {
-			// Add comment between children
 			if (prev_end !== undefined) {
-				let comment = format_comment(prev_end, child.start, 0)
+				let comment = get_comment(prev_end, child.start, 0)
 				if (comment) {
 					lines.push(comment)
 				}
@@ -594,17 +559,15 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 			prev_end = child.end
 
-			// Only add blank line if there's a next child and no comment before it
 			if (child.has_next) {
-				let next_has_comment = child.next_sibling && print_comment(child.end, child.next_sibling.start)
+				let next_has_comment = child.next_sibling && get_comment(child.end, child.next_sibling.start, 0)
 				if (!next_has_comment) {
 					lines.push(EMPTY_STRING)
 				}
 			}
 		}
 
-		// Add comment after last child
-		let comment_after_last = format_comment(prev_end, node.end, 0)
+		let comment_after_last = get_comment(prev_end, node.end, 0)
 		if (comment_after_last) {
 			lines.push(comment_after_last)
 		}
