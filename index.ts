@@ -10,6 +10,7 @@ import {
 	ATTR_FLAG_CASE_INSENSITIVE,
 	ATTR_FLAG_CASE_SENSITIVE,
 	NODE_TYPES as NODE,
+	DIMENSION,
 } from '@projectwallace/css-parser'
 
 const SPACE = ' '
