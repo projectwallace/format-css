@@ -214,6 +214,23 @@ test(`formats ::highlight and ::highlight(Name) correctly`, () => {
 	expect(actual).toEqual(expected)
 })
 
+test('formats keyframes selectors (50%) correctly', () => {
+	let actual = format(
+		`@keyframes Toastify__bounceInUp { 0% {animation-timing-function: cubic-bezier(.215, .61, .355, 1);} 50% {} 80%,to {} }`,
+	)
+	let expected = `@keyframes Toastify__bounceInUp {
+	0% {
+		animation-timing-function: cubic-bezier(.215, .61, .355, 1);
+	}
+
+	50% {}
+
+	80%,
+	to {}
+}`
+	expect(actual).toBe(expected)
+})
+
 test('formats unknown pseudos correctly', () => {
 	let actual = format(`
 		::foo-bar,
