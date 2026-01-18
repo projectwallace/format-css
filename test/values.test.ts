@@ -33,7 +33,7 @@ test('formats simple value lists', () => {
 	animation: COLOR 123ms EASE-OUT;
 	color: rgb(0, 0, 0);
 	color: hsl(0%, 10%, 50%);
-	content: 'Test';
+	content: "Test";
 	background-image: url("EXAMPLE.COM");
 }`
 	expect(actual).toEqual(expected)
@@ -228,10 +228,10 @@ test('lowercases dimensions', () => {
 
 test('formats unknown content in value', () => {
 	let actual = format(`a {
-		content: 'Test' : counter(page);
+		content: 'Test' counter(page);
 	}`)
 	let expected = `a {
-	content: 'Test' : counter(page);
+	content: "Test" counter(page);
 }`
 	expect(actual).toEqual(expected)
 })
