@@ -139,7 +139,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		let parts = []
 		for (let node of nodes) {
 			if (node.type === NODE.FUNCTION) {
-				let fn = node.name.toLowerCase()
+				let fn = node.name?.toLowerCase()
 				parts.push(fn, OPEN_PARENTHESES)
 				parts.push(print_list(node.children))
 				parts.push(CLOSE_PARENTHESES)
@@ -192,7 +192,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			important.push(OPTIONAL_SPACE, text.slice(start, end).toLowerCase())
 		}
 		let value = print_value(node.value as CSSNode[] | null)
-		let property = node.property
+		let property = node.property!
 
 		// Special case for `font` shorthand: remove whitespace around /
 		if (property === 'font') {
@@ -262,9 +262,11 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	}
 
 	function print_simple_selector(node: CSSNode, is_first: boolean = false): string {
+		let name = node.name ?? ''
+
 		switch (node.type) {
 			case NODE.TYPE_SELECTOR: {
-				return node.name.toLowerCase()
+				return name.toLowerCase() ?? ''
 			}
 
 			case NODE.COMBINATOR: {
@@ -280,7 +282,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			case NODE.PSEUDO_ELEMENT_SELECTOR:
 			case NODE.PSEUDO_CLASS_SELECTOR: {
 				let parts = [COLON]
-				let name = node.name.toLowerCase()
+				name = name.toLowerCase()
 
 				// Legacy pseudo-elements or actual pseudo-elements use double colon
 				if (name === 'before' || name === 'after' || node.type === NODE.PSEUDO_ELEMENT_SELECTOR) {
@@ -305,7 +307,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			}
 
 			case NODE.ATTRIBUTE_SELECTOR: {
-				let parts = [OPEN_BRACKET, node.name.toLowerCase()]
+				let parts = [OPEN_BRACKET, name.toLowerCase()]
 
 				if (node.attr_operator) {
 					parts.push(print_attribute_selector_operator(node.attr_operator))
@@ -507,7 +509,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 	function print_atrule(node: CSSNode): string {
 		let lines = []
-		let name = [`@`, node.name.toLowerCase()]
+		let name = [`@`, node.name!.toLowerCase()]
 		if (node.prelude) {
 			name.push(SPACE, print_atrule_prelude(node.prelude.text))
 		}
