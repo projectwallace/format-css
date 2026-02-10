@@ -153,7 +153,13 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 				parts.push(OPEN_PARENTHESES, print_list(node.children), CLOSE_PARENTHESES)
 			} else if (node.type === NODE.URL && typeof node.value === 'string') {
 				parts.push('url(')
-				parts.push(print_string(node.value))
+				let { value } = node
+				// if the value starts with data:, 'data:, "data:
+				if (/^['"]?data:/i.test(value)) {
+					parts.push(unquote(value))
+				} else {
+					parts.push(print_string(value))
+				}
 				parts.push(CLOSE_PARENTHESES)
 			} else {
 				parts.push(node.text)
