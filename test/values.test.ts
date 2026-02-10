@@ -283,3 +283,36 @@ test('adds quotes around strings in url()', () => {
 }`
 	expect(actual).toEqual(expected)
 })
+
+test.each([
+	`data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 256 256"><g><g><polygon points="79.093,0 48.907,30.187 146.72,128 48.907,225.813 79.093,256 207.093,128"/></g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g></svg>`,
+	`data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16px" height="16px" viewBox="0 0 24 24"><path fill="rgba(0,0,0,0.5)" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path></svg>`,
+])('Does not mess up URLs with inlined SVG', (input) => {
+	let actual = format(`test {
+		background-image: url('${input}');
+		background-image: url(${input});
+	}`)
+	let expected = `test {
+	background-image: url(${input});
+	background-image: url(${input});
+}`
+	expect(actual).toEqual(expected)
+})
+
+test.each([
+	// Examples from https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Schemes/data
+	'data:,Hello%2C%20World%21',
+	'data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==',
+	'data:text/html,%3Ch1%3EHello%2C%20World%21%3C%2Fh1%3E',
+	'data:text/html,%3Cscript%3Ealert%28%27hi%27%29%3B%3C%2Fscript%3E',
+	// from https://github.com/projectwallace/format-css/issues/144
+	`data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgaGVpZ2h0PSIyNHB4IiB3aWR0aD0iMjRweCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJsaW5lYXItZ3JhZGllbnQiIHgxPSIyMi4zMSIgeTE9IjIzLjYyIiB4Mj0iMy43MyIgeTI9IjMuMDUiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlOTM3MjIiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmODZmMjUiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48dGl0bGU+TWFnbmlmaWVyPC90aXRsZT48cGF0aCBmaWxsPSJ1cmwoI2xpbmVhci1ncmFkaWVudCkiIGQ9Ik0yMy4zMyAyMC4xbC00LjczLTQuNzRhMTAuMDYgMTAuMDYgMCAxIDAtMy4yMyAzLjIzbDQuNzQgNC43NGEyLjI5IDIuMjkgMCAxIDAgMy4yMi0zLjIzem0tMTcuNDgtNS44NGE1Ljk0IDUuOTQgMCAxIDEgOC40MiAwIDYgNiAwIDAgMS04LjQyIDB6Ii8+PC9zdmc+`,
+])('Does not mess up URLs with encoded inlined content: %s', (input) => {
+	let actual = format(`test {
+		background-image: url(${input});
+	}`)
+	let expected = `test {
+	background-image: url(${input});
+}`
+	expect(actual).toBe(expected)
+})
