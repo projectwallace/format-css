@@ -316,3 +316,25 @@ test.each([
 }`
 	expect(actual).toBe(expected)
 })
+
+test.each([
+	`U+26`, // single code point
+	`U+0-7F`,
+	`U+0025-00FF`, // code point range
+	`U+4??`, // wildcard range
+	`U+0025-00FF, U+4??`, // multiple values
+])('Formats unicode-range: %s', (unicode_range) => {
+	let actual = format(`test { unicode-range: ${unicode_range}; }`)
+	let expected = `test {
+	unicode-range: ${unicode_range};
+}`
+	expect(actual).toBe(expected)
+})
+
+test('formats multi-value unicode range', () => {
+	let actual = format(`test { unicode-range: U+0025-00FF,U+4??; }`)
+	let expected = `test {
+	unicode-range: U+0025-00FF, U+4??;
+}`
+	expect(actual).toBe(expected)
+})
