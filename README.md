@@ -91,10 +91,6 @@ let formatted = format("a { color: red; }", {
 });
 ```
 
-## Acknowledgements
-
-- Thanks to [CSSTree](https://github.com/csstree/csstree) for providing the necessary parser and the interfaces for our CSS Types (the **bold** elements in the list above)
-
 ## Related projects
 
 - [Format CSS online](https://www.projectwallace.com/prettify-css?utm_source=github&utm_medium=wallace_format_css_related_projects) - See this formatter in action online!
