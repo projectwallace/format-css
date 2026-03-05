@@ -48,9 +48,11 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	// First pass: collect all comments
 	let comments: number[] = []
 	let ast = parse(css, {
-		on_comment: ({ start, end }) => {
-			comments.push(start, end)
-		},
+		on_comment: minify
+			? undefined
+			: ({ start, end }) => {
+					comments.push(start, end)
+				},
 	})
 
 	let depth = 0
@@ -513,6 +515,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		if (node.prelude) {
 			name.push(SPACE, print_atrule_prelude(node.prelude.text))
 		}
+
 		if (node.block === null) {
 			name.push(SEMICOLON)
 		} else {
