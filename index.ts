@@ -1,17 +1,4 @@
-import {
-	CSSNode,
-	parse,
-	ATTR_OPERATOR_EQUAL,
-	ATTR_OPERATOR_TILDE_EQUAL,
-	ATTR_OPERATOR_PIPE_EQUAL,
-	ATTR_OPERATOR_CARET_EQUAL,
-	ATTR_OPERATOR_DOLLAR_EQUAL,
-	ATTR_OPERATOR_STAR_EQUAL,
-	ATTR_FLAG_CASE_INSENSITIVE,
-	ATTR_FLAG_CASE_SENSITIVE,
-	NODE_TYPES as NODE,
-	DIMENSION,
-} from '@projectwallace/css-parser'
+import { CSSNode, parse, ATTR_OPERATOR_NAMES, ATTR_FLAG_NAMES, NODE_TYPES as NODE } from '@projectwallace/css-parser'
 
 const SPACE = ' '
 const EMPTY_STRING = ''
@@ -48,6 +35,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	// First pass: collect all comments
 	let comments: number[] = []
 	let ast = parse(css, {
+		parse_atrule_preludes: false,
 		on_comment: minify
 			? undefined
 			: ({ start, end }) => {
@@ -212,24 +200,6 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		return property + COLON + OPTIONAL_SPACE + value + important.join(EMPTY_STRING)
 	}
 
-	function print_attribute_selector_operator(operator: number) {
-		switch (operator) {
-			case ATTR_OPERATOR_TILDE_EQUAL:
-				return '~='
-			case ATTR_OPERATOR_PIPE_EQUAL:
-				return '|='
-			case ATTR_OPERATOR_CARET_EQUAL:
-				return '^='
-			case ATTR_OPERATOR_DOLLAR_EQUAL:
-				return '$='
-			case ATTR_OPERATOR_STAR_EQUAL:
-				return '*='
-			case ATTR_OPERATOR_EQUAL:
-			default:
-				return '='
-		}
-	}
-
 	function print_nth(node: CSSNode): string {
 		let parts = []
 		let a = node.nth_a
@@ -312,15 +282,13 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 				let parts = [OPEN_BRACKET, name.toLowerCase()]
 
 				if (node.attr_operator) {
-					parts.push(print_attribute_selector_operator(node.attr_operator))
+					parts.push(ATTR_OPERATOR_NAMES[node.attr_operator] ?? '')
 					if (typeof node.value === 'string') {
 						parts.push(print_string(node.value))
 					}
 
-					if (node.attr_flags === ATTR_FLAG_CASE_INSENSITIVE) {
-						parts.push(SPACE, 'i')
-					} else if (node.attr_flags === ATTR_FLAG_CASE_SENSITIVE) {
-						parts.push(SPACE, 's')
+					if (node.attr_flags) {
+						parts.push(SPACE, ATTR_FLAG_NAMES[node.attr_flags] ?? '')
 					}
 				}
 

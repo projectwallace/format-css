@@ -60,6 +60,6 @@
 		"singleQuote": true
 	},
 	"dependencies": {
-		"@projectwallace/css-parser": "^0.13.4"
+		"@projectwallace/css-parser": "^0.13.5"
 	}
 }

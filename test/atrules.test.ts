@@ -63,6 +63,16 @@ test('collapses whitespaces in prelude', () => {
 	expect(actual).toEqual(expected)
 })
 
+test('removes newlines in prelude', () => {
+	let actual = format(`@media
+		all,
+		screen,
+		print,
+		(min-width: 1000px) {}`)
+	let expected = `@media all, screen, print, (min-width: 1000px) {}`
+	expect(actual).toEqual(expected)
+})
+
 test('adds whitespace to @media (min-width:1000px)', () => {
 	let actual = format(`@media (min-width:1000px) {}`)
 	let expected = `@media (min-width: 1000px) {}`
