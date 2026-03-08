@@ -8,6 +8,7 @@ export default defineConfig({
 		neverBundle: ['@projectwallace/css-parser'],
 	},
 	dts: true,
+	publint: true,
 	plugins: [
 		codecovRollupPlugin({
 			enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,

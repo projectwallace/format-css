@@ -25,8 +25,7 @@
 		"test": "vitest --coverage",
 		"check": "tsc",
 		"prettier": "prettier --check index.ts test/**/*.ts",
-		"lint": "oxlint",
-		"lint-package": "publint"
+		"lint": "oxlint"
 	},
 	"devDependencies": {
 		"@codecov/rollup-plugin": "^1.9.1",
