@@ -41,10 +41,10 @@ npm install @projectwallace/format-css
 ## Usage
 
 ```js
-import { format } from "@projectwallace/format-css";
+import { format } from '@projectwallace/format-css'
 
-let old_css = "/* Your old CSS here */";
-let new_css = format(old_css);
+let old_css = '/* Your old CSS here */'
+let new_css = format(old_css)
 ```
 
 Need more examples?
@@ -70,13 +70,13 @@ Need more examples?
 This package also exposes a minifier function since minifying CSS follows many of the same rules as formatting.
 
 ```js
-import { format, minify } from "@projectwallace/format-css";
+import { format, minify } from '@projectwallace/format-css'
 
-let minified = minify("a {}");
+let minified = minify('a {}')
 
 // which is an alias for
 
-let formatted_mini = format("a {}", { minify: true });
+let formatted_mini = format('a {}', { minify: true })
 ```
 
 ## Tab size
@@ -84,11 +84,11 @@ let formatted_mini = format("a {}", { minify: true });
 For cases where you cannot control the tab size with CSS there is an option to override the default tabbed indentation with N spaces.
 
 ```js
-import { format } from "@projectwallace/format-css";
+import { format } from '@projectwallace/format-css'
 
-let formatted = format("a { color: red; }", {
-	tab_size: 2
-});
+let formatted = format('a { color: red; }', {
+	tab_size: 2,
+})
 ```
 
 ## Related projects
