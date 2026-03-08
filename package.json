@@ -1,6 +1,6 @@
 {
 	"name": "@projectwallace/format-css",
-	"version": "2.2.5",
+	"version": "2.2.6",
 	"description": "Fast, small, zero-config library to format or minify CSS with basic rules.",
 	"keywords": [
 		"css",
