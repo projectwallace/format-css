@@ -14,12 +14,12 @@
 		"node": ">=18.0.0"
 	},
 	"type": "module",
-	"main": "./dist/index.mjs",
+	"main": "./dist/index.js",
 	"exports": {
-		"types": "./dist/index.d.mts",
-		"default": "./dist/index.mjs"
+		"types": "./dist/index.d.ts",
+		"default": "./dist/index.js"
 	},
-	"types": "./dist/index.d.mts",
+	"types": "./dist/index.d.ts",
 	"scripts": {
 		"build": "tsdown",
 		"test": "vitest --coverage",
@@ -30,7 +30,6 @@
 	"devDependencies": {
 		"@codecov/rollup-plugin": "^1.9.1",
 		"@vitest/coverage-v8": "^4.0.3",
-		"c8": "^10.1.3",
 		"oxlint": "^1.24.0",
 		"prettier": "^3.6.2",
 		"publint": "^0.3.15",

@@ -3,6 +3,7 @@ import { codecovRollupPlugin } from '@codecov/rollup-plugin'
 
 export default defineConfig({
 	entry: 'index.ts',
+	platform: 'neutral',
 	publint: true,
 	plugins: [
 		codecovRollupPlugin({
