@@ -110,8 +110,14 @@ test('@media prelude formatting', () => {
 			`@media only screen and (min-width: 1024px)and (max-width: 1439px), only screen and (min-width: 768px)and (max-width: 1023px) {}`,
 			`@media only screen and (min-width: 1024px) and (max-width: 1439px), only screen and (min-width: 768px) and (max-width: 1023px) {}`,
 		],
-		[`@media (min-width: 1024px)or (max-width: 1439px) {}`, `@media (min-width: 1024px) or (max-width: 1439px) {}`],
-		[`@media all and (transform-3d), (-webkit-transform-3d) {}`, `@media all and (transform-3d), (-webkit-transform-3d) {}`],
+		[
+			`@media (min-width: 1024px)or (max-width: 1439px) {}`,
+			`@media (min-width: 1024px) or (max-width: 1439px) {}`,
+		],
+		[
+			`@media all and (transform-3d), (-webkit-transform-3d) {}`,
+			`@media all and (transform-3d), (-webkit-transform-3d) {}`,
+		],
 		[`@media screen or print {}`, `@media screen or print {}`],
 		[`@media (update: slow) or (hover: none) {}`, `@media (update: slow) or (hover: none) {}`],
 		[`@media (update: slow)or (hover: none) {}`, `@media (update: slow) or (hover: none) {}`],

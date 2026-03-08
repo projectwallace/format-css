@@ -69,7 +69,9 @@ test('Vadim Makeevs example works', () => {
 })
 
 test('minified Vadims example', () => {
-	let actual = minify(`@layer what{@container (width>0){@media (min-height:.001px){ul:has(:nth-child(1 of li)):hover{--is:this}}}}`)
+	let actual = minify(
+		`@layer what{@container (width>0){@media (min-height:.001px){ul:has(:nth-child(1 of li)):hover{--is:this}}}}`,
+	)
 	let expected = `@layer what{@container (width>0){@media (min-height:.001px){ul:has(:nth-child(1 of li)):hover{--is:this}}}}`
 	expect(actual).toEqual(expected)
 })

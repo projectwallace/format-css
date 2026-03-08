@@ -1,4 +1,10 @@
-import { CSSNode, parse, ATTR_OPERATOR_NAMES, ATTR_FLAG_NAMES, NODE_TYPES as NODE } from '@projectwallace/css-parser'
+import {
+	CSSNode,
+	parse,
+	ATTR_OPERATOR_NAMES,
+	ATTR_FLAG_NAMES,
+	NODE_TYPES as NODE,
+} from '@projectwallace/css-parser'
 
 const SPACE = ' '
 const EMPTY_STRING = ''
@@ -23,7 +29,10 @@ export type FormatOptions = {
 /**
  * Format a string of CSS using some simple rules
  */
-export function format(css: string, { minify = false, tab_size = undefined }: FormatOptions = Object.create(null)): string {
+export function format(
+	css: string,
+	{ minify = false, tab_size = undefined }: FormatOptions = Object.create(null),
+): string {
 	if (tab_size !== undefined && Number(tab_size) < 1) {
 		throw new TypeError('tab_size must be a number greater than 0')
 	}
@@ -343,9 +352,7 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 	function print_selector_list(node: CSSNode): string {
 		let lines = []
 		let prev_end: number | undefined
-		let count = 0
 		for (let selector of node) {
-			count++
 			if (prev_end !== undefined) {
 				let comment = get_comment(prev_end, selector.start)
 				if (comment) {
@@ -438,7 +445,8 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 
 			list += OPTIONAL_SPACE + OPEN_BRACE
 
-			let block_has_content = node.block && (node.block.has_children || get_comment(node.block.start, node.block.end))
+			let block_has_content =
+				node.block && (node.block.has_children || get_comment(node.block.start, node.block.end))
 			if (!block_has_content) {
 				list += CLOSE_BRACE
 			}
@@ -446,7 +454,8 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 		}
 
 		if (node.block) {
-			let block_has_content = node.block.has_children || get_comment(node.block.start, node.block.end)
+			let block_has_content =
+				node.block.has_children || get_comment(node.block.start, node.block.end)
 			if (block_has_content) {
 				lines.push(print_block(node.block))
 			}
@@ -469,11 +478,14 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			.replace(/\s*(=>|<=)\s*/g, ' $1 ') // force whitespace around => and <=
 			.replace(/([^<>=\s])([<>])([^<>=\s])/g, `$1${OPTIONAL_SPACE}$2${OPTIONAL_SPACE}$3`) // add spacing around < or > except when it's part of <=, >=, =>
 			.replace(/\s+/g, OPTIONAL_SPACE) // collapse multiple whitespaces into one
-			.replace(/calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g, (_, left, operator, right) => {
-				// force required or optional whitespace around * and / in calc()
-				let space = operator === '+' || operator === '-' ? SPACE : OPTIONAL_SPACE
-				return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
-			})
+			.replace(
+				/calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g,
+				(_, left, operator, right) => {
+					// force required or optional whitespace around * and / in calc()
+					let space = operator === '+' || operator === '-' ? SPACE : OPTIONAL_SPACE
+					return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
+				},
+			)
 			.replace(/selector|url|supports|layer\(/gi, (match) => match.toLowerCase()) // lowercase function names
 	}
 
@@ -540,7 +552,8 @@ export function format(css: string, { minify = false, tab_size = undefined }: Fo
 			prev_end = child.end
 
 			if (child.has_next) {
-				let next_has_comment = child.next_sibling && get_comment(child.end, child.next_sibling.start, 0)
+				let next_has_comment =
+					child.next_sibling && get_comment(child.end, child.next_sibling.start, 0)
 				if (!next_has_comment) {
 					lines.push(EMPTY_STRING)
 				}

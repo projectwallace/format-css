@@ -19,10 +19,8 @@
 		"noEmit": true,
 
 		// Code runs in the DOM
-		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"lib": ["ES2022", "DOM", "DOM.Iterable"]
 	},
-	"include": [
-		"index.ts"
-	],
+	"include": ["index.ts"],
 	"exclude": ["node_modules"]
 }

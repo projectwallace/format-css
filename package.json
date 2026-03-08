@@ -2,61 +2,56 @@
 	"name": "@projectwallace/format-css",
 	"version": "2.2.5",
 	"description": "Fast, small, zero-config library to format or minify CSS with basic rules.",
+	"keywords": [
+		"css",
+		"format",
+		"formatter",
+		"prettier",
+		"prettifier",
+		"pretty",
+		"print",
+		"style",
+		"stylesheet"
+	],
+	"homepage": "https://github.com/projectwallace/format-css",
+	"license": "MIT",
+	"author": "Bart Veneman <bart@projectwallace.com>",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/projectwallace/format-css.git"
 	},
-	"homepage": "https://github.com/projectwallace/format-css",
-	"issues": "https://github.com/projectwallace/format-css/issues",
-	"license": "MIT",
-	"author": "Bart Veneman <bart@projectwallace.com>",
-	"engines": {
-		"node": ">=18.0.0"
-	},
+	"files": [
+		"dist"
+	],
 	"type": "module",
 	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
 	"exports": {
 		"types": "./dist/index.d.ts",
 		"default": "./dist/index.js"
 	},
-	"types": "./dist/index.d.ts",
 	"scripts": {
 		"build": "tsdown",
 		"test": "vitest --coverage",
 		"check": "tsc",
 		"prettier": "prettier --check index.ts test/**/*.ts",
-		"lint": "oxlint"
+		"lint": "oxlint && oxfmt --check"
+	},
+	"dependencies": {
+		"@projectwallace/css-parser": "^0.13.5"
 	},
 	"devDependencies": {
 		"@codecov/rollup-plugin": "^1.9.1",
 		"@vitest/coverage-v8": "^4.0.3",
+		"oxfmt": "^0.36.0",
 		"oxlint": "^1.24.0",
-		"prettier": "^3.6.2",
 		"publint": "^0.3.15",
 		"tsdown": "^0.21.0",
 		"typescript": "^5.9.3",
 		"vitest": "^4.0.3"
 	},
-	"files": [
-		"dist"
-	],
-	"keywords": [
-		"css",
-		"stylesheet",
-		"formatter",
-		"format",
-		"print",
-		"prettifier",
-		"pretty",
-		"prettier"
-	],
-	"prettier": {
-		"semi": false,
-		"useTabs": true,
-		"printWidth": 140,
-		"singleQuote": true
+	"engines": {
+		"node": ">=18.0.0"
 	},
-	"dependencies": {
-		"@projectwallace/css-parser": "^0.13.5"
-	}
+	"issues": "https://github.com/projectwallace/format-css/issues"
 }
