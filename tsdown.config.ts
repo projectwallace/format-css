@@ -3,11 +3,6 @@ import { codecovRollupPlugin } from '@codecov/rollup-plugin'
 
 export default defineConfig({
 	entry: 'index.ts',
-	format: 'esm',
-	deps: {
-		neverBundle: ['@projectwallace/css-parser'],
-	},
-	dts: true,
 	publint: true,
 	plugins: [
 		codecovRollupPlugin({
