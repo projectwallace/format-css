@@ -20,5 +20,12 @@ export default defineConfig([
 		dts: false,
 		// Reference the lib via its package name to avoid bundling it twice
 		external: ['@projectwallace/format-css'],
+		plugins: [
+			codecovRollupPlugin({
+				enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
+				bundleName: 'formatCssCli',
+				uploadToken: process.env.CODECOV_TOKEN,
+			}),
+		],
 	},
 ])
