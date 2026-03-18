@@ -2,6 +2,7 @@
 
 import { parseArgs, styleText } from 'node:util'
 import { readFileSync } from 'node:fs'
+import { resolve, sep } from 'node:path'
 import { format } from '@projectwallace/format-css'
 
 function help(): string {
@@ -67,8 +68,13 @@ async function cli(args: string[]): Promise<void> {
 	}
 
 	if (positionals.length > 0) {
+		const cwd = process.cwd()
 		for (const file of positionals) {
-			const css = readFileSync(file, 'utf-8')
+			const resolved = resolve(file)
+			if (resolved !== cwd && !resolved.startsWith(cwd + sep)) {
+				throw new Error(`Invalid path: ${file}`)
+			}
+			const css = readFileSync(resolved, 'utf-8')
 			process.stdout.write(format(css, options))
 		}
 	} else if (!process.stdin.isTTY) {
