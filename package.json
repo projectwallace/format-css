@@ -21,7 +21,7 @@
 		"url": "git+https://github.com/projectwallace/format-css.git"
 	},
 	"bin": {
-		"format-css": "./dist/cli.js"
+		"format-css": "./dist/cli.mjs"
 	},
 	"files": [
 		"dist"
