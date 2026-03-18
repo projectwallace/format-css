@@ -3,6 +3,7 @@
 import { parseArgs, styleText } from 'node:util'
 import { readFileSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { format } from '@projectwallace/format-css'
 
 function help(): string {
@@ -31,20 +32,13 @@ ${styleText('bold', 'EXAMPLES')}
 	`.trim()
 }
 
-async function readStdin(): Promise<string> {
-	const chunks: Buffer[] = []
-	for await (const chunk of process.stdin) {
-		chunks.push(chunk)
-	}
-	return Buffer.concat(chunks).toString('utf-8')
+export type CliArguments = {
+	files: string[]
+	minify: boolean
+	tab_size: number | undefined
 }
 
-async function cli(args: string[]): Promise<void> {
-	if (args.includes('--help') || args.includes('-h')) {
-		console.log(help())
-		return
-	}
-
+export function parse_arguments(args: string[]): CliArguments {
 	const { values, positionals } = parseArgs({
 		args,
 		allowPositionals: true,
@@ -54,40 +48,79 @@ async function cli(args: string[]): Promise<void> {
 		},
 	})
 
+	const issues: string[] = []
+
 	let tab_size: number | undefined
 	if (values['tab-size'] !== undefined) {
 		tab_size = Number(values['tab-size'])
 		if (isNaN(tab_size) || tab_size < 1) {
-			throw new Error('--tab-size must be a positive integer')
+			issues.push('--tab-size must be a positive integer')
 		}
 	}
 
-	const options = {
-		minify: values.minify,
-		tab_size,
+	const cwd = process.cwd()
+	const files: string[] = []
+	for (const file of positionals) {
+		const resolved = resolve(file)
+		if (resolved !== cwd && !resolved.startsWith(cwd + sep)) {
+			issues.push(`Invalid path: ${file}`)
+		} else {
+			files.push(resolved)
+		}
 	}
 
-	if (positionals.length > 0) {
-		const cwd = process.cwd()
-		for (const file of positionals) {
-			const resolved = resolve(file)
-			if (resolved !== cwd && !resolved.startsWith(cwd + sep)) {
-				throw new Error(`Invalid path: ${file}`)
-			}
-			const css = readFileSync(resolved, 'utf-8')
-			process.stdout.write(format(css, options))
+	if (issues.length > 0) {
+		throw new Error(issues.join('\n'))
+	}
+
+	return { files, minify: values.minify ?? false, tab_size }
+}
+
+export type CliIO = {
+	readFile: (path: string) => string
+	readStdin: () => Promise<string>
+	write: (output: string) => void
+	isTTY: boolean
+}
+
+export async function run(args: string[], io: CliIO): Promise<void> {
+	if (args.includes('--help') || args.includes('-h')) {
+		io.write(help() + '\n')
+		return
+	}
+
+	const { files, minify, tab_size } = parse_arguments(args)
+	const options = { minify, tab_size }
+
+	if (files.length > 0) {
+		for (const file of files) {
+			io.write(format(io.readFile(file), options))
 		}
-	} else if (!process.stdin.isTTY) {
-		const css = await readStdin()
-		process.stdout.write(format(css, options))
+	} else if (!io.isTTY) {
+		io.write(format(await io.readStdin(), options))
 	} else {
-		console.log(help())
+		io.write(help() + '\n')
 	}
 }
 
-try {
-	await cli(process.argv.slice(2))
-} catch (error) {
-	console.error(error instanceof Error ? error.message : String(error))
-	process.exit(1)
+async function read_stdin(): Promise<string> {
+	const chunks: Buffer[] = []
+	for await (const chunk of process.stdin) {
+		chunks.push(chunk)
+	}
+	return Buffer.concat(chunks).toString('utf-8')
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+	try {
+		await run(process.argv.slice(2), {
+			readFile: (path) => readFileSync(path, 'utf-8'),
+			readStdin: read_stdin,
+			write: (output) => process.stdout.write(output),
+			isTTY: process.stdin.isTTY === true,
+		})
+	} catch (error) {
+		console.error(error instanceof Error ? error.message : String(error))
+		process.exit(1)
+	}
 }
