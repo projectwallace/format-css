@@ -9,7 +9,7 @@ on:
 
 permissions:
   id-token: write # Required for OIDC
-  contents: read
+  contents: write
 
 jobs:
   publish-npm:
@@ -23,5 +23,16 @@ jobs:
       - run: npm install -g npm@latest
       - run: npm ci --ignore-scripts --no-fund --no-audit
       - run: npm test
+      - name: Bump version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          npm version $VERSION --no-git-tag-version
+      - name: Commit and push version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to ${GITHUB_REF_NAME#v}"
+          git push origin HEAD:main
       - run: npm run build
       - run: npm publish --access public
