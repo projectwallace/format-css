@@ -1,0 +1,3 @@
+{
+	"extends": ["@projectwallace/preset-oxlint"]
+}
