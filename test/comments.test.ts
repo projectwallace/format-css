@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { format } from '../index.js'
+import { format } from '../src/lib/index.js'
 
 describe('comments', () => {
 	test('only comment', () => {

@@ -65,7 +65,9 @@ Need more examples?
 1. Multiline tokens like **Selectors, Values, etc.** are rendered on a single line
 1. Unknown syntax is rendered as-is, with multi-line formatting kept intact
 
-## Minify CSS
+## Options
+
+### Minify CSS
 
 This package also exposes a minifier function since minifying CSS follows many of the same rules as formatting.
 
@@ -79,7 +81,7 @@ let minified = minify('a {}')
 let formatted_mini = format('a {}', { minify: true })
 ```
 
-## Tab size
+### Tab size
 
 For cases where you cannot control the tab size with CSS there is an option to override the default tabbed indentation with N spaces.
 
@@ -91,8 +93,36 @@ let formatted = format('a { color: red; }', {
 })
 ```
 
+## CLI
+
+This library also ships a CLI tools that's a small wrapper around the library.
+
+```
+USAGE
+  format-css [options] [file...]
+  cat styles.css | format-css [options]
+
+OPTIONS
+  --minify            Minify the CSS output
+  --tab-size=<n>      Use N spaces for indentation instead of tabs
+  --help, -h          Show this help
+
+EXAMPLES
+  # Format a file
+  format-css styles.css
+
+  # Format with 2-space indentation
+  format-css styles.css --tab-size=2
+
+  # Minify
+  format-css styles.css --minify
+
+  # Via pipe
+  cat styles.css | format-css
+```
+
 ## Related projects
 
-- [Format CSS online](https://www.projectwallace.com/prettify-css?utm_source=github&utm_medium=wallace_format_css_related_projects) - See this formatter in action online!
-- [Minify CSS online](https://www.projectwallace.com/minify-css?utm_source=github&utm_medium=wallace_format_css_related_projects) - See this minifier in action online!
-- [CSS Analyzer](https://github.com/projectwallace/css-analyzer) - The best CSS analyzer that powers all analysis on [projectwallace.com](https://www.projectwallace.com?utm_source=github&utm_medium=wallace_format_css_related_projects)
+- [Format CSS online](https://www.projectwallace.com/prettify-css) - See this formatter in action online!
+- [Minify CSS online](https://www.projectwallace.com/minify-css) - See this minifier in action online!
+- [CSS Analyzer](https://github.com/projectwallace/css-analyzer) - The best CSS analyzer that powers all analysis on [projectwallace.com](https://www.projectwallace.com)

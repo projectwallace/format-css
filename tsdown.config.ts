@@ -3,7 +3,7 @@ import { codecovRollupPlugin } from '@codecov/rollup-plugin'
 
 export default defineConfig([
 	{
-		entry: 'index.ts',
+		entry: 'src/lib/index.ts',
 		platform: 'neutral',
 		publint: true,
 		plugins: [
@@ -19,7 +19,9 @@ export default defineConfig([
 		platform: 'node',
 		dts: false,
 		// Reference the lib via its package name to avoid bundling it twice
-		external: ['@projectwallace/format-css'],
+		deps: {
+			neverBundle: ['@projectwallace/format-css'],
+		},
 		plugins: [
 			codecovRollupPlugin({
 				enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,

@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { format } from '../index.js'
+import { format } from '../src/lib/index.js'
 
 test('AtRules and Rules start on a new line', () => {
 	let actual = format(`

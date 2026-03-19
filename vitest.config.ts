@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 export default defineConfig({
 	resolve: {
 		alias: {
-			'@projectwallace/format-css': resolve('./index.ts'),
+			'@projectwallace/format-css': resolve('./src/lib/index.ts'),
 		},
 	},
 	test: {

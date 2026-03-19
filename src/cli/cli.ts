@@ -4,13 +4,17 @@ import { parseArgs, styleText } from 'node:util'
 import { readFileSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+// import from absolute package name instead of relative import (like ../lib/index.ts)
+// to prevent lib/index.js being bundled into cli.js, which would mean that indexjs
+// ends up in our /dist twice, which is wasteful
 import { format } from '@projectwallace/format-css'
 
 function help(): string {
 	return `
 ${styleText('bold', 'USAGE')}
-  $ format-css [options] [file...]
-  $ cat styles.css | format-css [options]
+  format-css [options] [file...]
+  cat styles.css | format-css [options]
 
 ${styleText('bold', 'OPTIONS')}
   --minify            Minify the CSS output
@@ -19,16 +23,16 @@ ${styleText('bold', 'OPTIONS')}
 
 ${styleText('bold', 'EXAMPLES')}
   ${styleText('dim', '# Format a file')}
-  $ format-css styles.css
+  format-css styles.css
 
   ${styleText('dim', '# Format with 2-space indentation')}
-  $ format-css styles.css --tab-size=2
+  format-css styles.css --tab-size=2
 
   ${styleText('dim', '# Minify')}
-  $ format-css styles.css --minify
+  format-css styles.css --minify
 
   ${styleText('dim', '# Via pipe')}
-  $ cat styles.css | format-css
+  cat styles.css | format-css
 	`.trim()
 }
 
