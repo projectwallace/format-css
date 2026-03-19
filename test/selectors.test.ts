@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { format } from '../index.js'
+import { format } from '../src/lib/index.js'
 
 test('A single selector is rendered without a trailing comma', () => {
 	let actual = format('a {}')

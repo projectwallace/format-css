@@ -2,25 +2,25 @@
 	"compilerOptions": {
 		// Base options:
 		"skipLibCheck": true,
-		"target": "es2022",
+		"target": "es2024",
 		"verbatimModuleSyntax": true,
-		"allowJs": true,
-		"checkJs": true,
+		"allowJs": false,
 		"moduleDetection": "force",
-
 		// Strictness
 		"strict": true,
 		"noUncheckedIndexedAccess": true,
-
 		// Type checking, not transpiling
 		"module": "ESNext",
 		"moduleResolution": "bundler",
-		"allowSyntheticDefaultImports": true,
-		"noEmit": true,
-
-		// Code runs in the DOM
-		"lib": ["ES2022", "DOM", "DOM.Iterable"]
+		"lib": ["es2024", "DOM"],
+		"declaration": true,
+		"rootDirs": ["src/lib", "src/cli"],
+		"outDir": "dist",
+		"paths": {
+			// So we can import like an external in the CLI
+			"@projectwallace/format-css": ["./src/lib/index.ts"]
+		}
 	},
-	"include": ["index.ts"],
+	"include": ["src/lib/index.ts", "src/cli/cli.ts"],
 	"exclude": ["node_modules"]
 }

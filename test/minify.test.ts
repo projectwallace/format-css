@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { minify } from '../index.js'
+import { minify } from '../src/lib/index.js'
 
 test('empty rule', () => {
 	let actual = minify(`a {}`)
