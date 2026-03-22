@@ -101,21 +101,37 @@ export function format(
 	}
 
 	function print_operator(node: CSSNode): string {
+		let parts = []
 		// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
 		// The + and - operators must be surrounded by whitespace
 		// Whitespace around other operators is optional
+
 		let operator = node.text
 		let code = operator.charCodeAt(0)
+
 		if (code === 43 || code === 45) {
-			// + or -: required spaces on both sides
-			return SPACE + operator + SPACE
+			// + or -
+			// Add required space before + and - operators
+			parts.push(SPACE)
+		} else if (code !== 44) {
+			// ,
+			// Add optional space before operator
+			parts.push(OPTIONAL_SPACE)
 		}
-		if (code === 44) {
-			// ,: no space before, optional space after
-			return operator + OPTIONAL_SPACE
+
+		// FINALLY, render the operator
+		parts.push(operator)
+
+		if (code === 43 || code === 45) {
+			// + or -
+			// Add required space after + and - operators
+			parts.push(SPACE)
+		} else {
+			// Add optional space after other operators (like *, /, and ,)
+			parts.push(OPTIONAL_SPACE)
 		}
-		// *, /: optional space on both sides
-		return OPTIONAL_SPACE + operator + OPTIONAL_SPACE
+
+		return parts.join(EMPTY_STRING)
 	}
 
 	function print_list(nodes: CSSNode[]): string {
