@@ -96,12 +96,14 @@ jobs:
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build
+          mkdir -p ./source-packs
           npm pack --pack-destination ./source-packs
       - name: Build and pack base branch
         run: |
           git checkout ${{ github.base_ref }}
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build
+          mkdir -p ./base-packs
           npm pack --pack-destination ./base-packs
       - name: Run dependency & bundle diff
         uses: e18e/action-dependency-diff@v1
