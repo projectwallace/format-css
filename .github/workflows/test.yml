@@ -119,3 +119,4 @@ jobs:
         with:
           base-packages: './base-packs/*.tgz'
           source-packages: './source-packs/*.tgz'
+          pack-size-threshold: 0
