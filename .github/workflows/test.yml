@@ -48,6 +48,15 @@ jobs:
           node-version: 22
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run build
+      - name: Pack
+        run: |
+          mkdir -p ./source-packs
+          npm pack --pack-destination ./source-packs
+      - name: Upload pack artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-pack
+          path: ./source-packs/*.tgz
 
   lint:
     name: Lint
@@ -80,6 +89,7 @@ jobs:
     name: Dependency & bundle diff
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    needs: build
     permissions:
       contents: read
       pull-requests: write
@@ -92,12 +102,11 @@ jobs:
         with:
           cache: 'npm'
           node-version: 22
-      - name: Build and pack source branch
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund
-          npm run build
-          mkdir -p ./source-packs
-          npm pack --pack-destination ./source-packs
+      - name: Download source pack
+        uses: actions/download-artifact@v4
+        with:
+          name: source-pack
+          path: ./source-packs
       - name: Build and pack base branch
         run: |
           git checkout ${{ github.base_ref }}
