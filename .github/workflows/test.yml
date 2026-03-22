@@ -22,10 +22,6 @@ jobs:
           node-version: 22
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm test
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5.5.3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   check:
     name: Check types
@@ -41,7 +37,7 @@ jobs:
       - run: npm run check
 
   build:
-    name: Build & collect coverage
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -52,8 +48,6 @@ jobs:
           node-version: 22
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run build
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   lint:
     name: Lint
@@ -81,3 +75,36 @@ jobs:
           cache: 'npm'
           node-version: 22
       - run: npm audit --audit-level=high
+
+  dependency-diff:
+    name: Dependency & bundle diff
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          cache: 'npm'
+          node-version: 22
+      - name: Build and pack source branch
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          npm pack --pack-destination ./source-packs
+      - name: Build and pack base branch
+        run: |
+          git checkout ${{ github.base_ref }}
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          npm pack --pack-destination ./base-packs
+      - name: Run dependency & bundle diff
+        uses: e18e/action-dependency-diff@v1
+        with:
+          base-packages: './base-packs/*.tgz'
+          source-packages: './source-packs/*.tgz'
