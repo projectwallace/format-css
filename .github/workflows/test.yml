@@ -49,14 +49,35 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run build
       - name: Pack
-        run: |
-          mkdir -p ./source-packs
-          npm pack --pack-destination ./source-packs
+        run: npm pack
       - name: Upload pack artifact
         uses: actions/upload-artifact@v4
         with:
-          name: source-pack
-          path: ./source-packs/*.tgz
+          name: source-packages
+          path: '*.tgz'
+
+  build-base:
+    name: Build (base branch)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.base_ref }}
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          cache: 'npm'
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
+      - name: Pack
+        run: npm pack
+      - name: Upload pack artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-packages
+          path: '*.tgz'
 
   lint:
     name: Lint
@@ -89,34 +110,24 @@ jobs:
     name: Dependency & bundle diff
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    needs: build
+    needs: [build, build-base]
     permissions:
-      contents: read
       pull-requests: write
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Use Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/download-artifact@v4
         with:
-          cache: 'npm'
-          node-version: 22
-      - name: Download source pack
-        uses: actions/download-artifact@v4
+          name: base-packages
+          path: ./base-packages
+      - uses: actions/download-artifact@v4
         with:
-          name: source-pack
-          path: ./source-packs
-      - name: Build and pack base branch
-        run: |
-          git checkout ${{ github.base_ref }}
-          npm ci --ignore-scripts --no-audit --no-fund
-          npm run build
-          mkdir -p ./base-packs
-          npm pack --pack-destination ./base-packs
+          name: source-packages
+          path: ./source-packages
       - name: Run dependency & bundle diff
         uses: e18e/action-dependency-diff@v1
         with:
-          base-packages: './base-packs/*.tgz'
-          source-packages: './source-packs/*.tgz'
+          base-packages: './base-packages/*.tgz'
+          source-packages: './source-packages/*.tgz'
           pack-size-threshold: 0
