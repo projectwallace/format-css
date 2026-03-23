@@ -130,4 +130,5 @@ jobs:
         with:
           base-packages: './base-packages/*.tgz'
           source-packages: './source-packages/*.tgz'
-          pack-size-threshold: 0
+          pack-size-threshold: -1
+          size-threshold: -1
