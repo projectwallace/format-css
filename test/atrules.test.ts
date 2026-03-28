@@ -114,6 +114,7 @@ test('@media prelude formatting', () => {
 			`@media (min-width: 1024px)or (max-width: 1439px) {}`,
 			`@media (min-width: 1024px) or (max-width: 1439px) {}`,
 		],
+		[`@media (width>=44rem)or (width<=33rem) {}`, `@media (width >= 44rem) or (width <= 33rem) {}`],
 		[
 			`@media all and (transform-3d), (-webkit-transform-3d) {}`,
 			`@media all and (transform-3d), (-webkit-transform-3d) {}`,
