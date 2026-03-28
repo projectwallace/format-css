@@ -101,37 +101,14 @@ export function format(
 	}
 
 	function print_operator(node: CSSNode): string {
-		let parts = []
 		// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
 		// The + and - operators must be surrounded by whitespace
 		// Whitespace around other operators is optional
-
 		let operator = node.text
 		let code = operator.charCodeAt(0)
-
-		if (code === 43 || code === 45) {
-			// + or -
-			// Add required space before + and - operators
-			parts.push(SPACE)
-		} else if (code !== 44) {
-			// ,
-			// Add optional space before operator
-			parts.push(OPTIONAL_SPACE)
-		}
-
-		// FINALLY, render the operator
-		parts.push(operator)
-
-		if (code === 43 || code === 45) {
-			// + or -
-			// Add required space after + and - operators
-			parts.push(SPACE)
-		} else {
-			// Add optional space after other operators (like *, /, and ,)
-			parts.push(OPTIONAL_SPACE)
-		}
-
-		return parts.join(EMPTY_STRING)
+		// + or - require spaces; comma has no leading space; others use optional space
+		let space = code === 43 || code === 45 ? SPACE : OPTIONAL_SPACE
+		return (code === 44 ? EMPTY_STRING : space) + operator + space
 	}
 
 	function print_list(nodes: CSSNode[]): string {
@@ -182,13 +159,12 @@ export function format(
 	}
 
 	function print_declaration(node: CSSNode): string {
-		let important = []
+		let important = EMPTY_STRING
 		if (node.is_important) {
 			let text = node.text
-			let has_semicolon = text.endsWith(SEMICOLON)
 			let start = text.lastIndexOf('!')
-			let end = has_semicolon ? -1 : undefined
-			important.push(OPTIONAL_SPACE, text.slice(start, end).toLowerCase())
+			important =
+				OPTIONAL_SPACE + text.slice(start, text.endsWith(SEMICOLON) ? -1 : undefined).toLowerCase()
 		}
 		let value = print_value(node.value as CSSNode[] | null)
 		let property = node.property!
@@ -206,40 +182,32 @@ export function format(
 		if (!property.startsWith('--')) {
 			property = property.toLowerCase()
 		}
-		return property + COLON + OPTIONAL_SPACE + value + important.join(EMPTY_STRING)
+		return property + COLON + OPTIONAL_SPACE + value + important
 	}
 
 	function print_nth(node: CSSNode): string {
-		let parts = []
 		let a = node.nth_a
 		let b = node.nth_b
-
-		if (a) {
-			parts.push(a)
-		}
-		if (a && b) {
-			parts.push(OPTIONAL_SPACE)
-		}
+		let result = a ? `${a}` : EMPTY_STRING
 		if (b) {
-			if (a && !b.startsWith('-')) {
-				parts.push('+', OPTIONAL_SPACE)
+			if (a) {
+				result += OPTIONAL_SPACE
+				if (!b.startsWith('-')) result += '+' + OPTIONAL_SPACE
 			}
-			parts.push(parseFloat(b))
+			result += parseFloat(b)
 		}
-
-		return parts.join(EMPTY_STRING)
+		return result
 	}
 
 	function print_nth_of(node: CSSNode): string {
-		let parts = []
+		let result = EMPTY_STRING
 		if (node.children[0]?.type === NODE.NTH_SELECTOR) {
-			parts.push(print_nth(node.children[0]))
-			parts.push(SPACE, 'of', SPACE)
+			result = print_nth(node.children[0]) + SPACE + 'of' + SPACE
 		}
 		if (node.children[1]?.type === NODE.SELECTOR_LIST) {
-			parts.push(print_inline_selector_list(node.children[1]))
+			result += print_inline_selector_list(node.children[1])
 		}
-		return parts.join(EMPTY_STRING)
+		return result
 	}
 
 	function print_simple_selector(node: CSSNode, is_first: boolean = false): string {
@@ -330,12 +298,7 @@ export function format(
 		}
 
 		// Handle compound selector (combination of simple selectors)
-		let parts: string[] = []
-		node.children.forEach((child, index) => {
-			const part = print_simple_selector(child, index === 0)
-			parts.push(part)
-		})
-		return parts.join(EMPTY_STRING)
+		return node.children.map((child, i) => print_simple_selector(child, i === 0)).join(EMPTY_STRING)
 	}
 
 	function print_inline_selector_list(node: CSSNode): string {
@@ -433,6 +396,8 @@ export function format(
 	}
 
 	function print_rule(node: CSSNode): string {
+		let block_has_content =
+			node.block && (node.block.has_children || get_comment(node.block.start, node.block.end))
 		let lines = []
 
 		if (node.first_child?.type === NODE.SELECTOR_LIST) {
@@ -444,21 +409,14 @@ export function format(
 			}
 
 			list += OPTIONAL_SPACE + OPEN_BRACE
-
-			let block_has_content =
-				node.block && (node.block.has_children || get_comment(node.block.start, node.block.end))
 			if (!block_has_content) {
 				list += CLOSE_BRACE
 			}
 			lines.push(list)
 		}
 
-		if (node.block) {
-			let block_has_content =
-				node.block.has_children || get_comment(node.block.start, node.block.end)
-			if (block_has_content) {
-				lines.push(print_block(node.block))
-			}
+		if (block_has_content) {
+			lines.push(print_block(node.block!))
 		}
 
 		return lines.join(NEWLINE)
@@ -490,31 +448,27 @@ export function format(
 	}
 
 	function print_atrule(node: CSSNode): string {
-		let lines = []
-		let name = [`@`, node.name!.toLowerCase()]
+		let name = '@' + node.name!.toLowerCase()
 		if (node.prelude) {
-			name.push(SPACE, print_atrule_prelude(node.prelude.text))
+			name += SPACE + print_atrule_prelude(node.prelude.text)
 		}
 
+		let block_has_content =
+			node.block !== null &&
+			(!node.block.is_empty || !!get_comment(node.block.start, node.block.end))
 		if (node.block === null) {
-			name.push(SEMICOLON)
+			name += SEMICOLON
 		} else {
-			name.push(OPTIONAL_SPACE, OPEN_BRACE)
-			let block_has_content = !node.block.is_empty || get_comment(node.block.start, node.block.end)
+			name += OPTIONAL_SPACE + OPEN_BRACE
 			if (!block_has_content) {
-				name.push(CLOSE_BRACE)
-			}
-		}
-		lines.push(name.join(EMPTY_STRING))
-
-		if (node.block !== null) {
-			let block_has_content = !node.block.is_empty || get_comment(node.block.start, node.block.end)
-			if (block_has_content) {
-				lines.push(print_block(node.block))
+				name += CLOSE_BRACE
 			}
 		}
 
-		return lines.join(NEWLINE)
+		if (block_has_content) {
+			return name + NEWLINE + print_block(node.block!)
+		}
+		return name
 	}
 
 	function print_stylesheet(node: CSSNode): string {
