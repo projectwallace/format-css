@@ -26,7 +26,7 @@ export type FormatOptions = {
 	tab_size?: number
 }
 
-function unquote(str: string): string {
+export function unquote(str: string): string {
 	return str.replace(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
 }
 
@@ -546,7 +546,7 @@ export function format(
 
 	function make_indent(size: number): string {
 		if (minify === true) return EMPTY_STRING
-		if (tab_size !== undefined) return SPACE.repeat(tab_size * size)
+		if (typeof tab_size === 'number') return SPACE.repeat(tab_size * size)
 		return '\t'.repeat(size)
 	}
 
