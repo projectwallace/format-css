@@ -26,78 +26,28 @@ export type FormatOptions = {
 	tab_size?: number
 }
 
-/**
- * Format a string of CSS using some simple rules
- */
-export function format(
-	css: string,
-	{ minify = false, tab_size = undefined }: FormatOptions = Object.create(null),
-): string {
-	if (tab_size !== undefined && Number(tab_size) < 1) {
-		throw new TypeError('tab_size must be a number greater than 0')
-	}
+function unquote(str: string): string {
+	return str.replace(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
+}
 
-	const NEWLINE = minify ? EMPTY_STRING : '\n'
-	const OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE
-	const LAST_SEMICOLON = minify ? EMPTY_STRING : SEMICOLON
+export function print_string(str: string | number | null): string {
+	str = str?.toString() || ''
+	return QUOTE + unquote(str) + QUOTE
+}
 
-	// First pass: collect all comments
-	let comments: number[] = []
-	let ast = parse(css, {
-		parse_atrule_preludes: false,
-		on_comment: minify
-			? undefined
-			: ({ start, end }) => {
-					comments.push(start, end)
-				},
-	})
-
+function create_printers(
+	optional_space: string,
+	newline: string,
+	last_semicolon: string,
+	minify: boolean,
+	make_indent: (size: number) => string,
+	lookup_comment: (after: number, before: number, level: number) => string,
+) {
 	let depth = 0
 
-	function indent(size: number) {
-		if (minify === true) return EMPTY_STRING
-
-		if (tab_size !== undefined) {
-			return SPACE.repeat(tab_size * size)
-		}
-
-		return '\t'.repeat(size)
-	}
-
-	/**
-	 * Get and format comments from the CSS string within a range
-	 * @param after After which offset to look for comments
-	 * @param before Before which offset to look for comments
-	 * @param level Indentation level (uses current depth if not specified)
-	 * @returns The formatted comment string, or empty string if no comment found
-	 */
 	function get_comment(after?: number, before?: number, level: number = depth): string {
-		if (minify || after === undefined || before === undefined) {
-			return EMPTY_STRING
-		}
-
-		let buffer = EMPTY_STRING
-		for (let i = 0; i < comments.length; i += 2) {
-			let start = comments[i]
-			if (start === undefined || start < after) continue
-			let end = comments[i + 1]
-			if (end === undefined || end > before) break
-
-			if (buffer.length > 0) {
-				buffer += NEWLINE + indent(level)
-			}
-			buffer += css.slice(start, end)
-		}
-		return buffer
-	}
-
-	function unquote(str: string): string {
-		return str.replace(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
-	}
-
-	function print_string(str: string | number | null): string {
-		str = str?.toString() || ''
-		return QUOTE + unquote(str) + QUOTE
+		if (after === undefined || before === undefined) return EMPTY_STRING
+		return lookup_comment(after, before, level)
 	}
 
 	function print_operator(node: CSSNode): string {
@@ -107,7 +57,7 @@ export function format(
 		let operator = node.text
 		let code = operator.charCodeAt(0)
 		// + or - require spaces; comma has no leading space; others use optional space
-		let space = code === 43 || code === 45 ? SPACE : OPTIONAL_SPACE
+		let space = code === 43 || code === 45 ? SPACE : optional_space
 		return (code === 44 ? EMPTY_STRING : space) + operator + space
 	}
 
@@ -164,7 +114,7 @@ export function format(
 			let text = node.text
 			let start = text.lastIndexOf('!')
 			important =
-				OPTIONAL_SPACE + text.slice(start, text.endsWith(SEMICOLON) ? -1 : undefined).toLowerCase()
+				optional_space + text.slice(start, text.endsWith(SEMICOLON) ? -1 : undefined).toLowerCase()
 		}
 		let value = print_value(node.value as CSSNode[] | null)
 		let property = node.property!
@@ -182,7 +132,7 @@ export function format(
 		if (!property.startsWith('--')) {
 			property = property.toLowerCase()
 		}
-		return property + COLON + OPTIONAL_SPACE + value + important
+		return property + COLON + optional_space + value + important
 	}
 
 	function print_nth(node: CSSNode): string {
@@ -191,8 +141,8 @@ export function format(
 		let result = a ? `${a}` : EMPTY_STRING
 		if (b) {
 			if (a) {
-				result += OPTIONAL_SPACE
-				if (!b.startsWith('-')) result += '+' + OPTIONAL_SPACE
+				result += optional_space
+				if (!b.startsWith('-')) result += '+' + optional_space
 			}
 			result += parseFloat(b)
 		}
@@ -224,8 +174,8 @@ export function format(
 					return SPACE
 				}
 				// Skip leading space if this is the first node in the selector
-				let leading_space = is_first ? EMPTY_STRING : OPTIONAL_SPACE
-				return leading_space + text + OPTIONAL_SPACE
+				let leading_space = is_first ? EMPTY_STRING : optional_space
+				return leading_space + text + optional_space
 			}
 
 			case NODE.PSEUDO_ELEMENT_SELECTOR:
@@ -306,7 +256,7 @@ export function format(
 		for (let selector of node) {
 			parts.push(print_selector(selector))
 			if (selector.has_next) {
-				parts.push(COMMA, OPTIONAL_SPACE)
+				parts.push(COMMA, optional_space)
 			}
 		}
 		return parts.join(EMPTY_STRING)
@@ -319,7 +269,7 @@ export function format(
 			if (prev_end !== undefined) {
 				let comment = get_comment(prev_end, selector.start)
 				if (comment) {
-					lines.push(indent(depth) + comment)
+					lines.push(make_indent(depth) + comment)
 				}
 			}
 
@@ -327,10 +277,10 @@ export function format(
 			if (selector.has_next) {
 				printed += COMMA
 			}
-			lines.push(indent(depth) + printed)
+			lines.push(make_indent(depth) + printed)
 			prev_end = selector.end
 		}
-		return lines.join(NEWLINE)
+		return lines.join(newline)
 	}
 
 	function print_block(node: CSSNode): string {
@@ -341,17 +291,17 @@ export function format(
 		if (children.length === 0) {
 			let comment = get_comment(node.start, node.end)
 			if (comment) {
-				lines.push(indent(depth) + comment)
+				lines.push(make_indent(depth) + comment)
 				depth--
-				lines.push(indent(depth) + CLOSE_BRACE)
-				return lines.join(NEWLINE)
+				lines.push(make_indent(depth) + CLOSE_BRACE)
+				return lines.join(newline)
 			}
 		}
 
 		let first_child = children[0]
 		let comment_before_first = get_comment(node.start, first_child?.start)
 		if (comment_before_first) {
-			lines.push(indent(depth) + comment_before_first)
+			lines.push(make_indent(depth) + comment_before_first)
 		}
 
 		let prev_end: number | undefined
@@ -360,7 +310,7 @@ export function format(
 			if (prev_end !== undefined) {
 				let comment = get_comment(prev_end, child.start)
 				if (comment) {
-					lines.push(indent(depth) + comment)
+					lines.push(make_indent(depth) + comment)
 				}
 			}
 
@@ -368,8 +318,8 @@ export function format(
 
 			if (child.type === NODE.DECLARATION) {
 				let declaration = print_declaration(child)
-				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
-				lines.push(indent(depth) + declaration + semi)
+				let semi = is_last ? last_semicolon : SEMICOLON
+				lines.push(make_indent(depth) + declaration + semi)
 			} else if (child.type === NODE.STYLE_RULE) {
 				if (prev_end !== undefined && lines.length !== 0) {
 					lines.push(EMPTY_STRING)
@@ -379,7 +329,7 @@ export function format(
 				if (prev_end !== undefined && lines.length !== 0) {
 					lines.push(EMPTY_STRING)
 				}
-				lines.push(indent(depth) + print_atrule(child))
+				lines.push(make_indent(depth) + print_atrule(child))
 			}
 
 			prev_end = child.end
@@ -387,12 +337,12 @@ export function format(
 
 		let comment_after_last = get_comment(prev_end, node.end)
 		if (comment_after_last) {
-			lines.push(indent(depth) + comment_after_last)
+			lines.push(make_indent(depth) + comment_after_last)
 		}
 
 		depth--
-		lines.push(indent(depth) + CLOSE_BRACE)
-		return lines.join(NEWLINE)
+		lines.push(make_indent(depth) + CLOSE_BRACE)
+		return lines.join(newline)
 	}
 
 	function print_rule(node: CSSNode): string {
@@ -405,10 +355,10 @@ export function format(
 
 			let comment = get_comment(node.first_child.end, node.block?.start)
 			if (comment) {
-				list += NEWLINE + indent(depth) + comment
+				list += newline + make_indent(depth) + comment
 			}
 
-			list += OPTIONAL_SPACE + OPEN_BRACE
+			list += optional_space + OPEN_BRACE
 			if (!block_has_content) {
 				list += CLOSE_BRACE
 			}
@@ -419,7 +369,7 @@ export function format(
 			lines.push(print_block(node.block!))
 		}
 
-		return lines.join(NEWLINE)
+		return lines.join(newline)
 	}
 
 	/**
@@ -433,14 +383,14 @@ export function format(
 		return prelude
 			.replace(/\s*([:,])/g, prelude.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
 			.replace(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
-			.replace(/\s*(=>|>=|<=)\s*/g, `${OPTIONAL_SPACE}$1${OPTIONAL_SPACE}`) // add optional spacing around =>, >= and <=
-			.replace(/([^<>=\s])([<>])([^<>=\s])/g, `$1${OPTIONAL_SPACE}$2${OPTIONAL_SPACE}$3`) // add spacing around < or > except when it's part of <=, >=, =>
-			.replace(/\s+/g, OPTIONAL_SPACE) // collapse multiple whitespaces into one
+			.replace(/\s*(=>|>=|<=)\s*/g, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
+			.replace(/([^<>=\s])([<>])([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // add spacing around < or > except when it's part of <=, >=, =>
+			.replace(/\s+/g, optional_space) // collapse multiple whitespaces into one
 			.replace(
 				/calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g,
 				(_, left, operator, right) => {
 					// force required or optional whitespace around * and / in calc()
-					let space = operator === '+' || operator === '-' ? SPACE : OPTIONAL_SPACE
+					let space = operator === '+' || operator === '-' ? SPACE : optional_space
 					return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
 				},
 			)
@@ -459,14 +409,14 @@ export function format(
 		if (node.block === null) {
 			name += SEMICOLON
 		} else {
-			name += OPTIONAL_SPACE + OPEN_BRACE
+			name += optional_space + OPEN_BRACE
 			if (!block_has_content) {
 				name += CLOSE_BRACE
 			}
 		}
 
 		if (block_has_content) {
-			return name + NEWLINE + print_block(node.block!)
+			return name + newline + print_block(node.block!)
 		}
 		return name
 	}
@@ -519,8 +469,111 @@ export function format(
 			lines.push(comment_after_last)
 		}
 
-		return lines.join(NEWLINE)
+		return lines.join(newline)
 	}
+
+	return {
+		print_operator,
+		print_list,
+		print_value,
+		print_declaration,
+		print_nth,
+		print_nth_of,
+		print_simple_selector,
+		print_selector,
+		print_inline_selector_list,
+		print_selector_list,
+		print_block,
+		print_rule,
+		print_atrule_prelude,
+		print_atrule,
+		print_stylesheet,
+	}
+}
+
+// Default (pretty-print) exports — these accept just CSSNode or CSSNode[]
+// and use non-minified formatting with tab indentation
+export const {
+	print_operator,
+	print_list,
+	print_value,
+	print_declaration,
+	print_nth,
+	print_nth_of,
+	print_simple_selector,
+	print_selector,
+	print_inline_selector_list,
+	print_selector_list,
+	print_block,
+	print_rule,
+	print_atrule_prelude,
+	print_atrule,
+	print_stylesheet,
+} = create_printers(
+	SPACE, // optional_space
+	'\n', // newline
+	SEMICOLON, // last_semicolon
+	false, // minify
+	(size) => '\t'.repeat(size), // make_indent
+	() => EMPTY_STRING, // lookup_comment — no source CSS available, comments are omitted
+)
+
+/**
+ * Format a string of CSS using some simple rules
+ */
+export function format(
+	css: string,
+	{ minify = false, tab_size = undefined }: FormatOptions = Object.create(null),
+): string {
+	if (tab_size !== undefined && Number(tab_size) < 1) {
+		throw new TypeError('tab_size must be a number greater than 0')
+	}
+
+	const optional_space = minify ? EMPTY_STRING : SPACE
+	const newline = minify ? EMPTY_STRING : '\n'
+	const last_semicolon = minify ? EMPTY_STRING : SEMICOLON
+
+	// First pass: collect all comments
+	let comments: number[] = []
+	let ast = parse(css, {
+		parse_atrule_preludes: false,
+		on_comment: minify
+			? undefined
+			: ({ start, end }) => {
+					comments.push(start, end)
+				},
+	})
+
+	function make_indent(size: number): string {
+		if (minify === true) return EMPTY_STRING
+		if (tab_size !== undefined) return SPACE.repeat(tab_size * size)
+		return '\t'.repeat(size)
+	}
+
+	function lookup_comment(after: number, before: number, level: number): string {
+		let buffer = EMPTY_STRING
+		for (let i = 0; i < comments.length; i += 2) {
+			let start = comments[i]
+			if (start === undefined || start < after) continue
+			let end = comments[i + 1]
+			if (end === undefined || end > before) break
+
+			if (buffer.length > 0) {
+				buffer += newline + make_indent(level)
+			}
+			buffer += css.slice(start, end)
+		}
+		return buffer
+	}
+
+	const { print_stylesheet } = create_printers(
+		optional_space,
+		newline,
+		last_semicolon,
+		minify,
+		make_indent,
+		lookup_comment,
+	)
 
 	return print_stylesheet(ast).trimEnd()
 }
