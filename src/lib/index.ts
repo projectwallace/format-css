@@ -19,6 +19,100 @@ const OPEN_BRACE = '{'
 const CLOSE_BRACE = '}'
 const COMMA = ','
 
+export function unquote(str: string): string {
+	return str.replace(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
+}
+
+function print_string(str: string | number | null): string {
+	str = str?.toString() || ''
+	return QUOTE + unquote(str) + QUOTE
+}
+
+function print_operator(node: CSSNode, optional_space = SPACE): string {
+	// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
+	// The + and - operators must be surrounded by whitespace
+	// Whitespace around other operators is optional
+	let operator = node.text
+	let code = operator.charCodeAt(0)
+	// + or - require spaces; comma has no leading space; others use optional space
+	let space = code === 43 || code === 45 ? SPACE : optional_space
+	return (code === 44 ? EMPTY_STRING : space) + operator + space
+}
+
+function print_list(nodes: CSSNode[], optional_space = SPACE): string {
+	let parts = []
+	for (let node of nodes) {
+		if (node.type === NODE.FUNCTION) {
+			let fn = node.name?.toLowerCase()
+			parts.push(fn, OPEN_PARENTHESES)
+			parts.push(print_list(node.children, optional_space))
+			parts.push(CLOSE_PARENTHESES)
+		} else if (node.type === NODE.DIMENSION) {
+			parts.push(node.value, node.unit?.toLowerCase())
+		} else if (node.type === NODE.STRING) {
+			parts.push(print_string(node.text))
+		} else if (node.type === NODE.OPERATOR) {
+			parts.push(print_operator(node, optional_space))
+		} else if (node.type === NODE.PARENTHESIS) {
+			parts.push(OPEN_PARENTHESES, print_list(node.children), CLOSE_PARENTHESES)
+		} else if (node.type === NODE.URL && typeof node.value === 'string') {
+			parts.push('url(')
+			let { value } = node
+			// if the value starts with data:, 'data:, "data:
+			if (/^['"]?data:/i.test(value)) {
+				parts.push(unquote(value))
+			} else {
+				parts.push(print_string(value))
+			}
+			parts.push(CLOSE_PARENTHESES)
+		} else {
+			parts.push(node.text)
+		}
+
+		if (node.type !== NODE.OPERATOR) {
+			if (node.has_next) {
+				if (node.next_sibling?.type !== NODE.OPERATOR) {
+					parts.push(SPACE)
+				}
+			}
+		}
+	}
+
+	return parts.join(EMPTY_STRING)
+}
+
+export function print_value(nodes: CSSNode[] | null, optional_space = SPACE): string {
+	if (nodes === null) return EMPTY_STRING
+	return print_list(nodes, optional_space)
+}
+
+export function print_declaration(node: CSSNode, optional_space = SPACE): string {
+	let important = EMPTY_STRING
+	if (node.is_important) {
+		let text = node.text
+		let start = text.lastIndexOf('!')
+		important =
+			optional_space + text.slice(start, text.endsWith(SEMICOLON) ? -1 : undefined).toLowerCase()
+	}
+	let value = print_value(node.value as CSSNode[] | null, optional_space)
+	let property = node.property!
+
+	// Special case for `font` shorthand: remove whitespace around /
+	if (property === 'font') {
+		value = value.replace(/\s*\/\s*/, '/')
+	}
+
+	// Hacky: add a space in case of a `space toggle` during minification
+	if (value === EMPTY_STRING && optional_space === EMPTY_STRING) {
+		value += SPACE
+	}
+
+	if (!property.startsWith('--')) {
+		property = property.toLowerCase()
+	}
+	return property + COLON + optional_space + value + important
+}
+
 export type FormatOptions = {
 	/** Whether to minify the CSS or keep it formatted */
 	minify?: boolean
@@ -91,118 +185,24 @@ export function format(
 		return buffer
 	}
 
-	function unquote(str: string): string {
-		return str.replace(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
-	}
-
-	function print_string(str: string | number | null): string {
-		str = str?.toString() || ''
-		return QUOTE + unquote(str) + QUOTE
-	}
-
-	function print_operator(node: CSSNode): string {
-		// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
-		// The + and - operators must be surrounded by whitespace
-		// Whitespace around other operators is optional
-		let operator = node.text
-		let code = operator.charCodeAt(0)
-		// + or - require spaces; comma has no leading space; others use optional space
-		let space = code === 43 || code === 45 ? SPACE : OPTIONAL_SPACE
-		return (code === 44 ? EMPTY_STRING : space) + operator + space
-	}
-
-	function print_list(nodes: CSSNode[]): string {
-		let parts = []
-		for (let node of nodes) {
-			if (node.type === NODE.FUNCTION) {
-				let fn = node.name?.toLowerCase()
-				parts.push(fn, OPEN_PARENTHESES)
-				parts.push(print_list(node.children))
-				parts.push(CLOSE_PARENTHESES)
-			} else if (node.type === NODE.DIMENSION) {
-				parts.push(node.value, node.unit?.toLowerCase())
-			} else if (node.type === NODE.STRING) {
-				parts.push(print_string(node.text))
-			} else if (node.type === NODE.OPERATOR) {
-				parts.push(print_operator(node))
-			} else if (node.type === NODE.PARENTHESIS) {
-				parts.push(OPEN_PARENTHESES, print_list(node.children), CLOSE_PARENTHESES)
-			} else if (node.type === NODE.URL && typeof node.value === 'string') {
-				parts.push('url(')
-				let { value } = node
-				// if the value starts with data:, 'data:, "data:
-				if (/^['"]?data:/i.test(value)) {
-					parts.push(unquote(value))
-				} else {
-					parts.push(print_string(value))
-				}
-				parts.push(CLOSE_PARENTHESES)
-			} else {
-				parts.push(node.text)
-			}
-
-			if (node.type !== NODE.OPERATOR) {
-				if (node.has_next) {
-					if (node.next_sibling?.type !== NODE.OPERATOR) {
-						parts.push(SPACE)
-					}
-				}
-			}
-		}
-
-		return parts.join(EMPTY_STRING)
-	}
-
-	function print_value(nodes: CSSNode[] | null): string {
-		if (nodes === null) return EMPTY_STRING
-		return print_list(nodes)
-	}
-
-	function print_declaration(node: CSSNode): string {
-		let important = EMPTY_STRING
-		if (node.is_important) {
-			let text = node.text
-			let start = text.lastIndexOf('!')
-			important =
-				OPTIONAL_SPACE + text.slice(start, text.endsWith(SEMICOLON) ? -1 : undefined).toLowerCase()
-		}
-		let value = print_value(node.value as CSSNode[] | null)
-		let property = node.property!
-
-		// Special case for `font` shorthand: remove whitespace around /
-		if (property === 'font') {
-			value = value.replace(/\s*\/\s*/, '/')
-		}
-
-		// Hacky: add a space in case of a `space toggle` during minification
-		if (value === EMPTY_STRING && minify === true) {
-			value += SPACE
-		}
-
-		if (!property.startsWith('--')) {
-			property = property.toLowerCase()
-		}
-		return property + COLON + OPTIONAL_SPACE + value + important
-	}
-
-	function print_nth(node: CSSNode): string {
+	function print_nth(node: CSSNode, optional_space = SPACE): string {
 		let a = node.nth_a
 		let b = node.nth_b
-		let result = a ? `${a}` : EMPTY_STRING
+		let result = a ? a : EMPTY_STRING
 		if (b) {
 			if (a) {
-				result += OPTIONAL_SPACE
-				if (!b.startsWith('-')) result += '+' + OPTIONAL_SPACE
+				result += optional_space
+				if (!b.startsWith('-')) result += '+' + optional_space
 			}
-			result += parseFloat(b)
+			result += b
 		}
 		return result
 	}
 
-	function print_nth_of(node: CSSNode): string {
+	function print_nth_of(node: CSSNode, optional_space = SPACE): string {
 		let result = EMPTY_STRING
 		if (node.children[0]?.type === NODE.NTH_SELECTOR) {
-			result = print_nth(node.children[0]) + SPACE + 'of' + SPACE
+			result = print_nth(node.children[0], optional_space) + SPACE + 'of' + SPACE
 		}
 		if (node.children[1]?.type === NODE.SELECTOR_LIST) {
 			result += print_inline_selector_list(node.children[1])
@@ -210,7 +210,11 @@ export function format(
 		return result
 	}
 
-	function print_simple_selector(node: CSSNode, is_first: boolean = false): string {
+	function print_simple_selector(
+		node: CSSNode,
+		optional_space = SPACE,
+		is_first: boolean = false,
+	): string {
 		let name = node.name ?? ''
 
 		switch (node.type) {
@@ -224,8 +228,8 @@ export function format(
 					return SPACE
 				}
 				// Skip leading space if this is the first node in the selector
-				let leading_space = is_first ? EMPTY_STRING : OPTIONAL_SPACE
-				return leading_space + text + OPTIONAL_SPACE
+				let leading_space = is_first ? EMPTY_STRING : optional_space
+				return leading_space + text + optional_space
 			}
 
 			case NODE.PSEUDO_ELEMENT_SELECTOR:
@@ -244,7 +248,7 @@ export function format(
 					parts.push(OPEN_PARENTHESES)
 					if (node.children.length > 0) {
 						if (name === 'highlight') {
-							parts.push(print_list(node.children))
+							parts.push(print_list(node.children, optional_space))
 						} else {
 							parts.push(print_inline_selector_list(node))
 						}
@@ -279,14 +283,14 @@ export function format(
 		}
 	}
 
-	function print_selector(node: CSSNode): string {
+	function print_selector(node: CSSNode, optional_space = SPACE): string {
 		// Handle special selector types
 		if (node.type === NODE.NTH_SELECTOR) {
-			return print_nth(node)
+			return print_nth(node, optional_space)
 		}
 
 		if (node.type === NODE.NTH_OF_SELECTOR) {
-			return print_nth_of(node)
+			return print_nth_of(node, optional_space)
 		}
 
 		if (node.type === NODE.SELECTOR_LIST) {
@@ -298,13 +302,15 @@ export function format(
 		}
 
 		// Handle compound selector (combination of simple selectors)
-		return node.children.map((child, i) => print_simple_selector(child, i === 0)).join(EMPTY_STRING)
+		return node.children
+			.map((child, i) => print_simple_selector(child, optional_space, i === 0))
+			.join(EMPTY_STRING)
 	}
 
 	function print_inline_selector_list(node: CSSNode): string {
 		let parts = []
 		for (let selector of node) {
-			parts.push(print_selector(selector))
+			parts.push(print_selector(selector, OPTIONAL_SPACE))
 			if (selector.has_next) {
 				parts.push(COMMA, OPTIONAL_SPACE)
 			}
@@ -367,7 +373,7 @@ export function format(
 			let is_last = child.next_sibling?.type !== NODE.DECLARATION
 
 			if (child.type === NODE.DECLARATION) {
-				let declaration = print_declaration(child)
+				let declaration = print_declaration(child, OPTIONAL_SPACE)
 				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
 				lines.push(indent(depth) + declaration + semi)
 			} else if (child.type === NODE.STYLE_RULE) {
