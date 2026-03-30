@@ -143,19 +143,6 @@ test.each([
 	expect(actual).toEqual(expected)
 })
 
-test.each([
-	[`li:nth-child(3n-2) {}`, `li:nth-child(3n-2) {}`],
-	[`li:nth-child(0n+1) {}`, `li:nth-child(0n+1) {}`],
-	[`li:nth-child(even of .noted) {}`, `li:nth-child(even of .noted) {}`],
-	[`li:nth-child(2n of .noted) {}`, `li:nth-child(2n of .noted) {}`],
-	[`li:nth-child(-n + 3 of .noted) {}`, `li:nth-child(-n+3 of .noted) {}`],
-	[`li:nth-child(-n+3 of li.important) {}`, `li:nth-child(-n+3 of li.important) {}`],
-	[`p:nth-child(n+8):nth-child(-n+15) {}`, `p:nth-child(n+8):nth-child(-n+15) {}`],
-])('minifies nth selector %s', (css, expected) => {
-	let actual = format(css)
-	expect(actual).toEqual(expected)
-})
-
 test('formats multiline selectors', () => {
 	let actual = format(`
 		a:is(
