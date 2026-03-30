@@ -276,7 +276,7 @@ export function format_selector(
  * Should be OK perf-wise, since the amount of atrules in most
  * stylesheets are limited, so this won't be called too often.
  */
-function print_atrule_prelude(
+export function format_atrule_prelude(
 	prelude: string,
 	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
 ): string {
@@ -476,7 +476,7 @@ export function format(
 	function print_atrule(node: CSSNode): string {
 		let name = '@' + node.name!.toLowerCase()
 		if (node.prelude) {
-			name += SPACE + print_atrule_prelude(node.prelude.text, { minify })
+			name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
 		}
 
 		let block_has_content =

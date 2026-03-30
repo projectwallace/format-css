@@ -3,6 +3,7 @@ import { parse_selector, parse_declaration, parse_value } from '@projectwallace/
 import {
 	format,
 	minify,
+	format_atrule_prelude,
 	format_selector,
 	format_declaration,
 	format_value,
@@ -70,6 +71,59 @@ test('format minified Vadims example', () => {
 	let input = `@layer what{@container (width>0){@media (min-height:.001px){ul:has(:nth-child(1 of li)):hover{--is:this}}}}`
 	let actual = minify(input)
 	expect(actual).toEqual(input)
+})
+
+describe('format_atrule_prelude', () => {
+	test('adds space after colon', () => {
+		expect(format_atrule_prelude('(min-height:.001px)')).toBe('(min-height: .001px)')
+	})
+
+	test('adds space after comma', () => {
+		expect(format_atrule_prelude('screen,print')).toBe('screen, print')
+	})
+
+	test('does not add space after colon inside selector()', () => {
+		expect(format_atrule_prelude('selector(:hover)')).toBe('selector(:hover)')
+	})
+
+	test('adds space around > comparison operator', () => {
+		expect(format_atrule_prelude('(width>0)')).toBe('(width > 0)')
+	})
+
+	test('adds space around >= operator', () => {
+		expect(format_atrule_prelude('(width>=300px)')).toBe('(width >= 300px)')
+	})
+
+	test('removes space around >= when minified', () => {
+		expect(format_atrule_prelude('(width >= 300px)', { minify: true })).toBe('(width>=300px)')
+	})
+
+	test('collapses multiple spaces', () => {
+		expect(format_atrule_prelude('screen  and  print')).toBe('screen and print')
+	})
+
+	test('collapses all whitespace when minified', () => {
+		expect(format_atrule_prelude('screen and print', { minify: true })).toBe('screenandprint')
+	})
+
+	test('adds space between ) and following word', () => {
+		expect(format_atrule_prelude('(width > 0)and(height > 0)')).toBe('(width > 0) and(height > 0)')
+	})
+
+	test('lowercases function names', () => {
+		expect(format_atrule_prelude('LAYER(default)')).toBe('layer(default)')
+		expect(format_atrule_prelude('SUPPORTS(display: grid)')).toBe('supports(display: grid)')
+	})
+
+	test('calc with + always keeps spaces', () => {
+		expect(format_atrule_prelude('calc(1px+2px)')).toBe('calc(1px + 2px)')
+		expect(format_atrule_prelude('calc(1px+2px)', { minify: true })).toBe('calc(1px + 2px)')
+	})
+
+	test('calc with * uses optional space', () => {
+		expect(format_atrule_prelude('calc(1px*2)')).toBe('calc(1px * 2)')
+		expect(format_atrule_prelude('calc(1px*2)', { minify: true })).toBe('calc(1px*2)')
+	})
 })
 
 describe('format_selector', () => {
