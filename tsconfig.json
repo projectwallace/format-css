@@ -1,26 +1,26 @@
 {
-	"compilerOptions": {
-		// Base options:
-		"skipLibCheck": true,
-		"target": "es2024",
-		"verbatimModuleSyntax": true,
-		"allowJs": false,
-		"moduleDetection": "force",
-		// Strictness
-		"strict": true,
-		"noUncheckedIndexedAccess": true,
-		// Type checking, not transpiling
-		"module": "ESNext",
-		"moduleResolution": "bundler",
-		"lib": ["es2024", "DOM"],
-		"declaration": true,
-		"rootDirs": ["src/lib", "src/cli"],
-		"outDir": "dist",
-		"paths": {
-			// So we can import like an external in the CLI
-			"@projectwallace/format-css": ["./src/lib/index.ts"]
-		}
-	},
-	"include": ["src/lib/index.ts", "src/cli/cli.ts"],
-	"exclude": ["node_modules"]
+  "compilerOptions": {
+    // Base options:
+    "skipLibCheck": true,
+    "target": "es2024",
+    "verbatimModuleSyntax": true,
+    "allowJs": false,
+    "moduleDetection": "force",
+    "types": ["node"],
+    // Strictness
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    // Type checking, not transpiling
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["es2024", "DOM"],
+    "rootDir": "src",
+    "outDir": "dist",
+    "paths": {
+      // So we can import like an external in the CLI
+      "@projectwallace/format-css": ["./src/lib/index.ts"]
+    }
+  },
+  "include": ["src/lib/index.ts", "src/cli/cli.ts"],
+  "exclude": ["node_modules"]
 }
