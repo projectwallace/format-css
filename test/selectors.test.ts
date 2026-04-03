@@ -209,8 +209,8 @@ test('adds a space before attribute selector flags', () => {
 })
 
 test('formats :lang correctly', () => {
-	let actual = format(`:lang("nl","de"),li:nth-child() {}`)
-	let expected = `:lang("nl", "de"),
+	let actual = format(`:lang("nl","de", en-US),li:nth-child() {}`)
+	let expected = `:lang("nl", "de", "en-US"),
 li:nth-child() {}`
 	expect(actual).toEqual(expected)
 })
