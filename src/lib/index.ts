@@ -1,6 +1,5 @@
 import {
 	parse,
-	NODE_TYPES as NODE,
 	is_function,
 	is_dimension,
 	is_parenthesis,
@@ -32,6 +31,9 @@ import {
 	is_nth_selector,
 	is_nth_of_selector,
 	is_lang_selector,
+	is_declaration,
+	is_rule,
+	is_atrule,
 } from '@projectwallace/css-parser'
 
 const SPACE = ' '
@@ -171,7 +173,7 @@ export function format(
 
 			if (!is_operator(node)) {
 				if (node.has_next) {
-					if (node.next_sibling?.type !== NODE.OPERATOR) {
+					if (!is_operator(node.next_sibling)) {
 						parts.push(SPACE)
 					}
 				}
@@ -259,7 +261,7 @@ export function format(
 			let name = node.name.toLowerCase()
 
 			// Legacy pseudo-elements or actual pseudo-elements use double colon
-			if (name === 'before' || name === 'after' || node.type === NODE.PSEUDO_ELEMENT_SELECTOR) {
+			if (name === 'before' || name === 'after' || is_pseudo_element_selector(node)) {
 				parts.push(COLON)
 			}
 
@@ -387,18 +389,17 @@ export function format(
 				}
 			}
 
-			let is_last = child.next_sibling?.type !== NODE.DECLARATION
-
-			if (child.type === NODE.DECLARATION) {
+			if (is_declaration(child)) {
+				let is_last = !child.has_next || !is_declaration(child.next_sibling)
 				let declaration = print_declaration(child)
 				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
 				lines.push(indent(depth) + declaration + semi)
-			} else if (child.type === NODE.STYLE_RULE) {
+			} else if (is_rule(child)) {
 				if (prev_end !== undefined && lines.length !== 0) {
 					lines.push(EMPTY_STRING)
 				}
 				lines.push(print_rule(child))
-			} else if (child.type === NODE.AT_RULE) {
+			} else if (is_atrule(child)) {
 				if (prev_end !== undefined && lines.length !== 0) {
 					lines.push(EMPTY_STRING)
 				}
@@ -517,9 +518,9 @@ export function format(
 				}
 			}
 
-			if (child.type === NODE.STYLE_RULE) {
+			if (is_rule(child)) {
 				lines.push(print_rule(child))
-			} else if (child.type === NODE.AT_RULE) {
+			} else if (is_atrule(child)) {
 				lines.push(print_atrule(child))
 			}
 
