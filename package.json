@@ -41,7 +41,7 @@
 		"lint": "oxlint && oxfmt --check"
 	},
 	"dependencies": {
-		"@projectwallace/css-parser": "^0.13.5"
+		"@projectwallace/css-parser": "~0.14.7"
 	},
 	"devDependencies": {
 		"@codecov/rollup-plugin": "^1.9.1",
