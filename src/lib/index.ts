@@ -56,6 +56,271 @@ export type FormatOptions = {
 	tab_size?: number
 }
 
+export function unquote(str: string): string {
+	return str.replace(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
+}
+
+function print_string(str: string | number | null): string {
+	str = str?.toString() || ''
+	return QUOTE + unquote(str) + QUOTE
+}
+
+function print_operator(node: Operator, optional_space = SPACE): string {
+	// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
+	// The + and - operators must be surrounded by whitespace
+	// Whitespace around other operators is optional
+	let operator = node.text
+	let code = operator.charCodeAt(0)
+	// + or - require spaces; comma has no leading space; others use optional space
+	let space = code === 43 || code === 45 ? SPACE : optional_space
+	return (code === 44 ? EMPTY_STRING : space) + operator + space
+}
+
+function print_list(nodes: CSSNode[], optional_space = SPACE): string {
+	let parts = []
+	for (let node of nodes) {
+		if (is_function(node)) {
+			let fn = node.name.toLowerCase()
+			parts.push(fn, OPEN_PARENTHESES)
+			parts.push(print_list(node.children, optional_space))
+			parts.push(CLOSE_PARENTHESES)
+		} else if (is_dimension(node)) {
+			parts.push(node.value, node.unit?.toLowerCase())
+		} else if (is_string(node)) {
+			parts.push(print_string(node.text))
+		} else if (is_operator(node)) {
+			parts.push(print_operator(node, optional_space))
+		} else if (is_parenthesis(node)) {
+			parts.push(OPEN_PARENTHESES, print_list(node.children, optional_space), CLOSE_PARENTHESES)
+		} else if (is_url(node) && node.value) {
+			parts.push('url(')
+			let { value } = node
+			// if the value starts with data:, 'data:, "data:
+			if (/^['"]?data:/i.test(value)) {
+				parts.push(unquote(value))
+			} else {
+				parts.push(print_string(value))
+			}
+			parts.push(CLOSE_PARENTHESES)
+		} else {
+			parts.push(node.text)
+		}
+
+		if (!is_operator(node)) {
+			if (node.has_next) {
+				if (!is_operator(node.next_sibling)) {
+					parts.push(SPACE)
+				}
+			}
+		}
+	}
+
+	return parts.join(EMPTY_STRING)
+}
+
+export function format_value(
+	value: Value | Raw | null,
+	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
+): string {
+	if (value === null || is_raw(value)) return EMPTY_STRING
+	let optional_space = minify ? EMPTY_STRING : SPACE
+	return print_list(value.children, optional_space)
+}
+
+export function format_declaration(
+	node: Declaration,
+	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
+): string {
+	let optional_space = minify ? EMPTY_STRING : SPACE
+
+	let important = EMPTY_STRING
+	if (node.is_important) {
+		let text = node.text
+		let start = text.lastIndexOf('!')
+		important =
+			optional_space + text.slice(start, text.endsWith(SEMICOLON) ? -1 : undefined).toLowerCase()
+	}
+	let value = format_value(node.value, { minify })
+	let property = node.property!
+
+	// Special case for `font` shorthand: remove whitespace around /
+	if (property === 'font') {
+		value = value.replace(/\s*\/\s*/, '/')
+	}
+
+	// Hacky: add a space in case of a `space toggle` during minification
+	if (value === EMPTY_STRING && optional_space === EMPTY_STRING) {
+		value += SPACE
+	}
+
+	if (!property.startsWith('--')) {
+		property = property.toLowerCase()
+	}
+	return property + COLON + optional_space + value + important
+}
+
+function print_nth(node: NthSelector, optional_space = SPACE): string {
+	let a = node.nth_a
+	let b = node.nth_b
+	let result = a ? a : EMPTY_STRING
+	if (b) {
+		if (a) {
+			result += optional_space
+			if (!b.startsWith('-')) result += '+' + optional_space
+		}
+		// the parseFloat removes the leading '+', if present
+		result += parseFloat(b)
+	}
+	return result
+}
+
+function print_nth_of(node: NthOfSelector, optional_space = SPACE): string {
+	let result = EMPTY_STRING
+	if (node.nth) {
+		result = print_nth(node.nth, optional_space) + SPACE + 'of' + SPACE
+	}
+	if (node.selector) {
+		result += print_inline_selector_list(node.selector, optional_space)
+	}
+	return result
+}
+
+function print_simple_selector(
+	node: CSSNode,
+	optional_space = SPACE,
+	is_first: boolean = false,
+): string {
+	if (is_type_selector(node)) {
+		return node.name.toLowerCase()
+	}
+
+	if (is_combinator(node)) {
+		let text = node.text
+		// if only whitespace, return a single space
+		if (/^\s+$/.test(text)) {
+			return SPACE
+		}
+		// Skip leading space if this is the first node in the selector
+		let leading_space = is_first ? EMPTY_STRING : optional_space
+		return leading_space + text + optional_space
+	}
+
+	if (is_pseudo_class_selector(node) || is_pseudo_element_selector(node)) {
+		let parts = [COLON]
+		let name = node.name.toLowerCase()
+
+		// Legacy pseudo-elements or actual pseudo-elements use double colon
+		if (name === 'before' || name === 'after' || is_pseudo_element_selector(node)) {
+			parts.push(COLON)
+		}
+
+		parts.push(name)
+
+		if (node.has_children) {
+			parts.push(OPEN_PARENTHESES)
+			if (name === 'highlight') {
+				parts.push(print_list(node.children, optional_space))
+			} else {
+				parts.push(print_inline_selector_list(node, optional_space))
+			}
+			parts.push(CLOSE_PARENTHESES)
+		}
+
+		return parts.join(EMPTY_STRING)
+	}
+
+	if (is_attribute_selector(node)) {
+		let parts = [OPEN_BRACKET, node.name.toLowerCase()]
+
+		if (node.attr_operator) {
+			parts.push(node.attr_operator)
+			if (node.value !== null) {
+				parts.push(print_string(node.value))
+			}
+
+			if (node.attr_flags !== null) {
+				parts.push(SPACE, node.attr_flags.toLowerCase())
+			}
+		}
+
+		parts.push(CLOSE_BRACKET)
+		return parts.join(EMPTY_STRING)
+	}
+
+	return node.text
+}
+
+function print_inline_selector_list(
+	node: SelectorList | PseudoClassSelector | PseudoElementSelector,
+	optional_space = SPACE,
+): string {
+	let parts = []
+	for (let selector of node) {
+		parts.push(format_selector(selector, { minify: optional_space === EMPTY_STRING }))
+		if (selector.has_next) {
+			parts.push(COMMA, optional_space)
+		}
+	}
+	return parts.join(EMPTY_STRING)
+}
+
+export function format_selector(
+	node: CSSNode,
+	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
+): string {
+	let optional_space = minify ? EMPTY_STRING : SPACE
+
+	if (is_nth_selector(node)) {
+		return print_nth(node, optional_space)
+	}
+
+	if (is_nth_of_selector(node)) {
+		return print_nth_of(node, optional_space)
+	}
+
+	if (is_selector_list(node)) {
+		return print_inline_selector_list(node, optional_space)
+	}
+
+	if (is_lang_selector(node)) {
+		return print_string(node.name)
+	}
+
+	// Handle compound selector (combination of simple selectors)
+	return (node as Selector).children
+		.map((child, i) => print_simple_selector(child, optional_space, i === 0))
+		.join(EMPTY_STRING)
+}
+
+/**
+ * Pretty-printing atrule preludes takes an insane amount of rules,
+ * so we're opting for a couple of 'good-enough' string replacements
+ * here to force some nice formatting.
+ * Should be OK perf-wise, since the amount of atrules in most
+ * stylesheets are limited, so this won't be called too often.
+ */
+export function format_atrule_prelude(
+	prelude: string,
+	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
+): string {
+	let optional_space = minify ? EMPTY_STRING : SPACE
+	return prelude
+		.replace(/\s*([:,])/g, prelude.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
+		.replace(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
+		.replace(/\s*(=>|>=|<=)\s*/g, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
+		.replace(/([^<>=\s])([<>])([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // add spacing around < or > except when it's part of <=, >=, =>
+		.replace(/\s+/g, optional_space) // collapse multiple whitespaces into one
+		.replace(
+			/calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g,
+			(_, left, operator, right) => {
+				// force required or optional whitespace around * and / in calc()
+				let space = operator === '+' || operator === '-' ? SPACE : optional_space
+				return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
+			},
+		)
+		.replace(/selector|url|supports|layer\(/gi, (match) => match.toLowerCase()) // lowercase function names
+}
+
 /**
  * Format a string of CSS using some simple rules
  */
@@ -121,223 +386,6 @@ export function format(
 		return buffer
 	}
 
-	function unquote(str: string): string {
-		return str.replace(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
-	}
-
-	function print_string(str: string | number | null): string {
-		str = str?.toString() || ''
-		return QUOTE + unquote(str) + QUOTE
-	}
-
-	function print_operator(node: Operator): string {
-		// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
-		// The + and - operators must be surrounded by whitespace
-		// Whitespace around other operators is optional
-		let operator = node.text
-		let code = operator.charCodeAt(0)
-		// + or - require spaces; comma has no leading space; others use optional space
-		let space = code === 43 || code === 45 ? SPACE : OPTIONAL_SPACE
-		return (code === 44 ? EMPTY_STRING : space) + operator + space
-	}
-
-	function print_list(nodes: CSSNode[]): string {
-		let parts = []
-		for (let node of nodes) {
-			if (is_function(node)) {
-				let fn = node.name.toLowerCase()
-				parts.push(fn, OPEN_PARENTHESES)
-				parts.push(print_list(node.children))
-				parts.push(CLOSE_PARENTHESES)
-			} else if (is_dimension(node)) {
-				parts.push(node.value, node.unit?.toLowerCase())
-			} else if (is_string(node)) {
-				parts.push(print_string(node.text))
-			} else if (is_operator(node)) {
-				parts.push(print_operator(node))
-			} else if (is_parenthesis(node)) {
-				parts.push(OPEN_PARENTHESES, print_list(node.children), CLOSE_PARENTHESES)
-			} else if (is_url(node) && node.value) {
-				parts.push('url(')
-				let { value } = node
-				// if the value starts with data:, 'data:, "data:
-				if (/^['"]?data:/i.test(value)) {
-					parts.push(unquote(value))
-				} else {
-					parts.push(print_string(value))
-				}
-				parts.push(CLOSE_PARENTHESES)
-			} else {
-				parts.push(node.text)
-			}
-
-			if (!is_operator(node)) {
-				if (node.has_next) {
-					if (!is_operator(node.next_sibling)) {
-						parts.push(SPACE)
-					}
-				}
-			}
-		}
-
-		return parts.join(EMPTY_STRING)
-	}
-
-	function print_value(value: Value | Raw | null): string {
-		if (value === null || is_raw(value)) return EMPTY_STRING
-		return print_list(value.children)
-	}
-
-	function print_declaration(node: Declaration): string {
-		let important = EMPTY_STRING
-		if (node.is_important) {
-			let text = node.text
-			let start = text.lastIndexOf('!')
-			important =
-				OPTIONAL_SPACE + text.slice(start, text.endsWith(SEMICOLON) ? -1 : undefined).toLowerCase()
-		}
-		let value = print_value(node.value)
-		let property = node.property!
-
-		// Special case for `font` shorthand: remove whitespace around /
-		if (property === 'font') {
-			value = value.replace(/\s*\/\s*/, '/')
-		}
-
-		// Hacky: add a space in case of a `space toggle` during minification
-		if (value === EMPTY_STRING && minify === true) {
-			value += SPACE
-		}
-
-		if (!property.startsWith('--')) {
-			property = property.toLowerCase()
-		}
-		return property + COLON + OPTIONAL_SPACE + value + important
-	}
-
-	function print_nth(node: NthSelector): string {
-		let a = node.nth_a
-		let b = node.nth_b
-		let result = a ? `${a}` : EMPTY_STRING
-		if (b) {
-			if (a) {
-				result += OPTIONAL_SPACE
-				if (!b.startsWith('-')) result += '+' + OPTIONAL_SPACE
-			}
-			result += parseFloat(b)
-		}
-		return result
-	}
-
-	function print_nth_of(node: NthOfSelector): string {
-		let result = EMPTY_STRING
-		if (node.nth) {
-			result = print_nth(node.nth) + SPACE + 'of' + SPACE
-		}
-		if (node.selector) {
-			result += print_inline_selector_list(node.selector)
-		}
-		return result
-	}
-
-	function print_simple_selector(node: CSSNode, is_first: boolean = false): string {
-		if (is_type_selector(node)) {
-			return node.name.toLowerCase()
-		}
-
-		if (is_combinator(node)) {
-			let text = node.text
-			// if only whitespace, return a single space
-			if (/^\s+$/.test(text)) {
-				return SPACE
-			}
-			// Skip leading space if this is the first node in the selector
-			let leading_space = is_first ? EMPTY_STRING : OPTIONAL_SPACE
-			return leading_space + text + OPTIONAL_SPACE
-		}
-
-		if (is_pseudo_class_selector(node) || is_pseudo_element_selector(node)) {
-			let parts = [COLON]
-			let name = node.name.toLowerCase()
-
-			// Legacy pseudo-elements or actual pseudo-elements use double colon
-			if (name === 'before' || name === 'after' || is_pseudo_element_selector(node)) {
-				parts.push(COLON)
-			}
-
-			parts.push(name)
-
-			if (node.has_children) {
-				parts.push(OPEN_PARENTHESES)
-				if (name === 'highlight') {
-					parts.push(print_list(node.children))
-				} else {
-					parts.push(print_inline_selector_list(node))
-				}
-				parts.push(CLOSE_PARENTHESES)
-			}
-
-			return parts.join(EMPTY_STRING)
-		}
-
-		if (is_attribute_selector(node)) {
-			let parts = [OPEN_BRACKET, node.name.toLowerCase()]
-
-			if (node.attr_operator) {
-				parts.push(node.attr_operator)
-				if (node.value !== null) {
-					parts.push(print_string(node.value))
-				}
-
-				if (node.attr_flags !== null) {
-					parts.push(SPACE, node.attr_flags.toLowerCase())
-				}
-			}
-
-			parts.push(CLOSE_BRACKET)
-			return parts.join(EMPTY_STRING)
-		}
-
-		return node.text
-	}
-
-	function print_selector(node: CSSNode): string {
-		// Handle special selector types
-		if (is_nth_selector(node)) {
-			return print_nth(node)
-		}
-
-		if (is_nth_of_selector(node)) {
-			return print_nth_of(node)
-		}
-
-		if (is_selector_list(node)) {
-			return print_inline_selector_list(node)
-		}
-
-		if (is_lang_selector(node)) {
-			return print_string(node.name)
-		}
-
-		// Handle compound selector (combination of simple selectors)
-		return (node as Selector).children
-			.map((child, i) => print_simple_selector(child, i === 0))
-			.join(EMPTY_STRING)
-	}
-
-	function print_inline_selector_list(
-		node: SelectorList | PseudoClassSelector | PseudoElementSelector,
-	): string {
-		let parts = []
-		for (let selector of node) {
-			parts.push(print_selector(selector))
-			if (selector.has_next) {
-				parts.push(COMMA, OPTIONAL_SPACE)
-			}
-		}
-		return parts.join(EMPTY_STRING)
-	}
-
 	function print_selector_list(node: SelectorList): string {
 		let lines = []
 		let prev_end: number | undefined
@@ -349,7 +397,7 @@ export function format(
 				}
 			}
 
-			let printed = print_selector(selector)
+			let printed = format_selector(selector, { minify })
 			if (selector.has_next) {
 				printed += COMMA
 			}
@@ -391,7 +439,7 @@ export function format(
 
 			if (is_declaration(child)) {
 				let is_last = !child.has_next || !is_declaration(child.next_sibling)
-				let declaration = print_declaration(child)
+				let declaration = format_declaration(child, { minify })
 				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
 				lines.push(indent(depth) + declaration + semi)
 			} else if (is_rule(child)) {
@@ -446,35 +494,10 @@ export function format(
 		return lines.join(NEWLINE)
 	}
 
-	/**
-	 * Pretty-printing atrule preludes takes an insane amount of rules,
-	 * so we're opting for a couple of 'good-enough' string replacements
-	 * here to force some nice formatting.
-	 * Should be OK perf-wise, since the amount of atrules in most
-	 * stylesheets are limited, so this won't be called too often.
-	 */
-	function print_atrule_prelude(prelude: string): string {
-		return prelude
-			.replace(/\s*([:,])/g, prelude.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
-			.replace(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
-			.replace(/\s*(=>|>=|<=)\s*/g, `${OPTIONAL_SPACE}$1${OPTIONAL_SPACE}`) // add optional spacing around =>, >= and <=
-			.replace(/([^<>=\s])([<>])([^<>=\s])/g, `$1${OPTIONAL_SPACE}$2${OPTIONAL_SPACE}$3`) // add spacing around < or > except when it's part of <=, >=, =>
-			.replace(/\s+/g, OPTIONAL_SPACE) // collapse multiple whitespaces into one
-			.replace(
-				/calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g,
-				(_, left, operator, right) => {
-					// force required or optional whitespace around * and / in calc()
-					let space = operator === '+' || operator === '-' ? SPACE : OPTIONAL_SPACE
-					return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
-				},
-			)
-			.replace(/selector|url|supports|layer\(/gi, (match) => match.toLowerCase()) // lowercase function names
-	}
-
 	function print_atrule(node: Atrule): string {
 		let name = '@' + node.name!.toLowerCase()
 		if (node.prelude) {
-			name += SPACE + print_atrule_prelude(node.prelude.text)
+			name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
 		}
 
 		let block_has_content =

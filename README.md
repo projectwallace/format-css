@@ -52,6 +52,38 @@ Need more examples?
 - [StackBlitz example using CommonJS](https://stackblitz.com/edit/stackblitz-starters-phchci?file=index.js)
 - [StackBlitz example using ES Modules](https://stackblitz.com/edit/stackblitz-starters-hrhsed?file=index.js)
 
+### Partial formatters
+
+The package also exports lower-level formatters for individual CSS constructs:
+
+```js
+import {
+  format_value,
+  format_declaration,
+  format_selector,
+  format_atrule_prelude,
+} from '@projectwallace/format-css'
+
+// Format a CSS value (e.g. the right-hand side of a declaration)
+format_value(node.value)
+
+// Format a single CSS declaration (property + value)
+format_declaration(node)
+
+// Format a single CSS selector
+format_selector(node)
+
+// Format an at-rule prelude string (e.g. the query part of @media)
+format_atrule_prelude(node.prelude.text)
+```
+
+All of these accept the same options as `format()`. However, `tab_size` has no effect on them since they do not produce indented output.
+
+```js
+format_declaration(node, { minify: true })
+format_selector(node, { minify: true })
+```
+
 ## Formatting rules
 
 1. Every **AtRule** starts on a new line
