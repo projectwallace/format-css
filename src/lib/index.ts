@@ -309,7 +309,9 @@ export function format_atrule_prelude(
 		.replace(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
 		.replace(/\s*(=>|>=|<=)\s*/g, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
 		.replace(/([^<>=\s])([<>])([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // add spacing around < or > except when it's part of <=, >=, =>
-		.replace(/\s+/g, optional_space) // collapse multiple whitespaces into one
+		.replace(/([^<>=\s])\s+([<>])\s+([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // handle spaces around < or > when they already have surrounding whitespace
+		.replace(/\s+/g, SPACE) // collapse multiple whitespaces into one
+		.replace(/([:,]) /g, minify ? '$1' : '$1 ') // in minify mode, remove optional spaces after : and ,
 		.replace(
 			/calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g,
 			(_, left, operator, right) => {

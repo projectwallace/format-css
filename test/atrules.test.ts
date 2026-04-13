@@ -367,6 +367,12 @@ test('minify: new-fangled comparators (width > 1000px)', () => {
 	expect(actual).toEqual(expected)
 })
 
+test('minify: keeps necessary whitespace between keywords', () => {
+	let actual = minify(`@media screen or print {}`)
+	let expected = `@media screen or print{}`
+	expect(actual).toEqual(expected)
+})
+
 test.skip('preserves comments', () => {
 	let actual = format(`
 		@media /* comment */ all {}

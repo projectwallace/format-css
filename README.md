@@ -58,10 +58,10 @@ The package also exports lower-level formatters for individual CSS constructs:
 
 ```js
 import {
-  format_value,
-  format_declaration,
-  format_selector,
-  format_atrule_prelude,
+	format_value,
+	format_declaration,
+	format_selector,
+	format_atrule_prelude,
 } from '@projectwallace/format-css'
 
 // Format a CSS value (e.g. the right-hand side of a declaration)
