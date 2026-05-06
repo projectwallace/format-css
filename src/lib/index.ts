@@ -57,7 +57,7 @@ export type FormatOptions = {
 }
 
 export function unquote(str: string): string {
-	return str.replace(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
+	return str.replaceAll(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
 }
 
 function print_string(str: string | number | null): string {
@@ -106,12 +106,8 @@ function print_list(nodes: CSSNode[], optional_space = SPACE): string {
 			parts.push(node.text)
 		}
 
-		if (!is_operator(node)) {
-			if (node.has_next) {
-				if (!is_operator(node.next_sibling)) {
-					parts.push(SPACE)
-				}
-			}
+		if (!is_operator(node) && node.has_next && !is_operator(node.next_sibling)) {
+			parts.push(SPACE)
 		}
 	}
 
@@ -305,14 +301,14 @@ export function format_atrule_prelude(
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
 	return prelude
-		.replace(/\s*([:,])/g, prelude.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
-		.replace(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
-		.replace(/\s*(=>|>=|<=)\s*/g, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
-		.replace(/([^<>=\s])([<>])([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // add spacing around < or > except when it's part of <=, >=, =>
-		.replace(/([^<>=\s])\s+([<>])\s+([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // handle spaces around < or > when they already have surrounding whitespace
-		.replace(/\s+/g, SPACE) // collapse multiple whitespaces into one
-		.replace(/([:,]) /g, minify ? '$1' : '$1 ') // in minify mode, remove optional spaces after : and ,
-		.replace(
+		.replaceAll(/\s*([:,])/g, prelude.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
+		.replaceAll(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
+		.replaceAll(/\s*(=>|>=|<=)\s*/g, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
+		.replaceAll(/([^<>=\s])([<>])([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // add spacing around < or > except when it's part of <=, >=, =>
+		.replaceAll(/([^<>=\s])\s+([<>])\s+([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // handle spaces around < or > when they already have surrounding whitespace
+		.replaceAll(/\s+/g, SPACE) // collapse multiple whitespaces into one
+		.replaceAll(/([:,]) /g, minify ? '$1' : '$1 ') // in minify mode, remove optional spaces after : and ,
+		.replaceAll(
 			/calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g,
 			(_, left, operator, right) => {
 				// force required or optional whitespace around * and / in calc()
@@ -320,7 +316,7 @@ export function format_atrule_prelude(
 				return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
 			},
 		)
-		.replace(/selector|url|supports|layer\(/gi, (match) => match.toLowerCase()) // lowercase function names
+		.replaceAll(/selector|url|supports|layer\(/gi, (match) => match.toLowerCase()) // lowercase function names
 }
 
 /**
@@ -445,12 +441,12 @@ export function format(
 				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
 				lines.push(indent(depth) + declaration + semi)
 			} else if (is_rule(child)) {
-				if (prev_end !== undefined && lines.length !== 0) {
+				if (prev_end !== undefined && lines.length > 0) {
 					lines.push(EMPTY_STRING)
 				}
 				lines.push(print_rule(child))
 			} else if (is_atrule(child)) {
-				if (prev_end !== undefined && lines.length !== 0) {
+				if (prev_end !== undefined && lines.length > 0) {
 					lines.push(EMPTY_STRING)
 				}
 				lines.push(indent(depth) + print_atrule(child))
@@ -504,13 +500,13 @@ export function format(
 
 		let block_has_content =
 			node.has_block && (!node.block.is_empty || !!get_comment(node.block.start, node.block.end))
-		if (!node.has_block) {
-			name += SEMICOLON
-		} else {
+		if (node.has_block) {
 			name += OPTIONAL_SPACE + OPEN_BRACE
 			if (!block_has_content) {
 				name += CLOSE_BRACE
 			}
+		} else {
+			name += SEMICOLON
 		}
 
 		if (block_has_content) {

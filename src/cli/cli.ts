@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// oxlint-disable no-console
 
 import { parseArgs, styleText } from 'node:util'
 import { readFileSync } from 'node:fs'
@@ -100,10 +101,10 @@ export async function run(args: string[], io: CliIO): Promise<void> {
 		for (const file of files) {
 			io.write(format(io.readFile(file), options))
 		}
-	} else if (!io.isTTY) {
-		io.write(format(await io.readStdin(), options))
-	} else {
+	} else if (io.isTTY) {
 		io.write(help() + '\n')
+	} else {
+		io.write(format(await io.readStdin(), options))
 	}
 }
 
@@ -115,7 +116,7 @@ async function read_stdin(): Promise<string> {
 	return Buffer.concat(chunks).toString('utf-8')
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === import.meta.filename) {
 	try {
 		await run(process.argv.slice(2), {
 			readFile: (path) => readFileSync(path, 'utf-8'),

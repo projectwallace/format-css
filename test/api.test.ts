@@ -193,6 +193,7 @@ describe('format_declaration', () => {
 
 describe('format_value', () => {
 	test('null returns empty string', () => {
+		// oxlint-disable-next-line unicorn/no-null
 		expect(format_value(null)).toBe('')
 	})
 

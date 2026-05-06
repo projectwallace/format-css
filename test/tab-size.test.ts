@@ -35,11 +35,13 @@ test('tab_size: 2', () => {
 })
 
 test('invalid tab_size: 0', () => {
-	expect(() => format(fixture, { tab_size: 0 })).toThrow()
+	expect(() => format(fixture, { tab_size: 0 })).toThrow('tab_size must be a number greater than 0')
 })
 
 test('invalid tab_size: negative', () => {
-	expect(() => format(fixture, { tab_size: -1 })).toThrow()
+	expect(() => format(fixture, { tab_size: -1 })).toThrow(
+		'tab_size must be a number greater than 0',
+	)
 })
 
 test('combine tab_size and minify', () => {
