@@ -373,6 +373,7 @@ test('minify: keeps necessary whitespace between keywords', () => {
 	expect(actual).toEqual(expected)
 })
 
+// oxlint-disable-next-line vitest/no-disabled-tests
 test.skip('preserves comments', () => {
 	let actual = format(`
 		@media /* comment */ all {}
