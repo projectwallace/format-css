@@ -3,19 +3,19 @@
 
 version: 2
 updates:
-  - package-ecosystem: 'npm'
+  - package-ecosystem: 'npm' # pnpm is detected automatically via pnpm-lock.yaml
     directory: '/'
     schedule:
       interval: 'monthly'
     groups:
-      vite:
+      projectwallace:
         patterns:
-          - 'vitest'
-          - '@vitest/*'
-      oxc:
+          - '@projectwallace/*'
+      npm-all:
         patterns:
-          - 'oxlint'
-          - 'oxfmt'
+          - '*'
+        exclude-patterns:
+          - '@projectwallace/*'
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
