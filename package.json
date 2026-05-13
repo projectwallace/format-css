@@ -33,11 +33,14 @@
 		"types": "./dist/index.d.ts",
 		"default": "./dist/index.js"
 	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
 	"scripts": {
 		"build": "tsdown",
 		"test": "vitest --coverage",
 		"check": "tsc",
-		"prettier": "prettier --check index.ts test/**/*.ts",
 		"lint": "oxlint && oxfmt --check"
 	},
 	"dependencies": {
@@ -56,7 +59,12 @@
 		"vitest": "^4.0.3"
 	},
 	"engines": {
-		"node": ">=20.12.0"
+		"node": ">=20.12.0",
+		"pnpm": ">=11.0.0"
+	},
+	"packageManager": "pnpm@11.1.1",
+	"pnpm": {
+		"onlyBuiltDependencies": []
 	},
 	"issues": "https://github.com/projectwallace/format-css/issues"
 }
