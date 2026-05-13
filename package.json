@@ -48,7 +48,7 @@
 	},
 	"devDependencies": {
 		"@codecov/rollup-plugin": "^2.0.1",
-		"@projectwallace/preset-oxlint": "^0.0.10",
+		"@projectwallace/preset-oxlint": "^0.0.11",
 		"@types/node": "^25.5.0",
 		"@vitest/coverage-v8": "^4.0.3",
 		"oxfmt": "^0.49.0",

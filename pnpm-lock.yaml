@@ -16,8 +16,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(rollup@4.59.0)
       '@projectwallace/preset-oxlint':
-        specifier: ^0.0.10
-        version: 0.0.10(oxlint@1.64.0)
+        specifier: ^0.0.11
+        version: 0.0.11(oxlint@1.64.0)
       '@types/node':
         specifier: ^25.5.0
         version: 25.7.0
@@ -438,8 +438,8 @@ packages:
   '@projectwallace/css-parser@0.15.0':
     resolution: {integrity: sha512-93/+vgClR/Zb0m4cWQLGaNOLBzeLRPRXNSEaxW6ZAwEOnri48kcpiaB1uUBicLvt660DPvjNExFHINipdkOB1w==}
 
-  '@projectwallace/preset-oxlint@0.0.10':
-    resolution: {integrity: sha512-mlkJ9g8ljpK4238cvRRpZWbL/+MHeBX876m038nu7A/HwznLCfjhK0Lu31ElL1eWOmEyXVitINei64GDXiwvog==}
+  '@projectwallace/preset-oxlint@0.0.11':
+    resolution: {integrity: sha512-hdrtBKSD3ctKkrug54PfHCJPl0jPs6Uw7Rdl/ZVGvim52jYUXp0lj2fTjEP9GVO1Hy3K/dyXKAeEvaFF1TlC4w==}
     peerDependencies:
       oxlint: ^1.0.0
 
@@ -1670,7 +1670,7 @@ snapshots:
 
   '@projectwallace/css-parser@0.15.0': {}
 
-  '@projectwallace/preset-oxlint@0.0.10(oxlint@1.64.0)':
+  '@projectwallace/preset-oxlint@0.0.11(oxlint@1.64.0)':
     dependencies:
       oxlint: 1.64.0
 
