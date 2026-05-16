@@ -260,3 +260,17 @@ test('handles syntax errors', () => {
 	let expected = `test {}`
 	expect(actual).toEqual(expected)
 })
+
+test.each([
+	[`ns|div {}`, `ns|div {}`],
+	[`NS|div {}`, `ns|div {}`],
+	[`*|div {}`, `*|div {}`],
+	[`|div {}`, `|div {}`],
+	[`ns|* {}`, `ns|* {}`],
+	[`*|* {}`, `*|* {}`],
+	[`|* {}`, `|* {}`],
+	[`ns|div, ns|span {}`, `ns|div,\nns|span {}`],
+])('formats namespace selectors: %s', (css, expected) => {
+	let actual = format(css)
+	expect(actual).toEqual(expected)
+})

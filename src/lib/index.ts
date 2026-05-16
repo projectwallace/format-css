@@ -24,6 +24,7 @@ import {
 	type StyleSheet,
 	type CSSNode,
 	is_type_selector,
+	is_universal_selector,
 	is_combinator,
 	is_pseudo_class_selector,
 	is_pseudo_element_selector,
@@ -187,7 +188,13 @@ function print_simple_selector(
 	is_first: boolean = false,
 ): string {
 	if (is_type_selector(node)) {
-		return node.name.toLowerCase()
+		let prefix = node.namespace !== null ? node.namespace.toLowerCase() + '|' : ''
+		return prefix + node.name.toLowerCase()
+	}
+
+	if (is_universal_selector(node)) {
+		let prefix = node.namespace !== null ? node.namespace.toLowerCase() + '|' : ''
+		return prefix + '*'
 	}
 
 	if (is_combinator(node)) {
