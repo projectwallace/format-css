@@ -373,6 +373,48 @@ test('minify: keeps necessary whitespace between keywords', () => {
 	expect(actual).toEqual(expected)
 })
 
+test('minify: keeps necessary whitespace in @media all and screen', () => {
+	let actual = minify(`@media all and screen {}`)
+	let expected = `@media all and screen{}`
+	expect(actual).toEqual(expected)
+})
+
+test('minify: keeps whitespace between "and" keyword and following media feature', () => {
+	let actual = minify(`@media screen and (min-width: 100px) {}`)
+	let expected = `@media screen and (min-width:100px){}`
+	expect(actual).toEqual(expected)
+})
+
+test('minify: keeps whitespace between "and" keywords with adjacent media features', () => {
+	let actual = minify(`@media (min-width: 100px) and (max-width: 200px) {}`)
+	let expected = `@media (min-width:100px) and (max-width:200px){}`
+	expect(actual).toEqual(expected)
+})
+
+test('minify: keeps whitespace between "not" keyword and media feature', () => {
+	let actual = minify(`@media not (color) {}`)
+	let expected = `@media not (color){}`
+	expect(actual).toEqual(expected)
+})
+
+test('minify: keeps whitespace between "not" keyword and media type', () => {
+	let actual = minify(`@media not screen {}`)
+	let expected = `@media not screen{}`
+	expect(actual).toEqual(expected)
+})
+
+test('minify: keeps whitespace between "only" keyword and media type', () => {
+	let actual = minify(`@media only screen {}`)
+	let expected = `@media only screen{}`
+	expect(actual).toEqual(expected)
+})
+
+test('minify: keeps whitespace between "or" keyword and media feature', () => {
+	let actual = minify(`@media (min-width: 100px) or (max-width: 200px) {}`)
+	let expected = `@media (min-width:100px) or (max-width:200px){}`
+	expect(actual).toEqual(expected)
+})
+
 // oxlint-disable-next-line vitest/no-disabled-tests
 test.skip('preserves comments', () => {
 	let actual = format(`
