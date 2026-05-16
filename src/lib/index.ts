@@ -583,3 +583,37 @@ export function format(
 export function minify(css: string): string {
 	return format(css, { minify: true })
 }
+
+export const LINE_TYPE_SELECTOR = 1
+export const LINE_TYPE_DECLARATION = 2
+export const LINE_TYPE_BRACKET = 3
+export const LINE_TYPE_ATRULE = 4
+export const LINE_TYPE_COMMENT = 5
+export const LINE_TYPE_EMPTY = 6
+
+export type LineType =
+	| typeof LINE_TYPE_SELECTOR
+	| typeof LINE_TYPE_DECLARATION
+	| typeof LINE_TYPE_BRACKET
+	| typeof LINE_TYPE_ATRULE
+	| typeof LINE_TYPE_COMMENT
+	| typeof LINE_TYPE_EMPTY
+
+function classify_line(line: string): LineType {
+	let trimmed = line.trimEnd()
+	if (trimmed === '') return LINE_TYPE_EMPTY
+	if (trimmed.endsWith('*/')) return LINE_TYPE_COMMENT
+	if (trimmed.endsWith(CLOSE_BRACE)) return LINE_TYPE_BRACKET
+	if (trimmed.trimStart().startsWith('@')) return LINE_TYPE_ATRULE
+	if (trimmed.endsWith(OPEN_BRACE) || trimmed.endsWith(COMMA)) return LINE_TYPE_SELECTOR
+	return LINE_TYPE_DECLARATION
+}
+
+export function format_with_types(
+	css: string,
+	options: Omit<FormatOptions, 'minify'> = Object.create(null),
+): { css: string; types: LineType[] } {
+	let formatted = format(css, options)
+	let types = formatted.split('\n').map(classify_line)
+	return { css: formatted, types }
+}
