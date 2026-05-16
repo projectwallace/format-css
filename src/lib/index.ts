@@ -303,6 +303,7 @@ export function format_atrule_prelude(
 	return prelude
 		.replaceAll(/\s*([:,])/g, prelude.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
 		.replaceAll(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
+		.replaceAll(/\b(and|or|not|only)\(/gi, '$1 (') // force whitespace between media/supports keywords and opening parenthesis
 		.replaceAll(/\s*(=>|>=|<=)\s*/g, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
 		.replaceAll(/([^<>=\s])([<>])([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // add spacing around < or > except when it's part of <=, >=, =>
 		.replaceAll(/([^<>=\s])\s+([<>])\s+([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // handle spaces around < or > when they already have surrounding whitespace
