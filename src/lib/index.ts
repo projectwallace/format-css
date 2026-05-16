@@ -599,14 +599,36 @@ export type LineType =
 	| typeof LINE_TYPE_COMMENT
 	| typeof LINE_TYPE_EMPTY
 
-function classify_line(line: string): LineType {
-	let trimmed = line.trimEnd()
-	if (trimmed === '') return LINE_TYPE_EMPTY
-	if (trimmed.endsWith('*/')) return LINE_TYPE_COMMENT
-	if (trimmed.endsWith(CLOSE_BRACE)) return LINE_TYPE_BRACKET
-	if (trimmed.trimStart().startsWith('@')) return LINE_TYPE_ATRULE
-	if (trimmed.endsWith(OPEN_BRACE) || trimmed.endsWith(COMMA)) return LINE_TYPE_SELECTOR
-	return LINE_TYPE_DECLARATION
+function classify_lines(lines: string[]): LineType[] {
+	let types: LineType[] = []
+	let in_multiline_comment = false
+
+	for (let line of lines) {
+		let trimmed = line.trimEnd()
+
+		if (in_multiline_comment) {
+			types.push(LINE_TYPE_COMMENT)
+			if (trimmed.includes('*/')) in_multiline_comment = false
+			continue
+		}
+
+		if (trimmed === '') {
+			types.push(LINE_TYPE_EMPTY)
+		} else if (trimmed.trimStart().startsWith('/*')) {
+			types.push(LINE_TYPE_COMMENT)
+			if (!trimmed.slice(trimmed.indexOf('/*') + 2).includes('*/')) in_multiline_comment = true
+		} else if (trimmed.endsWith(CLOSE_BRACE)) {
+			types.push(LINE_TYPE_BRACKET)
+		} else if (trimmed.trimStart().startsWith('@')) {
+			types.push(LINE_TYPE_ATRULE)
+		} else if (trimmed.endsWith(OPEN_BRACE) || trimmed.endsWith(COMMA)) {
+			types.push(LINE_TYPE_SELECTOR)
+		} else {
+			types.push(LINE_TYPE_DECLARATION)
+		}
+	}
+
+	return types
 }
 
 export function format_with_types(
@@ -614,6 +636,6 @@ export function format_with_types(
 	options: Omit<FormatOptions, 'minify'> = Object.create(null),
 ): { css: string; types: LineType[] } {
 	let formatted = format(css, options)
-	let types = formatted.split('\n').map(classify_line)
+	let types = classify_lines(formatted.split('\n'))
 	return { css: formatted, types }
 }
