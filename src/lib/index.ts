@@ -188,12 +188,12 @@ function print_simple_selector(
 	is_first: boolean = false,
 ): string {
 	if (is_type_selector(node)) {
-		let prefix = node.namespace !== null ? node.namespace.toLowerCase() + '|' : ''
+		let prefix = node.namespace === null ? '' : node.namespace.toLowerCase() + '|'
 		return prefix + node.name.toLowerCase()
 	}
 
 	if (is_universal_selector(node)) {
-		let prefix = node.namespace !== null ? node.namespace.toLowerCase() + '|' : ''
+		let prefix = node.namespace === null ? '' : node.namespace.toLowerCase() + '|'
 		return prefix + '*'
 	}
 
