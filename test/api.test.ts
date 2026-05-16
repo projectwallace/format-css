@@ -107,7 +107,9 @@ describe('format_atrule_prelude', () => {
 	})
 
 	test('adds space between media keyword "and" and opening parenthesis', () => {
-		expect(format_atrule_prelude('(width > 0)and(height > 0)', { minify: true })).toBe('(width>0) and (height>0)')
+		expect(format_atrule_prelude('(width > 0)and(height > 0)', { minify: true })).toBe(
+			'(width>0) and (height>0)',
+		)
 	})
 
 	test('adds space between media keyword "not" and opening parenthesis', () => {
