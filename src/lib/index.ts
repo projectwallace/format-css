@@ -6,23 +6,8 @@ import {
 	is_url,
 	is_string,
 	is_operator,
-	type Operator,
-	type Value,
-	type Declaration,
-	type Raw,
 	is_raw,
-	type NthSelector,
-	type NthOfSelector,
-	type PseudoClassSelector,
-	type PseudoElementSelector,
-	type Selector,
-	type SelectorList,
-	type Block,
-	type Rule,
 	is_selector_list,
-	type Atrule,
-	type StyleSheet,
-	type CSSNode,
 	is_type_selector,
 	is_universal_selector,
 	is_combinator,
@@ -35,6 +20,21 @@ import {
 	is_declaration,
 	is_rule,
 	is_atrule,
+	type Operator,
+	type Value,
+	type Declaration,
+	type Raw,
+	type NthSelector,
+	type NthOfSelector,
+	type PseudoClassSelector,
+	type PseudoElementSelector,
+	type Selector,
+	type SelectorList,
+	type Block,
+	type Rule,
+	type Atrule,
+	type StyleSheet,
+	type CSSNode,
 } from '@projectwallace/css-parser'
 
 const SPACE = ' '
@@ -258,10 +258,14 @@ function print_inline_selector_list(
 	optional_space = SPACE,
 ): string {
 	let parts = []
-	for (let selector of node) {
-		parts.push(format_selector(selector, { minify: optional_space === EMPTY_STRING }))
-		if (selector.has_next) {
-			parts.push(COMMA, optional_space)
+	for (let child of node) {
+		if (is_selector_list(child)) {
+			parts.push(print_inline_selector_list(child, optional_space))
+		} else {
+			parts.push(format_selector(child, { minify: optional_space === EMPTY_STRING }))
+			if (child.has_next) {
+				parts.push(COMMA, optional_space)
+			}
 		}
 	}
 	return parts.join(EMPTY_STRING)
@@ -281,10 +285,6 @@ export function format_selector(
 		return print_nth_of(node, optional_space)
 	}
 
-	if (is_selector_list(node)) {
-		return print_inline_selector_list(node, optional_space)
-	}
-
 	if (is_lang_selector(node)) {
 		return print_string(node.name)
 	}
@@ -293,6 +293,14 @@ export function format_selector(
 	return (node as Selector).children
 		.map((child, i) => print_simple_selector(child, optional_space, i === 0))
 		.join(EMPTY_STRING)
+}
+
+export function format_selector_list(
+	node: SelectorList,
+	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
+): string {
+	let optional_space = minify ? EMPTY_STRING : SPACE
+	return print_inline_selector_list(node, optional_space)
 }
 
 /**
