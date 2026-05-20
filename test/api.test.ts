@@ -1,10 +1,16 @@
 import { test, expect, describe } from 'vitest'
-import { parse_selector, parse_declaration, parse_value } from '@projectwallace/css-parser'
+import {
+	parse_selector,
+	parse_selector_list,
+	parse_declaration,
+	parse_value,
+} from '@projectwallace/css-parser'
 import {
 	format,
 	minify,
 	format_atrule_prelude,
 	format_selector,
+	format_selector_list,
 	format_declaration,
 	format_value,
 	unquote,
@@ -139,37 +145,37 @@ describe('format_atrule_prelude', () => {
 
 describe('format_selector', () => {
 	test('type selector', () => {
-		let node = parse_selector('div').children[0]!
+		let node = parse_selector('div')
 		expect(format_selector(node)).toBe('div')
 	})
 
 	test('class selector', () => {
-		let node = parse_selector('.foo').children[0]!
+		let node = parse_selector('.foo')
 		expect(format_selector(node)).toBe('.foo')
 	})
 
 	test('combinator keeps spaces by default', () => {
-		let node = parse_selector('div > span').children[0]!
+		let node = parse_selector('div > span')
 		expect(format_selector(node)).toBe('div > span')
 	})
 
 	test('combinator removes spaces when minified', () => {
-		let node = parse_selector('div > span').children[0]!
+		let node = parse_selector('div > span')
 		expect(format_selector(node, { minify: true })).toBe('div>span')
 	})
 
 	test('selector list', () => {
-		let node = parse_selector('div, span')
-		expect(format_selector(node)).toBe('div, span')
+		let node = parse_selector_list('div, span')
+		expect(format_selector_list(node)).toBe('div, span')
 	})
 
 	test('selector list minified', () => {
-		let node = parse_selector('div, span')
-		expect(format_selector(node, { minify: true })).toBe('div,span')
+		let node = parse_selector_list('div, span')
+		expect(format_selector_list(node, { minify: true })).toBe('div,span')
 	})
 
 	test('pseudo-class', () => {
-		let node = parse_selector('a:hover').children[0]!
+		let node = parse_selector('a:hover')
 		expect(format_selector(node)).toBe('a:hover')
 	})
 })
