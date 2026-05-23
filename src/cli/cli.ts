@@ -116,6 +116,9 @@ async function read_stdin(): Promise<string> {
 	return Buffer.concat(chunks).toString('utf-8')
 }
 
+// Guards against run() firing when this module is imported (e.g. in tests).
+// realpathSync is needed because pnpm's bin wrapper is a symlink, making process.argv[1]
+// a different path than import.meta.filename without resolving it first.
 if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === import.meta.filename) {
 	try {
 		await run(process.argv.slice(2), {
