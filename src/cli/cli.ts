@@ -2,7 +2,7 @@
 // oxlint-disable no-console
 
 import { parseArgs, styleText } from 'node:util'
-import { readFileSync } from 'node:fs'
+import { readFileSync, realpathSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -116,7 +116,10 @@ async function read_stdin(): Promise<string> {
 	return Buffer.concat(chunks).toString('utf-8')
 }
 
-if (process.argv[1] === import.meta.filename) {
+// Guards against run() firing when this module is imported (e.g. in tests).
+// realpathSync is needed because pnpm's bin wrapper is a symlink, making process.argv[1]
+// a different path than import.meta.filename without resolving it first.
+if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === import.meta.filename) {
 	try {
 		await run(process.argv.slice(2), {
 			readFile: (path) => readFileSync(path, 'utf-8'),
