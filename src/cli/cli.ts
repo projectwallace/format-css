@@ -2,7 +2,7 @@
 // oxlint-disable no-console
 
 import { parseArgs, styleText } from 'node:util'
-import { readFileSync } from 'node:fs'
+import { readFileSync, realpathSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -116,7 +116,7 @@ async function read_stdin(): Promise<string> {
 	return Buffer.concat(chunks).toString('utf-8')
 }
 
-if (process.argv[1] === import.meta.filename) {
+if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === import.meta.filename) {
 	try {
 		await run(process.argv.slice(2), {
 			readFile: (path) => readFileSync(path, 'utf-8'),
