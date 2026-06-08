@@ -62,9 +62,9 @@ export function unquote(str: string): string {
 	return str.replaceAll(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
 }
 
-function print_string(str: string | number | null): string {
+function print_string(str: string | number | null, quote: '"' | "'" = '"'): string {
 	str = str?.toString() || ''
-	return QUOTE + unquote(str) + QUOTE
+	return quote + unquote(str) + quote
 }
 
 function print_url(node: Url): string {
@@ -77,11 +77,11 @@ function print_url(node: Url): string {
 		if (!has_double && !has_single) {
 			inner = unquoted
 		} else if (!has_double) {
-			inner = '"' + unquoted + '"'
+			inner = print_string(unquoted, '"')
 		} else if (!has_single) {
-			inner = "'" + unquoted + "'"
+			inner = print_string(unquoted, "'")
 		} else {
-			inner = '"' + unquoted.replaceAll('"', '%22') + '"'
+			inner = print_string(unquoted.replaceAll('"', '%22'), '"')
 		}
 	} else {
 		inner = print_string(node.value)
