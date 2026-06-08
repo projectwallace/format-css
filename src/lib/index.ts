@@ -69,11 +69,11 @@ function print_string(str: string | number | null, quote: '"' | "'" = '"'): stri
 
 function print_url(node: Url): string {
 	let unquoted = unquote(node.value)
-	let has_double = unquoted.includes('"')
-	let has_single = unquoted.includes("'")
 
 	let inner: string
 	if (/^['"]?data:/i.test(node.value)) {
+		let has_double = unquoted.includes('"')
+		let has_single = unquoted.includes("'")
 		if (!has_double && !has_single) {
 			inner = unquoted
 		} else if (!has_double) {
