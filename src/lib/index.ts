@@ -68,23 +68,24 @@ function print_string(str: string | number | null, quote: '"' | "'" = '"'): stri
 }
 
 function print_url(node: Url): string {
-	let unquoted = unquote(node.value)
+	let value = node.value ?? ''
+	let unquoted = unquote(value)
 
 	let inner: string
-	if (/^['"]?data:/i.test(node.value)) {
+	if (/^['"]?data:/i.test(value)) {
 		let has_double = unquoted.includes('"')
 		let has_single = unquoted.includes("'")
-		if (!has_double && !has_single) {
-			inner = unquoted
-		} else if (!has_double) {
-			inner = print_string(unquoted, '"')
-		} else if (!has_single) {
-			inner = print_string(unquoted, "'")
-		} else {
+		if (has_double && has_single) {
 			inner = print_string(unquoted.replaceAll('"', '%22'), '"')
+		} else if (has_double) {
+			inner = print_string(unquoted, "'")
+		} else if (has_single) {
+			inner = print_string(unquoted, '"')
+		} else {
+			inner = unquoted
 		}
 	} else {
-		inner = print_string(node.value)
+		inner = print_string(value)
 	}
 
 	return 'url(' + inner + CLOSE_PARENTHESES
