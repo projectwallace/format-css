@@ -35,6 +35,7 @@ import {
 	type Atrule,
 	type StyleSheet,
 	type CSSNode,
+	type Url,
 } from '@projectwallace/css-parser'
 
 const SPACE = ' '
@@ -66,6 +67,29 @@ function print_string(str: string | number | null): string {
 	return QUOTE + unquote(str) + QUOTE
 }
 
+function print_url(node: Url): string {
+	let unquoted = unquote(node.value)
+	let has_double = unquoted.includes('"')
+	let has_single = unquoted.includes("'")
+
+	let inner: string
+	if (/^['"]?data:/i.test(node.value)) {
+		if (!has_double && !has_single) {
+			inner = unquoted
+		} else if (!has_double) {
+			inner = '"' + unquoted + '"'
+		} else if (!has_single) {
+			inner = "'" + unquoted + "'"
+		} else {
+			inner = '"' + unquoted.replaceAll('"', '%22') + '"'
+		}
+	} else {
+		inner = print_string(node.value)
+	}
+
+	return 'url(' + inner + CLOSE_PARENTHESES
+}
+
 function print_operator(node: Operator, optional_space = SPACE): string {
 	// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
 	// The + and - operators must be surrounded by whitespace
@@ -94,15 +118,7 @@ function print_list(nodes: CSSNode[], optional_space = SPACE): string {
 		} else if (is_parenthesis(node)) {
 			parts.push(OPEN_PARENTHESES, print_list(node.children, optional_space), CLOSE_PARENTHESES)
 		} else if (is_url(node) && node.value) {
-			parts.push('url(')
-			let { value } = node
-			// if the value starts with data:, 'data:, "data:
-			if (/^['"]?data:/i.test(value)) {
-				parts.push(unquote(value))
-			} else {
-				parts.push(print_string(value))
-			}
-			parts.push(CLOSE_PARENTHESES)
+			parts.push(print_url(node))
 		} else {
 			parts.push(node.text)
 		}

@@ -293,8 +293,8 @@ test.each([
 		background-image: url(${input});
 	}`)
 	let expected = `test {
-	background-image: url(${input});
-	background-image: url(${input});
+	background-image: url('${input}');
+	background-image: url('${input}');
 }`
 	expect(actual).toEqual(expected)
 })
@@ -315,6 +315,33 @@ test.each([
 	background-image: url(${input});
 }`
 	expect(actual).toBe(expected)
+})
+
+test('wraps data: URL in single quotes when it contains double quotes', () => {
+	let input = `.a { background: url('data:image/svg+xml,%3Csvg fill="red"%3E%3C/svg%3E'); }`
+	let actual = format(input)
+	let expected = `.a {
+	background: url('data:image/svg+xml,%3Csvg fill="red"%3E%3C/svg%3E');
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('wraps data: URL in double quotes when it contains single quotes', () => {
+	let input = `.a { background: url("data:image/svg+xml,%3Csvg fill='red'%3E%3C/svg%3E"); }`
+	let actual = format(input)
+	let expected = `.a {
+	background: url("data:image/svg+xml,%3Csvg fill='red'%3E%3C/svg%3E");
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('encodes double quotes when data: URL contains both quote types', () => {
+	let input = `.a { background: url('data:image/svg+xml,%3Csvg fill="x" alt=\\'y\\'%3E'); }`
+	let actual = format(input)
+	let expected = `.a {
+	background: url("data:image/svg+xml,%3Csvg fill=%22x%22 alt=\\'y\\'%3E");
+}`
+	expect(actual).toEqual(expected)
 })
 
 test.each([
