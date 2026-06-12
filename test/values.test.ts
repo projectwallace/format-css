@@ -365,3 +365,39 @@ test('formats multi-value unicode range', () => {
 }`
 	expect(actual).toBe(expected)
 })
+
+test('formats if() function multiline (Kevin Powell way)', () => {
+	let actual = format(
+		`test { color: if(media(print): black; supports(display: grid): green; else: red); }`,
+	)
+	let expected = `test {
+	color: if(
+		media(print): black;
+		supports(display: grid): green;
+		else: red;
+	);
+}`
+	expect(actual).toBe(expected)
+})
+
+test('formats if() with two branches', () => {
+	let actual = format(`test { color: if(media(print): black; else: red); }`)
+	let expected = `test {
+	color: if(
+		media(print): black;
+		else: red;
+	);
+}`
+	expect(actual).toBe(expected)
+})
+
+test('formats if() with style() condition', () => {
+	let actual = format(`test { color: if(style(--variant: primary): blue; else: gray); }`)
+	let expected = `test {
+	color: if(
+		style(--variant: primary): blue;
+		else: gray;
+	);
+}`
+	expect(actual).toBe(expected)
+})

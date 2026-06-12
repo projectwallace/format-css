@@ -102,14 +102,75 @@ function print_operator(node: Operator, optional_space = SPACE): string {
 	return (code === 44 ? EMPTY_STRING : space) + operator + space
 }
 
-function print_list(nodes: CSSNode[], optional_space = SPACE): string {
+type PrintContext = {
+	indent: (n: number) => string
+	depth: number
+}
+
+function split_if_branches(inner: string): Array<{ condition: string; value: string }> {
+	let branches: Array<{ condition: string; value: string }> = []
+	let paren_depth = 0
+	let start = 0
+	let colon_pos = -1
+
+	for (let i = 0; i < inner.length; i++) {
+		let ch = inner[i]
+		if (ch === '(') paren_depth++
+		else if (ch === ')') paren_depth--
+		else if (ch === ':' && paren_depth === 0 && colon_pos < start) colon_pos = i
+		else if (ch === ';' && paren_depth === 0) {
+			let condition = inner.slice(start, colon_pos).trim()
+			let value = inner.slice(colon_pos + 1, i).trim()
+			if (condition) branches.push({ condition, value })
+			start = i + 1
+		}
+	}
+	// Handle last branch (no trailing semicolon)
+	if (colon_pos >= start) {
+		let condition = inner.slice(start, colon_pos).trim()
+		let value = inner.slice(colon_pos + 1).trim()
+		if (condition) branches.push({ condition, value })
+	}
+
+	return branches
+}
+
+function print_if_function(node: CSSNode, optional_space: string, ctx?: PrintContext): string {
+	let fn_name = node.name.toLowerCase()
+	let raw = node.text
+	let inner = raw.slice(fn_name.length + 1, raw.length - 1)
+	let branches = split_if_branches(inner)
+
+	if (optional_space === EMPTY_STRING || !ctx) {
+		// minify: if(cond:val;cond:val;else:val)
+		return (
+			fn_name +
+			OPEN_PARENTHESES +
+			branches.map((b) => b.condition + COLON + b.value + SEMICOLON).join(EMPTY_STRING) +
+			CLOSE_PARENTHESES
+		)
+	}
+
+	let branch_indent = ctx.indent(ctx.depth + 1)
+	let close_indent = ctx.indent(ctx.depth)
+	let lines = branches.map((b) => branch_indent + b.condition + COLON + SPACE + b.value + SEMICOLON)
+	return (
+		fn_name + OPEN_PARENTHESES + '\n' + lines.join('\n') + '\n' + close_indent + CLOSE_PARENTHESES
+	)
+}
+
+function print_list(nodes: CSSNode[], optional_space = SPACE, ctx?: PrintContext): string {
 	let parts = []
 	for (let node of nodes) {
 		if (is_function(node)) {
 			let fn = node.name.toLowerCase()
-			parts.push(fn, OPEN_PARENTHESES)
-			parts.push(print_list(node.children, optional_space))
-			parts.push(CLOSE_PARENTHESES)
+			if (fn === 'if') {
+				parts.push(print_if_function(node, optional_space, ctx))
+			} else {
+				parts.push(fn, OPEN_PARENTHESES)
+				parts.push(print_list(node.children, optional_space, ctx))
+				parts.push(CLOSE_PARENTHESES)
+			}
 		} else if (is_dimension(node)) {
 			parts.push(node.value, node.unit?.toLowerCase())
 		} else if (is_string(node)) {
@@ -135,15 +196,17 @@ function print_list(nodes: CSSNode[], optional_space = SPACE): string {
 export function format_value(
 	value: Value | Raw | null,
 	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
+	ctx?: PrintContext,
 ): string {
 	if (value === null || is_raw(value)) return EMPTY_STRING
 	let optional_space = minify ? EMPTY_STRING : SPACE
-	return print_list(value.children, optional_space)
+	return print_list(value.children, optional_space, ctx)
 }
 
 export function format_declaration(
 	node: Declaration,
 	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
+	ctx?: PrintContext,
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
 
@@ -154,7 +217,7 @@ export function format_declaration(
 		important =
 			optional_space + text.slice(start, text.endsWith(SEMICOLON) ? -1 : undefined).toLowerCase()
 	}
-	let value = format_value(node.value, { minify })
+	let value = format_value(node.value, { minify }, ctx)
 	let property = node.property!
 
 	// Special case for `font` shorthand: remove whitespace around /
@@ -470,7 +533,7 @@ export function format(
 
 			if (is_declaration(child)) {
 				let is_last = !child.has_next || !is_declaration(child.next_sibling)
-				let declaration = format_declaration(child, { minify })
+				let declaration = format_declaration(child, { minify }, { indent, depth })
 				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
 				lines.push(indent(depth) + declaration + semi)
 			} else if (is_rule(child)) {

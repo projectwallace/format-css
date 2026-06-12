@@ -93,3 +93,11 @@ test('removes whitespace around non-whitespace selector combinators', () => {
 	let expected = `a+b{}c d{}`
 	expect(actual).toEqual(expected)
 })
+
+test('minifies if() function', () => {
+	let actual = minify(
+		`test { color: if(media(print): black; supports(display: grid): green; else: red); }`,
+	)
+	let expected = `test{color:if(media(print):black;supports(display: grid):green;else:red;)}`
+	expect(actual).toBe(expected)
+})
