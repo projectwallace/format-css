@@ -110,12 +110,18 @@ type PrintContext = {
 function split_if_branches(inner: string): Array<{ condition: string; value: string }> {
 	let branches: Array<{ condition: string; value: string }> = []
 	let paren_depth = 0
+	let in_string: '"' | "'" | null = null
 	let start = 0
 	let colon_pos = -1
 
 	for (let i = 0; i < inner.length; i++) {
 		let ch = inner[i]
-		if (ch === '(') paren_depth++
+		if (in_string) {
+			if (ch === in_string && inner[i - 1] !== '\\') in_string = null
+			continue
+		}
+		if (ch === '"' || ch === "'") in_string = ch
+		else if (ch === '(') paren_depth++
 		else if (ch === ')') paren_depth--
 		else if (ch === ':' && paren_depth === 0 && colon_pos < start) colon_pos = i
 		else if (ch === ';' && paren_depth === 0) {
