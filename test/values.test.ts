@@ -260,6 +260,18 @@ test('does not break space toggles (minified)', () => {
 	expect(actual).toEqual(expected)
 })
 
+test('Does not mess up quotes inside `content`', () => {
+	const actual = format(`a {
+		content: '"';
+		content: "'";
+	}`)
+	const expected = `a {
+	content: '"';
+	content: "'";
+}`
+	expect(actual).toBe(expected)
+})
+
 test('adds quotes around strings in url()', () => {
 	let actual = format(`a {
 		background-image: url("star.gif");
