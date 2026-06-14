@@ -62,9 +62,13 @@ export function unquote(str: string): string {
 	return str.replaceAll(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
 }
 
-function print_string(str: string | number | null, quote: '"' | "'" = '"'): string {
+function print_string(str: string | number | null, quote?: '"' | "'"): string {
 	str = str?.toString() || ''
-	return quote + unquote(str) + quote
+	let inner = unquote(str)
+	if (quote === undefined) {
+		quote = inner.includes('"') ? "'" : '"'
+	}
+	return quote + inner + quote
 }
 
 function print_url(node: Url): string {
@@ -77,10 +81,8 @@ function print_url(node: Url): string {
 		let has_single = unquoted.includes("'")
 		if (has_double && has_single) {
 			inner = print_string(unquoted.replaceAll('"', '%22'), '"')
-		} else if (has_double) {
-			inner = print_string(unquoted, "'")
-		} else if (has_single) {
-			inner = print_string(unquoted, '"')
+		} else if (has_double || has_single) {
+			inner = print_string(unquoted)
 		} else {
 			inner = unquoted
 		}
