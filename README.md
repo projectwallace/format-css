@@ -49,7 +49,6 @@ let new_css = format(old_css)
 
 Need more examples?
 
-- [StackBlitz example using CommonJS](https://stackblitz.com/edit/stackblitz-starters-phchci?file=index.js)
 - [StackBlitz example using ES Modules](https://stackblitz.com/edit/stackblitz-starters-hrhsed?file=index.js)
 
 ### Partial formatters
