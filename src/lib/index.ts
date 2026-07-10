@@ -196,8 +196,9 @@ function print_nth(node: NthSelector, optional_space = SPACE): string {
 			result += optional_space
 			if (!b.startsWith('-')) result += '+' + optional_space
 		}
-		// Number() removes the leading '+', if present
-		result += Number(b)
+		// parseFloat tolerates trailing non-numeric characters that Number() would reject as NaN
+		// oxlint-disable-next-line unicorn/prefer-number-coercion
+		result += parseFloat(b)
 	}
 	return result
 }
