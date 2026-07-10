@@ -58,8 +58,22 @@ export type FormatOptions = {
 	tab_size?: number
 }
 
+const UNQUOTE_RE = /(?:^['"])|(?:['"]$)/g
+const DATA_URL_RE = /^['"]?data:/i
+const FONT_SLASH_RE = /\s*\/\s*/
+const ATRULE_COLON_COMMA_RE = /\s*([:,])/g
+const ATRULE_PAREN_TEXT_RE = /\)([a-zA-Z])/g
+const ATRULE_KEYWORD_PAREN_RE = /\b(and|or|not|only)\(/gi
+const ATRULE_ARROW_COMPARE_RE = /\s*(=>|>=|<=)\s*/g
+const ATRULE_COMPARE_RE = /([^<>=\s])([<>])([^<>=\s])/g
+const ATRULE_COMPARE_SPACED_RE = /([^<>=\s])\s+([<>])\s+([^<>=\s])/g
+const ATRULE_WHITESPACE_RE = /\s+/g
+const ATRULE_COLON_COMMA_SPACE_RE = /([:,]) /g
+const ATRULE_CALC_RE = /calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g
+const ATRULE_FN_NAME_RE = /selector|url|supports|layer\(/gi
+
 export function unquote(str: string): string {
-	return str.replaceAll(/(?:^['"])|(?:['"]$)/g, EMPTY_STRING)
+	return str.replaceAll(UNQUOTE_RE, EMPTY_STRING)
 }
 
 function print_string(str: string | number | null, quote?: '"' | "'"): string {
@@ -76,7 +90,7 @@ function print_url(node: Url): string {
 	let unquoted = unquote(value)
 
 	let inner: string
-	if (/^['"]?data:/i.test(value)) {
+	if (DATA_URL_RE.test(value)) {
 		let has_double = unquoted.includes('"')
 		let has_single = unquoted.includes("'")
 		if (has_double && has_single) {
@@ -161,7 +175,7 @@ export function format_declaration(
 
 	// Special case for `font` shorthand: remove whitespace around /
 	if (property === 'font') {
-		value = value.replace(/\s*\/\s*/, '/')
+		value = value.replace(FONT_SLASH_RE, '/')
 	}
 
 	// Hacky: add a space in case of a `space toggle` during minification
@@ -335,23 +349,20 @@ export function format_atrule_prelude(
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
 	return prelude
-		.replaceAll(/\s*([:,])/g, prelude.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
-		.replaceAll(/\)([a-zA-Z])/g, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
-		.replaceAll(/\b(and|or|not|only)\(/gi, '$1 (') // force whitespace between media/supports keywords and opening parenthesis
-		.replaceAll(/\s*(=>|>=|<=)\s*/g, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
-		.replaceAll(/([^<>=\s])([<>])([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // add spacing around < or > except when it's part of <=, >=, =>
-		.replaceAll(/([^<>=\s])\s+([<>])\s+([^<>=\s])/g, `$1${optional_space}$2${optional_space}$3`) // handle spaces around < or > when they already have surrounding whitespace
-		.replaceAll(/\s+/g, SPACE) // collapse multiple whitespaces into one
-		.replaceAll(/([:,]) /g, minify ? '$1' : '$1 ') // in minify mode, remove optional spaces after : and ,
-		.replaceAll(
-			/calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g,
-			(_, left, operator, right) => {
-				// force required or optional whitespace around * and / in calc()
-				let space = operator === '+' || operator === '-' ? SPACE : optional_space
-				return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
-			},
-		)
-		.replaceAll(/selector|url|supports|layer\(/gi, (match) => match.toLowerCase()) // lowercase function names
+		.replaceAll(ATRULE_COLON_COMMA_RE, prelude.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
+		.replaceAll(ATRULE_PAREN_TEXT_RE, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
+		.replaceAll(ATRULE_KEYWORD_PAREN_RE, '$1 (') // force whitespace between media/supports keywords and opening parenthesis
+		.replaceAll(ATRULE_ARROW_COMPARE_RE, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
+		.replaceAll(ATRULE_COMPARE_RE, `$1${optional_space}$2${optional_space}$3`) // add spacing around < or > except when it's part of <=, >=, =>
+		.replaceAll(ATRULE_COMPARE_SPACED_RE, `$1${optional_space}$2${optional_space}$3`) // handle spaces around < or > when they already have surrounding whitespace
+		.replaceAll(ATRULE_WHITESPACE_RE, SPACE) // collapse multiple whitespaces into one
+		.replaceAll(ATRULE_COLON_COMMA_SPACE_RE, minify ? '$1' : '$1 ') // in minify mode, remove optional spaces after : and ,
+		.replaceAll(ATRULE_CALC_RE, (_, left, operator, right) => {
+			// force required or optional whitespace around * and / in calc()
+			let space = operator === '+' || operator === '-' ? SPACE : optional_space
+			return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
+		})
+		.replaceAll(ATRULE_FN_NAME_RE, (match) => match.toLowerCase()) // lowercase function names
 }
 
 /**
