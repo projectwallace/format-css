@@ -123,9 +123,7 @@ function print_list(nodes: CSSNode[], optional_space = SPACE): string {
 	for (let node of nodes) {
 		if (is_function(node)) {
 			let fn = node.name.toLowerCase()
-			parts.push(fn, OPEN_PARENTHESES)
-			parts.push(print_list(node.children, optional_space))
-			parts.push(CLOSE_PARENTHESES)
+			parts.push(fn, OPEN_PARENTHESES, print_list(node.children, optional_space), CLOSE_PARENTHESES)
 		} else if (is_dimension(node)) {
 			parts.push(node.value, node.unit?.toLowerCase())
 		} else if (is_string(node)) {
@@ -198,8 +196,8 @@ function print_nth(node: NthSelector, optional_space = SPACE): string {
 			result += optional_space
 			if (!b.startsWith('-')) result += '+' + optional_space
 		}
-		// the parseFloat removes the leading '+', if present
-		result += parseFloat(b)
+		// Number() removes the leading '+', if present
+		result += Number(b)
 	}
 	return result
 }
