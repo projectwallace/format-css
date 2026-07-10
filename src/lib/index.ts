@@ -28,6 +28,8 @@ import {
 	type NthOfSelector,
 	type PseudoClassSelector,
 	type PseudoElementSelector,
+	type Combinator,
+	type AttributeSelector,
 	type Selector,
 	type SelectorList,
 	type Block,
@@ -187,7 +189,8 @@ export function format_declaration(
 	return property + COLON + optional_space + value + important
 }
 
-function print_nth(node: NthSelector, optional_space = SPACE): string {
+/** Prints the An+B microsyntax used by `:nth-child()` and friends, e.g. `2n+1`. */
+function print_an_plus_b(node: NthSelector, optional_space = SPACE): string {
 	let a = node.nth_a
 	let b = node.nth_b
 	let result = a ? a : EMPTY_STRING
@@ -203,22 +206,92 @@ function print_nth(node: NthSelector, optional_space = SPACE): string {
 	return result
 }
 
+/** Prints the `An+B [of <selector-list>]` argument of `:nth-child(2n+1 of .foo)`. */
 function print_nth_of(node: NthOfSelector, optional_space = SPACE): string {
 	let result = EMPTY_STRING
 	if (node.nth) {
-		result = print_nth(node.nth, optional_space) + SPACE + 'of' + SPACE
+		result = print_an_plus_b(node.nth, optional_space) + SPACE + 'of' + SPACE
 	}
 	if (node.selector) {
-		result += print_inline_selector_list(node.selector, optional_space)
+		result += print_selector_list(node.selector, optional_space)
 	}
 	return result
 }
 
-function print_simple_selector(
-	node: CSSNode,
+/** Prints a combinator (` `, `>`, `+`, `~`, `||`) between two compound selectors. */
+function print_combinator(node: Combinator, optional_space: string, is_first: boolean): string {
+	let text = node.text
+	// A lone whitespace combinator (descendant combinator) always prints as one
+	// space, even when minifying: dropping it would merge two selectors into one.
+	if (/^\s+$/.test(text)) {
+		return SPACE
+	}
+	// Skip leading space if this is the first node in the selector
+	let leading_space = is_first ? EMPTY_STRING : optional_space
+	return leading_space + text + optional_space
+}
+
+/** Prints an attribute selector, e.g. `[href^="https://" i]`. */
+function print_attribute_selector(node: AttributeSelector): string {
+	let parts = [OPEN_BRACKET, node.name.toLowerCase()]
+
+	if (node.attr_operator) {
+		parts.push(node.attr_operator)
+		if (node.value !== null) {
+			parts.push(print_string(node.value))
+		}
+
+		if (node.attr_flags !== null) {
+			parts.push(SPACE, node.attr_flags.toLowerCase())
+		}
+	}
+
+	parts.push(CLOSE_BRACKET)
+	return parts.join(EMPTY_STRING)
+}
+
+/** Prints a pseudo-class or pseudo-element, e.g. `:hover` or `::before` or `:is(a, b)`. */
+function print_pseudo_selector(
+	node: PseudoClassSelector | PseudoElementSelector,
 	optional_space = SPACE,
-	is_first: boolean = false,
 ): string {
+	let parts = [COLON]
+	let name = node.name.toLowerCase()
+
+	// Legacy pseudo-elements or actual pseudo-elements use double colon
+	if (name === 'before' || name === 'after' || is_pseudo_element_selector(node)) {
+		parts.push(COLON)
+	}
+
+	parts.push(name)
+
+	if (node.has_children) {
+		parts.push(OPEN_PARENTHESES)
+		if (name === 'highlight') {
+			// `::highlight()` takes a custom-ident, not a selector list
+			parts.push(print_list(node.children, optional_space))
+		} else {
+			parts.push(print_selector_list(node, optional_space))
+		}
+		parts.push(CLOSE_PARENTHESES)
+	}
+
+	return parts.join(EMPTY_STRING)
+}
+
+/**
+ * Prints one member of a compound selector chain: either a combinator or a
+ * compound-selector part (type, universal, class, id, attribute, pseudo).
+ */
+function print_selector_component(
+	node: CSSNode,
+	optional_space: string,
+	is_first: boolean,
+): string {
+	if (is_combinator(node)) {
+		return print_combinator(node, optional_space, is_first)
+	}
+
 	if (is_type_selector(node)) {
 		let prefix = node.namespace === null ? '' : node.namespace.toLowerCase() + '|'
 		return prefix + node.name.toLowerCase()
@@ -229,72 +302,61 @@ function print_simple_selector(
 		return prefix + '*'
 	}
 
-	if (is_combinator(node)) {
-		let text = node.text
-		// if only whitespace, return a single space
-		if (/^\s+$/.test(text)) {
-			return SPACE
-		}
-		// Skip leading space if this is the first node in the selector
-		let leading_space = is_first ? EMPTY_STRING : optional_space
-		return leading_space + text + optional_space
-	}
-
 	if (is_pseudo_class_selector(node) || is_pseudo_element_selector(node)) {
-		let parts = [COLON]
-		let name = node.name.toLowerCase()
-
-		// Legacy pseudo-elements or actual pseudo-elements use double colon
-		if (name === 'before' || name === 'after' || is_pseudo_element_selector(node)) {
-			parts.push(COLON)
-		}
-
-		parts.push(name)
-
-		if (node.has_children) {
-			parts.push(OPEN_PARENTHESES)
-			if (name === 'highlight') {
-				parts.push(print_list(node.children, optional_space))
-			} else {
-				parts.push(print_inline_selector_list(node, optional_space))
-			}
-			parts.push(CLOSE_PARENTHESES)
-		}
-
-		return parts.join(EMPTY_STRING)
+		return print_pseudo_selector(node, optional_space)
 	}
 
 	if (is_attribute_selector(node)) {
-		let parts = [OPEN_BRACKET, node.name.toLowerCase()]
-
-		if (node.attr_operator) {
-			parts.push(node.attr_operator)
-			if (node.value !== null) {
-				parts.push(print_string(node.value))
-			}
-
-			if (node.attr_flags !== null) {
-				parts.push(SPACE, node.attr_flags.toLowerCase())
-			}
-		}
-
-		parts.push(CLOSE_BRACKET)
-		return parts.join(EMPTY_STRING)
+		return print_attribute_selector(node)
 	}
 
+	// Class, id and nesting selectors print verbatim (`.foo`, `#bar`, `&`)
 	return node.text
 }
 
-function print_inline_selector_list(
+/** Prints a single complex selector, e.g. `div > .foo:hover`. */
+function print_selector(node: Selector, optional_space = SPACE): string {
+	return node.children
+		.map((child, i) => print_selector_component(child, optional_space, i === 0))
+		.join(EMPTY_STRING)
+}
+
+/**
+ * Prints one item in a comma-separated selector position: a full complex
+ * selector, or one of the special forms only valid there — the An+B (`of`
+ * <selector-list>) argument of `:nth-child()`, or a `:lang()` argument.
+ */
+function print_selector_argument(node: CSSNode, optional_space = SPACE): string {
+	if (is_nth_selector(node)) {
+		return print_an_plus_b(node, optional_space)
+	}
+
+	if (is_nth_of_selector(node)) {
+		return print_nth_of(node, optional_space)
+	}
+
+	if (is_lang_selector(node)) {
+		return print_string(node.name)
+	}
+
+	return print_selector(node as Selector, optional_space)
+}
+
+/**
+ * Prints a comma-separated list of selectors on a single line, e.g. `a, b`.
+ * Used both for a top-level selector list and for the argument list of a
+ * functional pseudo-class/element like `:is(a, b)`.
+ */
+function print_selector_list(
 	node: SelectorList | PseudoClassSelector | PseudoElementSelector,
 	optional_space = SPACE,
 ): string {
 	let parts = []
 	for (let child of node) {
 		if (is_selector_list(child)) {
-			parts.push(print_inline_selector_list(child, optional_space))
+			parts.push(print_selector_list(child, optional_space))
 		} else {
-			parts.push(format_selector(child, { minify: optional_space === EMPTY_STRING }))
+			parts.push(print_selector_argument(child, optional_space))
 			if (child.has_next) {
 				parts.push(COMMA, optional_space)
 			}
@@ -308,23 +370,7 @@ export function format_selector(
 	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
-
-	if (is_nth_selector(node)) {
-		return print_nth(node, optional_space)
-	}
-
-	if (is_nth_of_selector(node)) {
-		return print_nth_of(node, optional_space)
-	}
-
-	if (is_lang_selector(node)) {
-		return print_string(node.name)
-	}
-
-	// Handle compound selector (combination of simple selectors)
-	return (node as Selector).children
-		.map((child, i) => print_simple_selector(child, optional_space, i === 0))
-		.join(EMPTY_STRING)
+	return print_selector_argument(node, optional_space)
 }
 
 export function format_selector_list(
@@ -332,7 +378,7 @@ export function format_selector_list(
 	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
-	return print_inline_selector_list(node, optional_space)
+	return print_selector_list(node, optional_space)
 }
 
 /**
@@ -429,7 +475,8 @@ export function format(
 		return buffer
 	}
 
-	function print_selector_list(node: SelectorList): string {
+	/** Prints a rule's selector list one selector per line, e.g. `.a,\n.b {`. */
+	function print_rule_selectors(node: SelectorList): string {
 		let lines = []
 		let prev_end: number | undefined
 		for (let selector of node) {
@@ -440,7 +487,7 @@ export function format(
 				}
 			}
 
-			let printed = format_selector(selector, { minify })
+			let printed = print_selector(selector, OPTIONAL_SPACE)
 			if (selector.has_next) {
 				printed += COMMA
 			}
@@ -516,7 +563,7 @@ export function format(
 		let lines = []
 
 		if (node.has_prelude && is_selector_list(node.prelude)) {
-			let list = print_selector_list(node.prelude)
+			let list = print_rule_selectors(node.prelude)
 
 			let comment = get_comment(node.first_child?.end, node.block?.start)
 			if (comment) {
