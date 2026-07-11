@@ -417,8 +417,11 @@ export function format(
 	css: string,
 	{ minify = false, tab_size = undefined }: FormatOptions = Object.create(null),
 ): string {
-	if (tab_size !== undefined && Number(tab_size) < 1) {
-		throw new TypeError('tab_size must be a number greater than 0')
+	if (tab_size !== undefined) {
+		tab_size = Number(tab_size)
+		if (!Number.isInteger(tab_size) || tab_size < 1) {
+			throw new TypeError('tab_size must be a whole number greater than 0')
+		}
 	}
 
 	const NEWLINE = minify ? EMPTY_STRING : '\n'
