@@ -416,6 +416,79 @@ test('minify: keeps whitespace between "or" keyword and media feature', () => {
 })
 
 // oxlint-disable-next-line vitest/no-disabled-tests
+test('lowercases @container style() function name', () => {
+	let actual = format(`@container STYLE(--foo: bar) { a { color: red; } }`)
+	let expected = `@container style(--foo: bar) {
+	a {
+		color: red;
+	}
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves function calls inside media feature values', () => {
+	let actual = format(`@media (min-width: env(safe-area-inset-top)) {}`)
+	let expected = `@media (min-width: env(safe-area-inset-top)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves function calls inside @supports condition values', () => {
+	let actual = format(`@supports (background: linear-gradient(red, blue)) {}`)
+	let expected = `@supports (background: linear-gradient(red, blue)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves multi-operator calc() inside a media feature', () => {
+	let actual = format(`@media (min-width: calc(1px + 2px * 3)) {}`)
+	let expected = `@media (min-width: calc(1px + 2px * 3)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves dotted @layer names', () => {
+	let actual = format(`@layer base.normalize { a { color: red; } }`)
+	let expected = `@layer base.normalize {
+	a {
+		color: red;
+	}
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves multiple dotted, comma-separated @layer names', () => {
+	let actual = format(`@layer a.b, c.d.e;`)
+	let expected = `@layer a.b, c.d.e;`
+	expect(actual).toEqual(expected)
+})
+
+test('formats @import with a dotted layer() name', () => {
+	let actual = format(`@import url("a.css") layer(a.b.c);`)
+	let expected = `@import url("a.css") layer(a.b.c);`
+	expect(actual).toEqual(expected)
+})
+
+test('does not lose the prelude of an at-rule the prelude parser does not recognize', () => {
+	let actual = format(`@starting-style { a { color: red; } }`)
+	let expected = `@starting-style {
+	a {
+		color: red;
+	}
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('does not lose an unrecognizable @page pseudo-class prelude', () => {
+	let actual = format(`@page :first {}`)
+	let expected = `@page : first {}`
+	expect(actual).toEqual(expected)
+})
+
+test('does not corrupt a nested @supports boolean group', () => {
+	let actual = format(`@supports ((display: grid) and (display: flex)) {}`)
+	let expected = `@supports ((display: grid) and (display: flex)) {}`
+	expect(actual).toEqual(expected)
+})
+
+// oxlint-disable-next-line vitest/no-disabled-tests
 test.skip('preserves comments', () => {
 	let actual = format(`
 		@media /* comment */ all {}

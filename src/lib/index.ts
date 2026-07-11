@@ -1,5 +1,6 @@
 import {
 	parse,
+	parse_declaration,
 	is_function,
 	is_dimension,
 	is_parenthesis,
@@ -20,10 +21,22 @@ import {
 	is_declaration,
 	is_rule,
 	is_atrule,
+	is_media_query,
+	is_container_query,
+	is_media_feature,
+	is_feature_range,
+	is_supports_query,
+	is_prelude_operator,
+	is_prelude_selectorlist,
+	is_layer_name,
 	type Operator,
 	type Value,
 	type Declaration,
 	type Raw,
+	type AtrulePrelude,
+	type SupportsQuery,
+	type FeatureRange,
+	type MediaFeature,
 	type NthSelector,
 	type NthOfSelector,
 	type PseudoClassSelector,
@@ -410,6 +423,309 @@ export function format_atrule_prelude(
 		.replaceAll(ATRULE_FN_NAME_RE, (match) => match.toLowerCase()) // lowercase function names
 }
 
+const ONLY_NOT_PREFIX_RE = /^(only|not)\s/i
+
+/**
+ * Appends any closing parentheses missing from `text`.
+ *
+ * A handful of @projectwallace/css-parser's at-rule prelude nodes (e.g.
+ * MediaFeature.text, SupportsQuery.value) have an off-by-one end offset that
+ * drops the node's own trailing `)`. Re-balancing defensively here means the
+ * raw text stays safe to hand to `parse_declaration` or slice further,
+ * without needing to know exactly which node types are affected.
+ */
+function balance_parens(text: string): string {
+	let depth = 0
+	for (let i = 0; i < text.length; i++) {
+		let code = text.charCodeAt(i)
+		if (code === 40) depth++
+		else if (code === 41) depth--
+	}
+	return depth > 0 ? text + CLOSE_PARENTHESES.repeat(depth) : text
+}
+
+/**
+ * Extracts a media-feature value from the text after its colon, which may or
+ * may not still include the feature's own trailing `)` (the same off-by-one
+ * `balance_parens` works around, except here it can go either way instead of
+ * only ever being short — see PARSER_ISSUES.md). Scans for the first `)`
+ * that isn't matched by a `(` seen so far in this slice: that's necessarily
+ * the feature's own closing paren, not part of the value, since every
+ * legitimate nested paren pair (e.g. `calc(...)`) must already balance
+ * within the slice. If the text runs out first, any still-open parens (e.g.
+ * an unclosed nested calc()) are appended, same as `balance_parens`.
+ */
+function extract_balanced_value(text: string): string {
+	let depth = 0
+	for (let i = 0; i < text.length; i++) {
+		let code = text.charCodeAt(i)
+		if (code === 40) depth++
+		else if (code === 41) {
+			if (depth === 0) return text.slice(0, i)
+			depth--
+		}
+	}
+	return depth > 0 ? text + CLOSE_PARENTHESES.repeat(depth) : text
+}
+
+/** Whether `text` has a `:` outside of any parentheses — the same check
+ * @projectwallace/css-parser's own `find_colon_at_depth_zero` uses to decide
+ * whether a `@supports`/`style()` condition is a simple declaration at all. */
+function has_top_level_colon(text: string): boolean {
+	let depth = 0
+	for (let i = 0; i < text.length; i++) {
+		let code = text.charCodeAt(i)
+		if (code === 40) depth++
+		else if (code === 41) depth--
+		else if (code === 58 && depth === 0) return true
+	}
+	return false
+}
+
+/**
+ * Prints a declaration-shaped at-rule condition (`prop: value`), e.g. the
+ * inside of `@supports (display: grid)` or `@container style(--foo: bar)`.
+ *
+ * Re-parses the raw text with the full declaration parser and reuses
+ * `format_declaration`, rather than trusting the prelude parser's own value
+ * nodes for it: those silently drop function calls (`calc()`, `env()`, ...)
+ * from condition values (a parser bug — see PARSER_ISSUES.md). Falls back to
+ * the raw text for conditions that aren't a simple declaration at all, e.g.
+ * `selector(:hover)`.
+ */
+function print_condition(raw: string, minify: boolean): string {
+	let balanced = balance_parens(raw)
+	// A nested boolean group, e.g. `(display: grid) and (display: flex)`
+	// (from `@supports ((display: grid) and (display: flex))`), has no
+	// top-level colon of its own — parse_declaration on it doesn't reliably
+	// come back with an empty property to signal "not a declaration" (it can
+	// naively split on the first, nested colon instead), so that check alone
+	// isn't a safe enough guard. Skip straight to the regex fallback, which
+	// still normalizes colon spacing inside the nested groups (and, via its
+	// own selector()-exception, correctly leaves selector(:hover) alone).
+	if (!has_top_level_colon(balanced)) {
+		return format_atrule_prelude(balanced, { minify })
+	}
+	let declaration = parse_declaration(balanced)
+	if (declaration.property === EMPTY_STRING) {
+		return balanced
+	}
+	return format_declaration(declaration, { minify })
+}
+
+/** Prints a two-sided (`200px < width < 1000px`) or one-sided (`width >
+ * 1000px`) media-feature range. The feature name never appears as a child
+ * node, so its printed position is found by comparing its offset in the
+ * source against the sibling Dimension/PreludeOperator children. */
+function print_feature_range(node: FeatureRange, optional_space: string): string {
+	let name_offset = node.start + node.text.indexOf(node.name, 1)
+	let items: { offset: number; text: string }[] = [{ offset: name_offset, text: node.name }]
+
+	let children = [...(node as unknown as Iterable<CSSNode>)]
+	for (let i = 0; i < children.length; i++) {
+		let child = children[i]!
+		if (is_prelude_operator(child)) {
+			let text = child.text
+			// Upstream tokenizer bug: `=>` comes through as two separate
+			// single-char operator tokens ("=" then ">") instead of one, unlike
+			// `>=`/`<=` which are correctly kept whole — merge them back
+			// together when directly adjacent.
+			let next = children[i + 1]
+			if (next && is_prelude_operator(next) && next.start === child.end) {
+				text += next.text
+				i++
+			}
+			items.push({ offset: child.start, text: optional_space + text + optional_space })
+		} else {
+			items.push({ offset: child.start, text: child.text })
+		}
+	}
+
+	items.sort((a, b) => a.offset - b.offset)
+	return OPEN_PARENTHESES + items.map((item) => item.text).join(EMPTY_STRING) + CLOSE_PARENTHESES
+}
+
+/** Prints a single media/container feature, e.g. `(min-width: 768px)` or the
+ * boolean form `(hover)`. */
+function print_media_feature(node: MediaFeature, minify: boolean): string {
+	if (node.value === null) {
+		return OPEN_PARENTHESES + node.property + CLOSE_PARENTHESES
+	}
+
+	// node.text's own trailing ')' is inconsistently present (an upstream
+	// off-by-one that only manifests once nested parens like calc() are
+	// involved), and node.value's children drop function calls from the value
+	// entirely either way — slice the raw value out of node.text instead and
+	// run it through the existing (untouched) regex formatter for
+	// calc()/whitespace normalization.
+	let colon_index = node.text.indexOf(COLON)
+	let raw_value = extract_balanced_value(node.text.slice(colon_index + 1).trim())
+	let optional_space = minify ? EMPTY_STRING : SPACE
+	return (
+		OPEN_PARENTHESES +
+		node.property +
+		COLON +
+		optional_space +
+		format_atrule_prelude(raw_value, { minify }) +
+		CLOSE_PARENTHESES
+	)
+}
+
+/** Prints `@supports (display: grid)`-style conditions, including
+ * `and`/`or`/`not`-joined and nested-boolean-group forms it can't reduce to a
+ * single declaration (e.g. `selector(:hover)`), which print as-is. */
+function print_supports_query(node: SupportsQuery, minify: boolean): string {
+	// print_condition already falls back to the raw (balanced) value for
+	// non-declaration conditions, so node.has_children (only ever set for the
+	// standalone `@supports (...)` form — @import's `supports(...)` never
+	// gets a SupportsDeclaration child at all) doesn't need checking here.
+	let condition = print_condition(node.value, minify)
+	// `@import url(...) supports(display: grid)` uses the functional notation
+	// (keyword + parens around the condition) rather than the standalone
+	// `@supports (...)` form's bare parenthesized condition — node.text still
+	// carries the "supports(" prefix in that case.
+	let prefix = /^supports\(/i.test(node.text) ? 'supports' : EMPTY_STRING
+	return prefix + OPEN_PARENTHESES + condition + CLOSE_PARENTHESES
+}
+
+/** Prints a functional container-query condition, e.g. `style(--foo: bar)`. */
+function print_prelude_function(node: CSSNode, minify: boolean): string {
+	let text = node.text
+	let paren_index = text.indexOf(OPEN_PARENTHESES)
+	if (paren_index === -1) return text
+	let name = text.slice(0, paren_index).toLowerCase()
+	let args = balance_parens(text.slice(paren_index + 1, -1))
+	return name + OPEN_PARENTHESES + print_condition(args, minify) + CLOSE_PARENTHESES
+}
+
+/** Prints an `@import` URL: lowercases a leading `url(` keyword but never
+ * touches quote style, matching how `format_atrule_prelude` already treats
+ * quotes inside at-rule preludes (unlike value-position `url()`, which does
+ * get its quotes normalized by `print_url`). */
+function print_prelude_url(node: CSSNode): string {
+	let text = node.text
+	if (/^url\(/i.test(text)) {
+		return 'url(' + text.slice(4)
+	}
+	return text
+}
+
+/**
+ * Prints one child of an AtrulePrelude/MediaQuery/ContainerQuery: a nested
+ * query, a feature/condition, an operator, or (for anything the prelude
+ * parser doesn't specifically model — Identifier, String, LayerName from
+ * `@import`'s `layer()`, Raw, ...) the node's raw text verbatim.
+ */
+function print_prelude_component(node: CSSNode, optional_space: string, minify: boolean): string {
+	if (is_media_query(node)) {
+		let prefix = ONLY_NOT_PREFIX_RE.exec(node.text)
+		return (
+			(prefix ? prefix[1] + SPACE : EMPTY_STRING) +
+			print_prelude_children(node, optional_space, minify)
+		)
+	}
+	if (is_container_query(node)) {
+		return print_prelude_children(node, optional_space, minify)
+	}
+	if (is_media_feature(node)) {
+		return print_media_feature(node, minify)
+	}
+	if (is_feature_range(node)) {
+		return print_feature_range(node, optional_space)
+	}
+	if (is_supports_query(node)) {
+		return print_supports_query(node, minify)
+	}
+	if (is_prelude_selectorlist(node)) {
+		return node.text
+	}
+	if (is_function(node)) {
+		return print_prelude_function(node, minify)
+	}
+	if (is_url(node)) {
+		return print_prelude_url(node)
+	}
+	if (is_layer_name(node)) {
+		// Only reached for `@import`'s embedded `layer(...)` — the standalone
+		// `@layer name;` statement form never gets here, see
+		// print_atrule_prelude_node. node.text here is the full "layer(...)"
+		// text (dotted names and all, unaffected by that form's bug); just
+		// lowercase the keyword itself, matching format_atrule_prelude.
+		return /^layer\(/i.test(node.text) ? 'layer(' + node.text.slice(6) : node.text
+	}
+	if (is_prelude_operator(node)) {
+		return node.text
+	}
+	return node.text
+}
+
+/**
+ * Prints a `,`-or-space joined sequence of at-rule prelude components: a
+ * media/container query's own parts, or the top-level children of an
+ * AtrulePrelude/MediaQuery/ContainerQuery.
+ *
+ * Same-type siblings back to back only ever happens for comma-separated
+ * lists (e.g. multiple `MediaQuery`s in `screen, print`), so a comma is used
+ * there; every other adjacent pair (`screen and (min-width: 100px)`, or
+ * `url(...) layer(...) supports(...)` in `@import`) requires a real space
+ * regardless of `minify` — CSS syntax doesn't allow gluing them together.
+ */
+function print_prelude_children(node: CSSNode, optional_space: string, minify: boolean): string {
+	let parts: string[] = []
+	for (let child of node as unknown as Iterable<CSSNode>) {
+		parts.push(print_prelude_component(child, optional_space, minify))
+		if (child.has_next) {
+			parts.push(child.type === child.next_sibling.type ? COMMA + optional_space : SPACE)
+		}
+	}
+	return parts.join(EMPTY_STRING)
+}
+
+/**
+ * Prints a structured at-rule prelude node (`Atrule.prelude` when
+ * `parse_atrule_preludes: true`).
+ *
+ * Falls back to the existing regex-based `format_atrule_prelude` (still
+ * correct, just not structure-aware), applied to the whole prelude's raw
+ * text, when:
+ * - the prelude parser doesn't recognize the at-rule at all, or the prelude
+ *   doesn't fit what it expects (`@page :first`, a quoted `@keyframes` name,
+ *   `@starting-style`, an unsupported `@supports selector(...)`/function
+ *   condition, ...) — it returns no children in that case, and nothing new
+ *   is invented for at-rules with no test coverage, just today's existing
+ *   (already tested) text-based formatting;
+ * - the prelude contains a comment: the prelude parser has no equivalent of
+ *   the main parser's `on_comment` hook, so any comment gets silently
+ *   dropped while building the structured tree;
+ * - it's the standalone `@layer name[, name2, ...];` statement form — a
+ *   parser bug splits dotted names like `base.normalize` into two separate
+ *   LayerName nodes at the dot, and printing them back with a synthetic
+ *   comma would corrupt one nested layer into two unrelated top-level ones
+ *   (see PARSER_ISSUES.md). Detected by: every child being a LayerName only
+ *   ever happens here — `@import`'s embedded `layer(...)` is a single
+ *   LayerName mixed with a Url/SupportsQuery sibling, never all-LayerName.
+ */
+function print_atrule_prelude_node(node: AtrulePrelude | Raw, minify: boolean): string {
+	if (is_raw(node) || !node.has_children) {
+		return format_atrule_prelude(node.text, { minify })
+	}
+	// The prelude parser has no equivalent of the main parser's on_comment
+	// hook, so any comment inside a prelude is silently dropped while
+	// building the structured tree. Fall back to the regex formatter, which
+	// operates on the raw text and never removes anything, whenever a
+	// comment is present.
+	if (node.text.includes('/*')) {
+		return format_atrule_prelude(node.text, { minify })
+	}
+	// The standalone `@layer name[, name2, ...];` statement form: same
+	// fallback, for the dotted-layer-name bug described above.
+	if (node.first_child && is_layer_name(node.first_child)) {
+		return format_atrule_prelude(node.text, { minify })
+	}
+	let optional_space = minify ? EMPTY_STRING : SPACE
+	return print_prelude_children(node, optional_space, minify)
+}
+
 /**
  * Format a string of CSS using some simple rules
  */
@@ -431,7 +747,7 @@ export function format(
 	// First pass: collect all comments
 	let comments: number[] = []
 	let ast = parse(css, {
-		parse_atrule_preludes: false,
+		parse_atrule_preludes: true,
 		on_comment: minify
 			? undefined
 			: ({ start, end }) => {
@@ -590,7 +906,7 @@ export function format(
 	function print_atrule(node: Atrule): string {
 		let name = '@' + node.name!.toLowerCase()
 		if (node.prelude) {
-			name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
+			name += SPACE + print_atrule_prelude_node(node.prelude, minify)
 		}
 
 		let block_has_content =
