@@ -34,41 +34,35 @@ test('tab_size: 2', () => {
 	expect(actual).toEqual(expected)
 })
 
-test('invalid tab_size: 0', () => {
-	expect(() => format(fixture, { tab_size: 0 })).toThrow(
-		'tab_size must be a whole number greater than 0',
-	)
+let default_indentation = format(fixture)
+
+test('invalid tab_size: 0 falls back to default tab indentation', () => {
+	expect(format(fixture, { tab_size: 0 })).toEqual(default_indentation)
 })
 
-test('invalid tab_size: negative', () => {
-	expect(() => format(fixture, { tab_size: -1 })).toThrow(
-		'tab_size must be a whole number greater than 0',
-	)
+test('invalid tab_size: negative falls back to default tab indentation', () => {
+	expect(format(fixture, { tab_size: -1 })).toEqual(default_indentation)
 })
 
-test('invalid tab_size: fractional', () => {
-	expect(() => format(fixture, { tab_size: 2.5 })).toThrow(
-		'tab_size must be a whole number greater than 0',
-	)
+test('invalid tab_size: fractional falls back to default tab indentation', () => {
+	expect(format(fixture, { tab_size: 2.5 })).toEqual(default_indentation)
 })
 
-test('invalid tab_size: NaN', () => {
-	expect(() => format(fixture, { tab_size: NaN })).toThrow(
-		'tab_size must be a whole number greater than 0',
-	)
+test('invalid tab_size: NaN falls back to default tab indentation', () => {
+	expect(format(fixture, { tab_size: NaN })).toEqual(default_indentation)
 })
 
-test('invalid tab_size: Infinity', () => {
-	expect(() => format(fixture, { tab_size: Infinity })).toThrow(
-		'tab_size must be a whole number greater than 0',
-	)
+test('invalid tab_size: Infinity falls back to default tab indentation', () => {
+	expect(format(fixture, { tab_size: Infinity })).toEqual(default_indentation)
 })
 
-test('invalid tab_size: non-numeric string (bypassing TypeScript types)', () => {
+test('invalid tab_size: non-numeric string falls back to default tab indentation (bypassing TypeScript types)', () => {
 	// @ts-expect-error tab_size is typed as number, but JS callers can pass anything at runtime
-	expect(() => format(fixture, { tab_size: 'abc' })).toThrow(
-		'tab_size must be a whole number greater than 0',
-	)
+	expect(format(fixture, { tab_size: 'abc' })).toEqual(default_indentation)
+})
+
+test('invalid tab_size does not throw', () => {
+	expect(() => format(fixture, { tab_size: 0 }), 'invalid tab_size should not throw').not.toThrow()
 })
 
 test('combine tab_size and minify', () => {

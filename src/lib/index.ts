@@ -418,10 +418,10 @@ export function format(
 	{ minify = false, tab_size = undefined }: FormatOptions = Object.create(null),
 ): string {
 	if (tab_size !== undefined) {
-		tab_size = Number(tab_size)
-		if (!Number.isInteger(tab_size) || tab_size < 1) {
-			throw new TypeError('tab_size must be a whole number greater than 0')
-		}
+		let normalized = Number(tab_size)
+		// An invalid tab_size (non-numeric, fractional, NaN, Infinity, < 1) falls
+		// back to the default tab indentation instead of throwing.
+		tab_size = Number.isInteger(normalized) && normalized >= 1 ? normalized : undefined
 	}
 
 	const NEWLINE = minify ? EMPTY_STRING : '\n'
