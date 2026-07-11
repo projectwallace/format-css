@@ -28,6 +28,33 @@ test('handles invalid input', () => {
 	expect(actual).toEqual(expected)
 })
 
+describe('deeply nested input', () => {
+	test('throws a clear error instead of an unhandled stack overflow (nested rules)', () => {
+		let n = 20_000
+		let css = 'a{'.repeat(n) + '}'.repeat(n)
+		expect(() => format(css)).toThrow(/format-css/)
+	})
+
+	test('throws a clear error instead of an unhandled stack overflow (nested parens)', () => {
+		let n = 50_000
+		let css = `a{width:calc(${'('.repeat(n)}1${')'.repeat(n)})}`
+		expect(() => format(css)).toThrow(/format-css/)
+	})
+
+	test('formatting still works normally after a deeply nested input was rejected', () => {
+		let n = 20_000
+		let css = 'a{'.repeat(n) + '}'.repeat(n)
+		expect(() => format(css)).toThrow(/format-css/)
+		expect(format('a { color: red; }')).toEqual('a {\n\tcolor: red;\n}')
+	})
+
+	test('moderately nested input still formats correctly', () => {
+		let n = 50
+		let css = 'a{'.repeat(n) + 'color:red;' + '}'.repeat(n)
+		expect(() => format(css), 'should not throw for realistic nesting depths').not.toThrow()
+	})
+})
+
 test('Vadim Makeevs example works', () => {
 	let actual = format(`
 	@layer what {
