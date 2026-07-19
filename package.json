@@ -44,27 +44,24 @@
 		"lint": "oxlint && oxfmt --check"
 	},
 	"dependencies": {
-		"@projectwallace/css-parser": "~0.16.0"
+		"@projectwallace/css-parser": "~0.17.0"
 	},
 	"devDependencies": {
 		"@projectwallace/preset-oxlint": "^0.0.11",
 		"@types/node": "^26.0.1",
-		"@vitest/coverage-v8": "^4.0.3",
-		"oxfmt": "^0.57.0",
-		"oxlint": "^1.24.0",
-		"publint": "^0.3.15",
-		"tsdown": "^0.22.0",
-		"typescript": "^6.0.2",
-		"vite": "^8.1.4",
-		"vitest": "^4.0.3"
+		"@vitest/coverage-v8": "^4.1.10",
+		"oxfmt": "^0.59.0",
+		"oxlint": "^1.74.0",
+		"publint": "^0.3.21",
+		"tsdown": "^0.22.9",
+		"typescript": "^7.0.2",
+		"vite": "^8.1.5",
+		"vitest": "^4.1.10"
 	},
 	"engines": {
 		"node": ">=20.12.0",
 		"pnpm": ">=11.0.0"
 	},
 	"packageManager": "pnpm@11.1.1",
-	"pnpm": {
-		"onlyBuiltDependencies": []
-	},
 	"issues": "https://github.com/projectwallace/format-css/issues"
 }
