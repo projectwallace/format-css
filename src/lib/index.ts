@@ -646,11 +646,12 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
 		return print_prelude_url(node)
 	}
 	if (is_layer_name(node)) {
-		// Only reached for `@import`'s embedded `layer(...)` — the standalone
-		// `@layer name;` statement form never gets here, see
-		// print_atrule_prelude_node. node.text here is the full "layer(...)"
-		// text (dotted names and all, unaffected by that form's bug); just
-		// lowercase the keyword itself, matching format_atrule_prelude.
+		// Both the standalone `@layer name[, name2, ...];` statement form
+		// (bare "name") and @import's embedded `layer(...)` reach this branch.
+		// Only the latter has a "layer(" keyword to lowercase (matching
+		// format_atrule_prelude); the former's node.text is just the name
+		// itself (dots and all — see PARSER_ISSUES.md, issue #1, fixed in
+		// @projectwallace/css-parser 0.17.0).
 		return /^layer\(/i.test(node.text) ? 'layer(' + node.text.slice(6) : node.text
 	}
 	if (is_prelude_operator(node)) {
@@ -696,14 +697,7 @@ function print_prelude_children(node: CSSNode, optional_space: string, minify: b
  *   (already tested) text-based formatting;
  * - the prelude contains a comment: the prelude parser has no equivalent of
  *   the main parser's `on_comment` hook, so any comment gets silently
- *   dropped while building the structured tree;
- * - it's the standalone `@layer name[, name2, ...];` statement form — a
- *   parser bug splits dotted names like `base.normalize` into two separate
- *   LayerName nodes at the dot, and printing them back with a synthetic
- *   comma would corrupt one nested layer into two unrelated top-level ones
- *   (see PARSER_ISSUES.md). Detected by: every child being a LayerName only
- *   ever happens here — `@import`'s embedded `layer(...)` is a single
- *   LayerName mixed with a Url/SupportsQuery sibling, never all-LayerName.
+ *   dropped while building the structured tree.
  */
 function print_atrule_prelude_node(node: AtrulePrelude | Raw, minify: boolean): string {
 	if (is_raw(node) || !node.has_children) {
@@ -715,11 +709,6 @@ function print_atrule_prelude_node(node: AtrulePrelude | Raw, minify: boolean): 
 	// operates on the raw text and never removes anything, whenever a
 	// comment is present.
 	if (node.text.includes('/*')) {
-		return format_atrule_prelude(node.text, { minify })
-	}
-	// The standalone `@layer name[, name2, ...];` statement form: same
-	// fallback, for the dotted-layer-name bug described above.
-	if (node.first_child && is_layer_name(node.first_child)) {
 		return format_atrule_prelude(node.text, { minify })
 	}
 	let optional_space = minify ? EMPTY_STRING : SPACE

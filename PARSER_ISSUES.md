@@ -2,10 +2,12 @@
 
 Found while rewriting `format_atrule_prelude`'s internals in this repo to use
 `parse_atrule_prelude`/`parse_atrule_preludes: true` instead of regexes
-(version `@projectwallace/css-parser@0.16.0`). format-css works around all of
-these already (see the comments on `print_atrule_prelude_node` and friends in
-`src/lib/index.ts`), but they're worth fixing upstream since the workarounds
-mean format-css can't fully trust the structured prelude parser yet.
+(originally against `@projectwallace/css-parser@0.16.0`; re-verified against
+`0.17.0` below — only issue #1 is fixed there, #2-10 are still present).
+format-css works around all of the still-open ones already (see the comments
+on `print_atrule_prelude_node` and friends in `src/lib/index.ts`), but
+they're worth fixing upstream since the workarounds mean format-css can't
+fully trust the structured prelude parser yet.
 
 Repro snippets below assume:
 
@@ -13,28 +15,31 @@ Repro snippets below assume:
 import { parse_atrule_prelude } from '@projectwallace/css-parser'
 ```
 
-## 1. Dotted `@layer` names are split at the dot (high severity)
+## 1. Dotted `@layer` names are split at the dot (high severity) — FIXED in 0.17.0
 
 ```js
 parse_atrule_prelude('layer', 'a, b.c')
-// → [LayerName("a"), LayerName("b"), LayerName("c")]
-// expected: [LayerName("a"), LayerName("b.c")]
+// 0.16.0: → [LayerName("a"), LayerName("b"), LayerName("c")]
+// 0.17.0: → [LayerName("a"), LayerName("b.c")]  (correct)
 ```
 
-`parse_layer_names` (`parse-atrule-prelude.js`) only handles bare `IDENT`
-tokens; it doesn't glue together the `ident '.' ident '.' ident ...` sequence
-the `<layer-name>` grammar requires for nested layers. The connecting `.`
-tokens are silently dropped, not even represented as some other node type.
+`parse_layer_names` (`parse-atrule-prelude.js`) used to only handle bare
+`IDENT` tokens; it didn't glue together the `ident '.' ident '.' ident ...`
+sequence the `<layer-name>` grammar requires for nested layers. The
+connecting `.` tokens were silently dropped, not even represented as some
+other node type.
 
-This is a correctness bug, not just a formatting inconvenience: naively
+This was a correctness bug, not just a formatting inconvenience: naively
 reprinting `[LayerName("b"), LayerName("c")]` as a comma-separated list turns
 one nested layer (`b.c`) into two unrelated top-level layers (`b, c`),
 changing cascade order. Dotted layer names are common in real-world CSS —
 this project's own README uses `base.normalize` as its headline example.
 
-Note `@import url(...) layer(a.b.c)` is unaffected — it goes through a
-different code path (`parse_import_layer`) that captures the whole
-`layer(...)` call as one raw span instead of re-tokenizing the name.
+Confirmed fixed in `@projectwallace/css-parser@0.17.0` — `LayerName.name`/
+`.text` now correctly includes the full dotted name. format-css's
+workaround (falling back to the regex-based formatter for the whole
+standalone `@layer name[, name2, ...];` statement form) has been removed
+accordingly.
 
 ## 2. Function calls are dropped from media-feature/feature-range values (high severity)
 
