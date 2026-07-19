@@ -53,6 +53,21 @@ const OPEN_BRACE = '{'
 const CLOSE_BRACE = '}'
 const COMMA = ','
 
+// Printing is recursive (nested values, selectors, rules and atrules all
+// call back into each other). Pathological input - e.g. thousands of
+// nested rules or parentheses - can exceed the JS call stack, which
+// otherwise surfaces as an opaque "Maximum call stack size exceeded"
+// RangeError. Guard against that with an explicit, well below the real
+// stack limit, depth so callers get a clear error instead.
+const MAX_NESTING_DEPTH = 250
+let recursion_depth = 0
+
+function enter_recursion() {
+	if (++recursion_depth > MAX_NESTING_DEPTH) {
+		throw new RangeError(`format-css: input exceeds maximum nesting depth of ${MAX_NESTING_DEPTH}`)
+	}
+}
+
 export type FormatOptions = {
 	/** Whether to minify the CSS or keep it formatted */
 	minify?: boolean
@@ -121,31 +136,41 @@ function print_operator(node: Operator, optional_space = SPACE): string {
 }
 
 function print_list(nodes: CSSNode[], optional_space = SPACE): string {
-	let parts = []
-	for (let node of nodes) {
-		if (is_function(node)) {
-			let fn = node.name.toLowerCase()
-			parts.push(fn, OPEN_PARENTHESES, print_list(node.children, optional_space), CLOSE_PARENTHESES)
-		} else if (is_dimension(node)) {
-			parts.push(node.value, node.unit?.toLowerCase())
-		} else if (is_string(node)) {
-			parts.push(print_string(node.text))
-		} else if (is_operator(node)) {
-			parts.push(print_operator(node, optional_space))
-		} else if (is_parenthesis(node)) {
-			parts.push(OPEN_PARENTHESES, print_list(node.children, optional_space), CLOSE_PARENTHESES)
-		} else if (is_url(node) && node.value) {
-			parts.push(print_url(node))
-		} else {
-			parts.push(node.text)
+	enter_recursion()
+	try {
+		let parts = []
+		for (let node of nodes) {
+			if (is_function(node)) {
+				let fn = node.name.toLowerCase()
+				parts.push(
+					fn,
+					OPEN_PARENTHESES,
+					print_list(node.children, optional_space),
+					CLOSE_PARENTHESES,
+				)
+			} else if (is_dimension(node)) {
+				parts.push(node.value, node.unit?.toLowerCase())
+			} else if (is_string(node)) {
+				parts.push(print_string(node.text))
+			} else if (is_operator(node)) {
+				parts.push(print_operator(node, optional_space))
+			} else if (is_parenthesis(node)) {
+				parts.push(OPEN_PARENTHESES, print_list(node.children, optional_space), CLOSE_PARENTHESES)
+			} else if (is_url(node) && node.value) {
+				parts.push(print_url(node))
+			} else {
+				parts.push(node.text)
+			}
+
+			if (!is_operator(node) && node.has_next && !is_operator(node.next_sibling)) {
+				parts.push(SPACE)
+			}
 		}
 
-		if (!is_operator(node) && node.has_next && !is_operator(node.next_sibling)) {
-			parts.push(SPACE)
-		}
+		return parts.join(EMPTY_STRING)
+	} finally {
+		recursion_depth--
 	}
-
-	return parts.join(EMPTY_STRING)
 }
 
 export function format_value(
@@ -351,18 +376,23 @@ function print_selector_list(
 	node: SelectorList | PseudoClassSelector | PseudoElementSelector,
 	optional_space = SPACE,
 ): string {
-	let parts = []
-	for (let child of node) {
-		if (is_selector_list(child)) {
-			parts.push(print_selector_list(child, optional_space))
-		} else {
-			parts.push(print_selector_argument(child, optional_space))
-			if (child.has_next) {
-				parts.push(COMMA, optional_space)
+	enter_recursion()
+	try {
+		let parts = []
+		for (let child of node) {
+			if (is_selector_list(child)) {
+				parts.push(print_selector_list(child, optional_space))
+			} else {
+				parts.push(print_selector_argument(child, optional_space))
+				if (child.has_next) {
+					parts.push(COMMA, optional_space)
+				}
 			}
 		}
+		return parts.join(EMPTY_STRING)
+	} finally {
+		recursion_depth--
 	}
-	return parts.join(EMPTY_STRING)
 }
 
 export function format_selector(
@@ -430,14 +460,25 @@ export function format(
 
 	// First pass: collect all comments
 	let comments: number[] = []
-	let ast = parse(css, {
-		parse_atrule_preludes: false,
-		on_comment: minify
-			? undefined
-			: ({ start, end }) => {
-					comments.push(start, end)
-				},
-	})
+	let ast: StyleSheet
+	try {
+		ast = parse(css, {
+			parse_atrule_preludes: false,
+			on_comment: minify
+				? undefined
+				: ({ start, end }) => {
+						comments.push(start, end)
+					},
+		})
+	} catch (error) {
+		// Deeply nested input can exceed the JS call stack inside the parser
+		// itself, before our own recursion guard ever runs. Surface a clear,
+		// documented error instead of an opaque native RangeError.
+		if (error instanceof RangeError) {
+			throw new RangeError('format-css: input is too deeply nested to parse')
+		}
+		throw error
+	}
 
 	let depth = 0
 
@@ -501,113 +542,128 @@ export function format(
 	}
 
 	function print_block(node: Block): string {
-		let lines = []
-		depth++
+		enter_recursion()
+		try {
+			let lines = []
+			depth++
 
-		if (!node.has_children) {
-			let comment = get_comment(node.start, node.end)
-			if (comment) {
-				lines.push(indent(depth) + comment)
-				depth--
-				lines.push(indent(depth) + CLOSE_BRACE)
-				return lines.join(NEWLINE)
-			}
-		}
-
-		let first_child = node.first_child
-		let comment_before_first = get_comment(node.start, first_child?.start)
-		if (comment_before_first) {
-			lines.push(indent(depth) + comment_before_first)
-		}
-
-		let prev_end: number | undefined
-
-		for (let child of node) {
-			if (prev_end !== undefined) {
-				let comment = get_comment(prev_end, child.start)
+			if (!node.has_children) {
+				let comment = get_comment(node.start, node.end)
 				if (comment) {
 					lines.push(indent(depth) + comment)
+					depth--
+					lines.push(indent(depth) + CLOSE_BRACE)
+					return lines.join(NEWLINE)
 				}
 			}
 
-			if (is_declaration(child)) {
-				let is_last = !child.has_next || !is_declaration(child.next_sibling)
-				let declaration = format_declaration(child, { minify })
-				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
-				lines.push(indent(depth) + declaration + semi)
-			} else if (is_rule(child)) {
-				if (prev_end !== undefined && lines.length > 0) {
-					lines.push(EMPTY_STRING)
-				}
-				lines.push(print_rule(child))
-			} else if (is_atrule(child)) {
-				if (prev_end !== undefined && lines.length > 0) {
-					lines.push(EMPTY_STRING)
-				}
-				lines.push(indent(depth) + print_atrule(child))
+			let first_child = node.first_child
+			let comment_before_first = get_comment(node.start, first_child?.start)
+			if (comment_before_first) {
+				lines.push(indent(depth) + comment_before_first)
 			}
 
-			prev_end = child.end
-		}
+			let prev_end: number | undefined
 
-		let comment_after_last = get_comment(prev_end, node.end)
-		if (comment_after_last) {
-			lines.push(indent(depth) + comment_after_last)
-		}
+			for (let child of node) {
+				if (prev_end !== undefined) {
+					let comment = get_comment(prev_end, child.start)
+					if (comment) {
+						lines.push(indent(depth) + comment)
+					}
+				}
 
-		depth--
-		lines.push(indent(depth) + CLOSE_BRACE)
-		return lines.join(NEWLINE)
+				if (is_declaration(child)) {
+					let is_last = !child.has_next || !is_declaration(child.next_sibling)
+					let declaration = format_declaration(child, { minify })
+					let semi = is_last ? LAST_SEMICOLON : SEMICOLON
+					lines.push(indent(depth) + declaration + semi)
+				} else if (is_rule(child)) {
+					if (prev_end !== undefined && lines.length > 0) {
+						lines.push(EMPTY_STRING)
+					}
+					lines.push(print_rule(child))
+				} else if (is_atrule(child)) {
+					if (prev_end !== undefined && lines.length > 0) {
+						lines.push(EMPTY_STRING)
+					}
+					lines.push(indent(depth) + print_atrule(child))
+				}
+
+				prev_end = child.end
+			}
+
+			let comment_after_last = get_comment(prev_end, node.end)
+			if (comment_after_last) {
+				lines.push(indent(depth) + comment_after_last)
+			}
+
+			depth--
+			lines.push(indent(depth) + CLOSE_BRACE)
+			return lines.join(NEWLINE)
+		} finally {
+			recursion_depth--
+		}
 	}
 
 	function print_rule(node: Rule): string {
-		let block_has_content =
-			node.block && (node.block.has_children || get_comment(node.block.start, node.block.end))
-		let lines = []
+		enter_recursion()
+		try {
+			let block_has_content =
+				node.block && (node.block.has_children || get_comment(node.block.start, node.block.end))
+			let lines = []
 
-		if (node.has_prelude && is_selector_list(node.prelude)) {
-			let list = print_rule_selectors(node.prelude)
+			if (node.has_prelude && is_selector_list(node.prelude)) {
+				let list = print_rule_selectors(node.prelude)
 
-			let comment = get_comment(node.first_child?.end, node.block?.start)
-			if (comment) {
-				list += NEWLINE + indent(depth) + comment
+				let comment = get_comment(node.first_child?.end, node.block?.start)
+				if (comment) {
+					list += NEWLINE + indent(depth) + comment
+				}
+
+				list += OPTIONAL_SPACE + OPEN_BRACE
+				if (!block_has_content) {
+					list += CLOSE_BRACE
+				}
+				lines.push(list)
 			}
 
-			list += OPTIONAL_SPACE + OPEN_BRACE
-			if (!block_has_content) {
-				list += CLOSE_BRACE
+			if (block_has_content) {
+				lines.push(print_block(node.block!))
 			}
-			lines.push(list)
-		}
 
-		if (block_has_content) {
-			lines.push(print_block(node.block!))
+			return lines.join(NEWLINE)
+		} finally {
+			recursion_depth--
 		}
-
-		return lines.join(NEWLINE)
 	}
 
 	function print_atrule(node: Atrule): string {
-		let name = '@' + node.name!.toLowerCase()
-		if (node.prelude) {
-			name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
-		}
-
-		let block_has_content =
-			node.has_block && (!node.block.is_empty || !!get_comment(node.block.start, node.block.end))
-		if (node.has_block) {
-			name += OPTIONAL_SPACE + OPEN_BRACE
-			if (!block_has_content) {
-				name += CLOSE_BRACE
+		enter_recursion()
+		try {
+			let name = '@' + node.name!.toLowerCase()
+			if (node.prelude) {
+				name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
 			}
-		} else {
-			name += SEMICOLON
-		}
 
-		if (block_has_content) {
-			return name + NEWLINE + print_block(node.block!)
+			let block_has_content =
+				node.has_block && (!node.block.is_empty || !!get_comment(node.block.start, node.block.end))
+			if (node.has_block) {
+				name += OPTIONAL_SPACE + OPEN_BRACE
+				if (!block_has_content) {
+					name += CLOSE_BRACE
+				}
+			} else {
+				name += SEMICOLON
+			}
+
+			if (block_has_content) {
+				return name + NEWLINE + print_block(node.block!)
+			}
+			return name
+		} finally {
+			recursion_depth--
 		}
-		return name
 	}
 
 	function print_stylesheet(node: StyleSheet): string {
