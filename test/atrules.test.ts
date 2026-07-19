@@ -345,15 +345,12 @@ test('new-fangled comparators (width > 1000px)', () => {
 	let actual = format(`
 		@container (width>1000px) {}
 		@media (width>1000px) {}
-		@media (width=>1000px) {}
 		@media (width<=1000px) {}
 		@media (200px<width<1000px) {}
 	`)
 	let expected = `@container (width > 1000px) {}
 
 @media (width > 1000px) {}
-
-@media (width => 1000px) {}
 
 @media (width <= 1000px) {}
 
@@ -364,6 +361,18 @@ test('new-fangled comparators (width > 1000px)', () => {
 test('minify: new-fangled comparators (width > 1000px)', () => {
 	let actual = minify(`@container (width>1000px) {}`)
 	let expected = `@container (width>1000px){}`
+	expect(actual).toEqual(expected)
+})
+
+test('lowercases the media/container feature name', () => {
+	let actual = format(`@media (MIN-WIDTH: 100px) {}`)
+	let expected = `@media (min-width: 100px) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves casing of a custom-property media feature name', () => {
+	let actual = format(`@media (--Foo: 1) {}`)
+	let expected = `@media (--Foo: 1) {}`
 	expect(actual).toEqual(expected)
 })
 
