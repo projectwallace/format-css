@@ -415,7 +415,6 @@ test('minify: keeps whitespace between "or" keyword and media feature', () => {
 	expect(actual).toEqual(expected)
 })
 
-// oxlint-disable-next-line vitest/no-disabled-tests
 test('lowercases @container style() function name', () => {
 	let actual = format(`@container STYLE(--foo: bar) { a { color: red; } }`)
 	let expected = `@container style(--foo: bar) {
@@ -423,6 +422,24 @@ test('lowercases @container style() function name', () => {
 		color: red;
 	}
 }`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves function calls inside @container style() condition values', () => {
+	let actual = format(`@container style(--foo: env(safe-area-inset-top)) {}`)
+	let expected = `@container style(--foo: env(safe-area-inset-top)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('does not corrupt a nested @container style() boolean group', () => {
+	let actual = format(`@container style((--a: 1) and (--b: 2)) {}`)
+	let expected = `@container style((--a: 1) and (--b: 2)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('formats multiple style() conditions joined by and/or', () => {
+	let actual = format(`@container name style(--theme: dark) and style(--size: large) {}`)
+	let expected = `@container name style(--theme: dark) and style(--size: large) {}`
 	expect(actual).toEqual(expected)
 })
 

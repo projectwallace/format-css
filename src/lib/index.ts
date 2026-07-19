@@ -1,6 +1,5 @@
 import {
 	parse,
-	parse_declaration,
 	is_function,
 	is_dimension,
 	is_parenthesis,
@@ -35,6 +34,7 @@ import {
 	type Raw,
 	type AtrulePrelude,
 	type SupportsQuery,
+	type SupportsDeclaration,
 	type FeatureRange,
 	type MediaFeature,
 	type Function as CSSFunction,
@@ -424,71 +424,6 @@ export function format_atrule_prelude(
 		.replaceAll(ATRULE_FN_NAME_RE, (match) => match.toLowerCase()) // lowercase function names
 }
 
-/**
- * Appends any closing parentheses missing from `text`.
- *
- * A container `style()` condition's raw argument text can be missing its own
- * trailing `)` (the same kind of off-by-one end offset that used to affect
- * `MediaFeature.text`/`SupportsQuery.value` too, before both were deep-parsed
- * in @projectwallace/css-parser 0.18.0). Re-balancing defensively here means
- * the raw text stays safe to hand to `parse_declaration` or slice further.
- */
-function balance_parens(text: string): string {
-	let depth = 0
-	for (let i = 0; i < text.length; i++) {
-		let code = text.charCodeAt(i)
-		if (code === 40) depth++
-		else if (code === 41) depth--
-	}
-	return depth > 0 ? text + CLOSE_PARENTHESES.repeat(depth) : text
-}
-
-/** Whether `text` has a `:` outside of any parentheses — the same check
- * @projectwallace/css-parser's own `find_colon_at_depth_zero` uses to decide
- * whether a `@supports`/`style()` condition is a simple declaration at all. */
-function has_top_level_colon(text: string): boolean {
-	let depth = 0
-	for (let i = 0; i < text.length; i++) {
-		let code = text.charCodeAt(i)
-		if (code === 40) depth++
-		else if (code === 41) depth--
-		else if (code === 58 && depth === 0) return true
-	}
-	return false
-}
-
-/**
- * Prints a declaration-shaped at-rule condition (`prop: value`), e.g. the
- * inside of `@container style(--foo: bar)`.
- *
- * Re-parses the raw text with the full declaration parser and reuses
- * `format_declaration`, rather than trusting the prelude parser's own value
- * for it: unlike `MediaFeature`/`SupportsDeclaration` values (deep-parsed as
- * of @projectwallace/css-parser 0.18.0), a container `style()` condition's
- * arguments are still only exposed as raw text. Falls back to the raw text
- * for conditions that aren't a simple declaration at all, e.g.
- * `style(selector(:hover))`.
- */
-function print_condition(raw: string, minify: boolean): string {
-	let balanced = balance_parens(raw)
-	// A nested boolean group, e.g. `(display: grid) and (display: flex)`
-	// (from `@supports ((display: grid) and (display: flex))`), has no
-	// top-level colon of its own — parse_declaration on it doesn't reliably
-	// come back with an empty property to signal "not a declaration" (it can
-	// naively split on the first, nested colon instead), so that check alone
-	// isn't a safe enough guard. Skip straight to the regex fallback, which
-	// still normalizes colon spacing inside the nested groups (and, via its
-	// own selector()-exception, correctly leaves selector(:hover) alone).
-	if (!has_top_level_colon(balanced)) {
-		return format_atrule_prelude(balanced, { minify })
-	}
-	let declaration = parse_declaration(balanced)
-	if (declaration.property === EMPTY_STRING) {
-		return balanced
-	}
-	return format_declaration(declaration, { minify })
-}
-
 /** Prints a two-sided (`200px < width < 1000px`) or one-sided (`width >
  * 1000px`) media-feature range. The feature name never appears as a child
  * node, so its printed position is found by comparing its offset in the
@@ -576,9 +511,17 @@ function print_prelude_function(node: CSSFunction, minify: boolean): string {
 			CLOSE_PARENTHESES
 		)
 	}
+	// A container style() condition is deep-parsed into a SupportsDeclaration
+	// the same way @supports's own condition is (see print_supports_query),
+	// as of @projectwallace/css-parser 0.18.1. Function's declared child type
+	// doesn't include SupportsDeclaration (it's normally only used for
+	// value-position functions like calc()), hence the cast.
+	if (node.has_children) {
+		let declaration = (node.first_child as unknown as SupportsDeclaration).first_child
+		return name + OPEN_PARENTHESES + format_declaration(declaration, { minify }) + CLOSE_PARENTHESES
+	}
 	if (node.value === null) return node.text
-	let args = balance_parens(node.value)
-	return name + OPEN_PARENTHESES + print_condition(args, minify) + CLOSE_PARENTHESES
+	return name + OPEN_PARENTHESES + format_atrule_prelude(node.value, { minify }) + CLOSE_PARENTHESES
 }
 
 /** Prints an `@import` URL: lowercases a leading `url(` keyword but never
