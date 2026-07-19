@@ -9,13 +9,19 @@ trust the structured prelude parser yet.
 
 Entries are removed from this list once confirmed fixed upstream (and the
 corresponding workaround removed from `src/lib/index.ts`) — check git
-history for this file if you're looking for something that used to be here
-(e.g. dotted `@layer` names being split at the dot, fixed in `0.17.0`;
-function calls being dropped from media-feature/`@supports`/`style()`
-values, and the off-by-one end offsets that came with it, fixed in `0.18.0`
-by deep-parsing at-rule prelude values).
+history for this file if you're looking for something that used to be here.
+Fixed so far:
 
-Currently verified against `@projectwallace/css-parser@0.18.0`.
+- dotted `@layer` names being split at the dot — `0.17.0`
+- function calls dropped from media-feature/`@supports`/`style()` values,
+  and the off-by-one end offsets that came with it (deep-parsing at-rule
+  prelude values) — `0.18.0`
+- `@supports selector(...)` returning nothing at all (now deep-parsed into a
+  real selector list); the leading `only`/`not` media-query prefix being
+  silently dropped from a query's children; the `.d.ts` child-union
+  mismatches on `AtrulePrelude`/`ContainerQuery`/`FeatureRange` — `0.18.1`
+
+Currently verified against `@projectwallace/css-parser@0.18.1`.
 
 Repro snippets below assume:
 
@@ -38,53 +44,7 @@ order, so `=>` comes through split. (It's unclear `=>` is meaningful CSS
 media-feature syntax at all, but the tokenizer should presumably be
 consistent regardless of operand order.)
 
-## 2. `@supports selector(...)` (or any function-token condition) returns nothing (medium severity)
-
-```js
-parse_atrule_prelude('supports', 'selector([popover]:open)')
-// → [] (completely empty — not even a Raw fallback)
-```
-
-`parse_supports_query`'s dispatch loop only handles a `LEFT_PAREN` token
-(start of a parenthesized condition) or an `IDENT` token (checking for
-`and`/`or`/`not`); a `FUNCTION` token like `selector(` matches neither
-branch and is silently skipped, so the entire prelude parses to an empty
-array — total content loss, with no way to recover even the raw text
-structurally. This is the CSS Selectors-in-`@supports` feature, in active
-use (`:has()`-style progressive enhancement checks).
-
-## 3. Leading `only`/`not` media-query prefix is consumed but never emitted as a node (medium severity)
-
-```js
-parse_atrule_prelude('media', 'only screen')
-// → [MediaQuery] where MediaQuery.text === "only screen" (correct)
-//   but MediaQuery.children === [MediaType("screen")] — "only" is gone
-```
-
-`parse_single_media_query` peeks the first token, and if it's `only`/`not`,
-advances past it without creating any node — so it's present in the
-enclosing `MediaQuery`'s own `.text` span but absent from its children. Any
-consumer reconstructing a query purely from its children (rather than
-falling back to the parent's raw `.text`) silently drops a very common
-real-world prefix (`@media only screen ...`).
-
-## 4. A few `.d.ts` declared child unions don't match runtime output (low severity, TS-only)
-
-- `FeatureRange`'s children are typed `Dimension | Operator`, but comparison
-  operators inside a range are actually `PreludeOperator` (type 38) at
-  runtime, not the generic `Operator` (type 16) the type implies.
-- `ContainerQuery`'s children are typed `Identifier | MediaFeature |
-Function`, but the parser also pushes `PreludeOperator` nodes for
-  `and`/`or`/`not` between conditions — not part of the declared union.
-- `AtrulePrelude`'s (and other container nodes') declared child unions don't
-  include `Identifier` or `String`, even though `parse_identifier()` (used
-  for `@page`/`@keyframes`/`@property`/etc.) and `parse_charset_prelude()`
-  produce exactly those types as top-level prelude children.
-
-Doesn't affect JS behavior, but misleads TypeScript consumers who pattern-
-match/exhaustively-check against the declared unions.
-
-## 5. No comment-preservation hook for prelude parsing (low/medium severity, may be intentional)
+## 2. No comment-preservation hook for prelude parsing (low/medium severity, may be intentional)
 
 The main `parse()` function accepts an `on_comment` callback so callers can
 recover comments that appear between top-level constructs. The at-rule

@@ -488,6 +488,37 @@ test('does not corrupt a nested @supports boolean group', () => {
 	expect(actual).toEqual(expected)
 })
 
+test('does not duplicate the "only"/"not" media-query prefix', () => {
+	let actual = format(`
+		@media only screen {}
+		@media not screen {}
+		@media not (color) {}
+		@media not all and (monochrome) {}
+	`)
+	let expected = `@media only screen {}
+
+@media not screen {}
+
+@media not (color) {}
+
+@media not all and (monochrome) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('formats @supports selector() as a selector list, not a declaration', () => {
+	let actual = format(`
+		@supports selector([popover]:open) {}
+		@supports SELECTOR(:hover) {}
+		@supports selector(:hover) and (display: grid) {}
+	`)
+	let expected = `@supports selector([popover]:open) {}
+
+@supports selector(:hover) {}
+
+@supports selector(:hover) and (display: grid) {}`
+	expect(actual).toEqual(expected)
+})
+
 // oxlint-disable-next-line vitest/no-disabled-tests
 test.skip('preserves comments', () => {
 	let actual = format(`

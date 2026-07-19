@@ -424,8 +424,6 @@ export function format_atrule_prelude(
 		.replaceAll(ATRULE_FN_NAME_RE, (match) => match.toLowerCase()) // lowercase function names
 }
 
-const ONLY_NOT_PREFIX_RE = /^(only|not)\s/i
-
 /**
  * Appends any closing parentheses missing from `text`.
  *
@@ -567,11 +565,21 @@ function print_supports_query(node: SupportsQuery, minify: boolean): string {
 
 /** Prints a functional container-query condition, e.g. `style(--foo: bar)`. */
 function print_prelude_function(node: CSSFunction, minify: boolean): string {
+	let name = node.name.toLowerCase()
+	// `@supports selector(...)` takes a selector list, not a declaration —
+	// deep-parsed as of @projectwallace/css-parser 0.18.1 (previously this
+	// whole prelude came back empty, see PARSER_ISSUES.md history).
+	if (name === 'selector' && node.has_children && is_selector_list(node.first_child)) {
+		return (
+			name +
+			OPEN_PARENTHESES +
+			format_selector_list(node.first_child, { minify }) +
+			CLOSE_PARENTHESES
+		)
+	}
 	if (node.value === null) return node.text
 	let args = balance_parens(node.value)
-	return (
-		node.name.toLowerCase() + OPEN_PARENTHESES + print_condition(args, minify) + CLOSE_PARENTHESES
-	)
+	return name + OPEN_PARENTHESES + print_condition(args, minify) + CLOSE_PARENTHESES
 }
 
 /** Prints an `@import` URL: lowercases a leading `url(` keyword but never
@@ -593,14 +601,7 @@ function print_prelude_url(node: CSSNode): string {
  * `@import`'s `layer()`, Raw, ...) the node's raw text verbatim.
  */
 function print_prelude_component(node: CSSNode, optional_space: string, minify: boolean): string {
-	if (is_media_query(node)) {
-		let prefix = ONLY_NOT_PREFIX_RE.exec(node.text)
-		return (
-			(prefix ? prefix[1] + SPACE : EMPTY_STRING) +
-			print_prelude_children(node, optional_space, minify)
-		)
-	}
-	if (is_container_query(node)) {
+	if (is_media_query(node) || is_container_query(node)) {
 		return print_prelude_children(node, optional_space, minify)
 	}
 	if (is_media_feature(node)) {
