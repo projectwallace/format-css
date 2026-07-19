@@ -124,7 +124,7 @@ test('@media prelude formatting', () => {
 		[`@media (update: slow)or (hover: none) {}`, `@media (update: slow) or (hover: none) {}`],
 		[
 			`@media all and (-moz-images-in-menus:0) and (min-resolution:.001dpcm) {}`,
-			`@media all and (-moz-images-in-menus: 0) and (min-resolution: .001dpcm) {}`,
+			`@media all and (-moz-images-in-menus: 0) and (min-resolution: 0.001dpcm) {}`,
 		],
 		[
 			`@media all and (-webkit-min-device-pixel-ratio: 10000),not all and (-webkit-min-device-pixel-ratio: 0) {}`,

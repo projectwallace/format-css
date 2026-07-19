@@ -10,9 +10,12 @@ trust the structured prelude parser yet.
 Entries are removed from this list once confirmed fixed upstream (and the
 corresponding workaround removed from `src/lib/index.ts`) — check git
 history for this file if you're looking for something that used to be here
-(e.g. dotted `@layer` names being split at the dot, fixed in `0.17.0`).
+(e.g. dotted `@layer` names being split at the dot, fixed in `0.17.0`;
+function calls being dropped from media-feature/`@supports`/`style()`
+values, and the off-by-one end offsets that came with it, fixed in `0.18.0`
+by deep-parsing at-rule prelude values).
 
-Currently verified against `@projectwallace/css-parser@0.17.0`.
+Currently verified against `@projectwallace/css-parser@0.18.0`.
 
 Repro snippets below assume:
 
@@ -20,67 +23,7 @@ Repro snippets below assume:
 import { parse_atrule_prelude } from '@projectwallace/css-parser'
 ```
 
-## 1. Function calls are dropped from media-feature/feature-range values (high severity)
-
-```js
-parse_atrule_prelude('media', '(min-width: calc(1px * 1))')
-// Feature.value's children: [Dimension("1px"), Number("1")]
-// "calc(", "*", and ")" are gone
-```
-
-```js
-parse_atrule_prelude('media', '(min-width: env(safe-area-inset-top))')
-// Feature.value: Identifier("safe-area-inset-top")
-// "env(" and ")" are gone
-```
-
-`parse_feature_value`'s `parse_value_token` switch (`parse-atrule-prelude.js`)
-only recognizes `IDENT`/`NUMBER`/`PERCENTAGE`/`DIMENSION`/`STRING` tokens.
-`FUNCTION` tokens (`calc(`, `env(`, `var(`, `min(`, `max(`, `clamp(`,
-`attr(`, ...) return `null` from `parse_value_token` and are skipped
-entirely, along with everything inside their parentheses. Reconstructing a
-feature's value purely from its children silently produces the wrong CSS.
-
-`calc()` in media/container queries is common; this needs fixing before
-consumers can trust `MediaFeature.value`/`FeatureRange` children for
-anything beyond a single plain number/dimension/identifier.
-
-## 2. Same value-drop bug inside `@supports`/`style()` declaration values (high severity)
-
-```js
-parse_atrule_prelude('supports', '(background: linear-gradient(red, blue))')
-// SupportsDeclaration → Declaration.value → Value.children:
-//   [Identifier("red"), Identifier("blue")]
-// "linear-gradient(" and the trailing ")" are gone
-```
-
-Same root cause as #1 — `create_supports_declaration` builds its
-`Declaration.value` via the same `parse_feature_value`. Any `@supports`
-condition value containing a function call loses it.
-
-## 3. Inconsistent off-by-one on several nodes' own end offset / `.text` (medium severity)
-
-```js
-let f = parse_atrule_prelude('media', '(min-width: calc(1px * 1))')[0].first_child
-f.text // "(min-width: calc(1px * 1)"  — missing the feature's own trailing ')'
-f.end // 25, but the full input is 26 chars long
-
-parse_atrule_prelude('supports', '(background: linear-gradient(red, blue))')[0].value
-// "background: linear-gradient(red, blue"  — missing linear-gradient's ')'
-```
-
-`MediaFeature.text`/`.end`, `SupportsQuery.value`, and the nested
-`SupportsDeclaration`/`Declaration.text` are all missing exactly one
-trailing `)` in these cases — but _not_ in the simple case (`(min-width:
-768px)` reports a correct, complete `.text`/`.end`). The truncation only
-appears once a value containing nested parentheses is involved, suggesting
-the `content_end`/`value_end` bookkeeping in `parse_media_feature` /
-`parse_supports_query` gets one character short when it also has to account
-for the dropped-function-token gap from #1/#2. Any consumer slicing the
-source string using these offsets, or trusting `.text` to be complete, needs
-to defensively re-balance parentheses first.
-
-## 4. `=>` tokenizes as two separate operators instead of one (low severity)
+## 1. `=>` tokenizes as two separate operators instead of one (low severity)
 
 ```js
 parse_atrule_prelude('media', '(width=>1000px)')
@@ -95,7 +38,7 @@ order, so `=>` comes through split. (It's unclear `=>` is meaningful CSS
 media-feature syntax at all, but the tokenizer should presumably be
 consistent regardless of operand order.)
 
-## 5. `@supports selector(...)` (or any function-token condition) returns nothing (medium severity)
+## 2. `@supports selector(...)` (or any function-token condition) returns nothing (medium severity)
 
 ```js
 parse_atrule_prelude('supports', 'selector([popover]:open)')
@@ -110,7 +53,7 @@ array — total content loss, with no way to recover even the raw text
 structurally. This is the CSS Selectors-in-`@supports` feature, in active
 use (`:has()`-style progressive enhancement checks).
 
-## 6. Leading `only`/`not` media-query prefix is consumed but never emitted as a node (medium severity)
+## 3. Leading `only`/`not` media-query prefix is consumed but never emitted as a node (medium severity)
 
 ```js
 parse_atrule_prelude('media', 'only screen')
@@ -125,24 +68,7 @@ consumer reconstructing a query purely from its children (rather than
 falling back to the parent's raw `.text`) silently drops a very common
 real-world prefix (`@media only screen ...`).
 
-## 7. `ContainerQuery`'s functional condition fields are inconsistent (low/medium severity)
-
-```js
-parse_atrule_prelude('container', 'style(--foo: bar)')[0]
-// Function.name === "style", Function.value === "--foo: bar"  (both populated)
-
-parse_atrule_prelude('container', 'style(--foo: env(safe-area-inset-top))')[0]
-// Function.name === undefined, Function.value === null
-// (Function.text is still correct/complete: "style(--foo: env(safe-area-inset-top))")
-```
-
-`.name` and `.value` are populated in the simple case but become
-`undefined`/`null` once the args contain a nested function call (interacting
-with #1). `.text` was the only field that stayed reliable across both cases
-in testing — worth documenting as the recommended fallback, or fixing `.name`
-to always resolve consistently.
-
-## 8. A few `.d.ts` declared child unions don't match runtime output (low severity, TS-only)
+## 4. A few `.d.ts` declared child unions don't match runtime output (low severity, TS-only)
 
 - `FeatureRange`'s children are typed `Dimension | Operator`, but comparison
   operators inside a range are actually `PreludeOperator` (type 38) at
@@ -158,7 +84,7 @@ Function`, but the parser also pushes `PreludeOperator` nodes for
 Doesn't affect JS behavior, but misleads TypeScript consumers who pattern-
 match/exhaustively-check against the declared unions.
 
-## 9. No comment-preservation hook for prelude parsing (low/medium severity, may be intentional)
+## 5. No comment-preservation hook for prelude parsing (low/medium severity, may be intentional)
 
 The main `parse()` function accepts an `on_comment` callback so callers can
 recover comments that appear between top-level constructs. The at-rule

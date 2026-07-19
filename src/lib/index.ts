@@ -37,6 +37,7 @@ import {
 	type SupportsQuery,
 	type FeatureRange,
 	type MediaFeature,
+	type Function as CSSFunction,
 	type NthSelector,
 	type NthOfSelector,
 	type PseudoClassSelector,
@@ -428,11 +429,12 @@ const ONLY_NOT_PREFIX_RE = /^(only|not)\s/i
 /**
  * Appends any closing parentheses missing from `text`.
  *
- * A handful of @projectwallace/css-parser's at-rule prelude nodes (e.g.
- * MediaFeature.text, SupportsQuery.value) have an off-by-one end offset that
- * drops the node's own trailing `)`. Re-balancing defensively here means the
- * raw text stays safe to hand to `parse_declaration` or slice further,
- * without needing to know exactly which node types are affected.
+ * A container `style()` condition's raw argument text can be missing its own
+ * trailing `)` (the same kind of off-by-one end offset that used to affect
+ * `MediaFeature.text`/`SupportsQuery.value` too, before both were deep-parsed
+ * in @projectwallace/css-parser 0.18.0 — see PARSER_ISSUES.md). Re-balancing
+ * defensively here means the raw text stays safe to hand to
+ * `parse_declaration` or slice further.
  */
 function balance_parens(text: string): string {
 	let depth = 0
@@ -440,30 +442,6 @@ function balance_parens(text: string): string {
 		let code = text.charCodeAt(i)
 		if (code === 40) depth++
 		else if (code === 41) depth--
-	}
-	return depth > 0 ? text + CLOSE_PARENTHESES.repeat(depth) : text
-}
-
-/**
- * Extracts a media-feature value from the text after its colon, which may or
- * may not still include the feature's own trailing `)` (the same off-by-one
- * `balance_parens` works around, except here it can go either way instead of
- * only ever being short — see PARSER_ISSUES.md). Scans for the first `)`
- * that isn't matched by a `(` seen so far in this slice: that's necessarily
- * the feature's own closing paren, not part of the value, since every
- * legitimate nested paren pair (e.g. `calc(...)`) must already balance
- * within the slice. If the text runs out first, any still-open parens (e.g.
- * an unclosed nested calc()) are appended, same as `balance_parens`.
- */
-function extract_balanced_value(text: string): string {
-	let depth = 0
-	for (let i = 0; i < text.length; i++) {
-		let code = text.charCodeAt(i)
-		if (code === 40) depth++
-		else if (code === 41) {
-			if (depth === 0) return text.slice(0, i)
-			depth--
-		}
 	}
 	return depth > 0 ? text + CLOSE_PARENTHESES.repeat(depth) : text
 }
@@ -484,14 +462,15 @@ function has_top_level_colon(text: string): boolean {
 
 /**
  * Prints a declaration-shaped at-rule condition (`prop: value`), e.g. the
- * inside of `@supports (display: grid)` or `@container style(--foo: bar)`.
+ * inside of `@container style(--foo: bar)`.
  *
  * Re-parses the raw text with the full declaration parser and reuses
  * `format_declaration`, rather than trusting the prelude parser's own value
- * nodes for it: those silently drop function calls (`calc()`, `env()`, ...)
- * from condition values (a parser bug — see PARSER_ISSUES.md). Falls back to
- * the raw text for conditions that aren't a simple declaration at all, e.g.
- * `selector(:hover)`.
+ * for it: unlike `MediaFeature`/`SupportsDeclaration` values (deep-parsed as
+ * of @projectwallace/css-parser 0.18.0), a container `style()` condition's
+ * arguments are still only exposed as raw text (see PARSER_ISSUES.md).
+ * Falls back to the raw text for conditions that aren't a simple declaration
+ * at all, e.g. `style(selector(:hover))`.
  */
 function print_condition(raw: string, minify: boolean): string {
 	let balanced = balance_parens(raw)
@@ -546,40 +525,38 @@ function print_feature_range(node: FeatureRange, optional_space: string): string
 }
 
 /** Prints a single media/container feature, e.g. `(min-width: 768px)` or the
- * boolean form `(hover)`. */
+ * boolean form `(hover)`. `node.value` is a fully parsed value node (as of
+ * @projectwallace/css-parser 0.18.0 — function calls like `calc()`/`env()`
+ * used to be silently dropped from it, see PARSER_ISSUES.md history), so it
+ * can go straight through `print_list` like a declaration's value would. */
 function print_media_feature(node: MediaFeature, minify: boolean): string {
 	if (node.value === null) {
 		return OPEN_PARENTHESES + node.property + CLOSE_PARENTHESES
 	}
 
-	// node.text's own trailing ')' is inconsistently present (an upstream
-	// off-by-one that only manifests once nested parens like calc() are
-	// involved), and node.value's children drop function calls from the value
-	// entirely either way — slice the raw value out of node.text instead and
-	// run it through the existing (untouched) regex formatter for
-	// calc()/whitespace normalization.
-	let colon_index = node.text.indexOf(COLON)
-	let raw_value = extract_balanced_value(node.text.slice(colon_index + 1).trim())
 	let optional_space = minify ? EMPTY_STRING : SPACE
 	return (
 		OPEN_PARENTHESES +
 		node.property +
 		COLON +
 		optional_space +
-		format_atrule_prelude(raw_value, { minify }) +
+		print_list([node.value], optional_space) +
 		CLOSE_PARENTHESES
 	)
 }
 
 /** Prints `@supports (display: grid)`-style conditions, including
- * `and`/`or`/`not`-joined and nested-boolean-group forms it can't reduce to a
- * single declaration (e.g. `selector(:hover)`), which print as-is. */
+ * `and`/`or`/`not`-joined and nested-boolean-group forms that don't reduce to
+ * a single declaration (e.g. `selector(:hover)`), which print as-is. */
 function print_supports_query(node: SupportsQuery, minify: boolean): string {
-	// print_condition already falls back to the raw (balanced) value for
-	// non-declaration conditions, so node.has_children (only ever set for the
-	// standalone `@supports (...)` form — @import's `supports(...)` never
-	// gets a SupportsDeclaration child at all) doesn't need checking here.
-	let condition = print_condition(node.value, minify)
+	// node.has_children means the prelude parser found a simple `prop: value`
+	// declaration inside the parens (never true for @import's `supports(...)`,
+	// which doesn't get a SupportsDeclaration child at all) — its value node is
+	// fully parsed (see print_media_feature), so it can be printed directly
+	// via format_declaration instead of re-parsing raw text.
+	let condition = node.has_children
+		? format_declaration(node.first_child.first_child, { minify })
+		: format_atrule_prelude(node.value, { minify })
 	// `@import url(...) supports(display: grid)` uses the functional notation
 	// (keyword + parens around the condition) rather than the standalone
 	// `@supports (...)` form's bare parenthesized condition — node.text still
@@ -589,13 +566,12 @@ function print_supports_query(node: SupportsQuery, minify: boolean): string {
 }
 
 /** Prints a functional container-query condition, e.g. `style(--foo: bar)`. */
-function print_prelude_function(node: CSSNode, minify: boolean): string {
-	let text = node.text
-	let paren_index = text.indexOf(OPEN_PARENTHESES)
-	if (paren_index === -1) return text
-	let name = text.slice(0, paren_index).toLowerCase()
-	let args = balance_parens(text.slice(paren_index + 1, -1))
-	return name + OPEN_PARENTHESES + print_condition(args, minify) + CLOSE_PARENTHESES
+function print_prelude_function(node: CSSFunction, minify: boolean): string {
+	if (node.value === null) return node.text
+	let args = balance_parens(node.value)
+	return (
+		node.name.toLowerCase() + OPEN_PARENTHESES + print_condition(args, minify) + CLOSE_PARENTHESES
+	)
 }
 
 /** Prints an `@import` URL: lowercases a leading `url(` keyword but never
