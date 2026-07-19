@@ -430,9 +430,8 @@ export function format_atrule_prelude(
  * A container `style()` condition's raw argument text can be missing its own
  * trailing `)` (the same kind of off-by-one end offset that used to affect
  * `MediaFeature.text`/`SupportsQuery.value` too, before both were deep-parsed
- * in @projectwallace/css-parser 0.18.0 — see PARSER_ISSUES.md). Re-balancing
- * defensively here means the raw text stays safe to hand to
- * `parse_declaration` or slice further.
+ * in @projectwallace/css-parser 0.18.0). Re-balancing defensively here means
+ * the raw text stays safe to hand to `parse_declaration` or slice further.
  */
 function balance_parens(text: string): string {
 	let depth = 0
@@ -466,9 +465,9 @@ function has_top_level_colon(text: string): boolean {
  * `format_declaration`, rather than trusting the prelude parser's own value
  * for it: unlike `MediaFeature`/`SupportsDeclaration` values (deep-parsed as
  * of @projectwallace/css-parser 0.18.0), a container `style()` condition's
- * arguments are still only exposed as raw text (see PARSER_ISSUES.md).
- * Falls back to the raw text for conditions that aren't a simple declaration
- * at all, e.g. `style(selector(:hover))`.
+ * arguments are still only exposed as raw text. Falls back to the raw text
+ * for conditions that aren't a simple declaration at all, e.g.
+ * `style(selector(:hover))`.
  */
 function print_condition(raw: string, minify: boolean): string {
 	let balanced = balance_parens(raw)
@@ -525,8 +524,8 @@ function print_feature_range(node: FeatureRange, optional_space: string): string
 /** Prints a single media/container feature, e.g. `(min-width: 768px)` or the
  * boolean form `(hover)`. `node.value` is a fully parsed value node (as of
  * @projectwallace/css-parser 0.18.0 — function calls like `calc()`/`env()`
- * used to be silently dropped from it, see PARSER_ISSUES.md history), so it
- * can go straight through `print_list` like a declaration's value would. */
+ * used to be silently dropped from it), so it can go straight through
+ * `print_list` like a declaration's value would. */
 function print_media_feature(node: MediaFeature, minify: boolean): string {
 	if (node.value === null) {
 		return OPEN_PARENTHESES + node.property + CLOSE_PARENTHESES
@@ -568,7 +567,7 @@ function print_prelude_function(node: CSSFunction, minify: boolean): string {
 	let name = node.name.toLowerCase()
 	// `@supports selector(...)` takes a selector list, not a declaration —
 	// deep-parsed as of @projectwallace/css-parser 0.18.1 (previously this
-	// whole prelude came back empty, see PARSER_ISSUES.md history).
+	// whole prelude came back empty).
 	if (name === 'selector' && node.has_children && is_selector_list(node.first_child)) {
 		return (
 			name +
@@ -627,8 +626,7 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
 		// (bare "name") and @import's embedded `layer(...)` reach this branch.
 		// Only the latter has a "layer(" keyword to lowercase (matching
 		// format_atrule_prelude); the former's node.text is just the name
-		// itself (dots and all — see PARSER_ISSUES.md, issue #1, fixed in
-		// @projectwallace/css-parser 0.17.0).
+		// itself, dots and all (@projectwallace/css-parser 0.17.0+).
 		return /^layer\(/i.test(node.text) ? 'layer(' + node.text.slice(6) : node.text
 	}
 	if (is_prelude_operator(node)) {
