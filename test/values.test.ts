@@ -178,6 +178,14 @@ test('lowercases CSS functions', () => {
 	expect(actual).toEqual(expected)
 })
 
+test('preserves casing of a custom function name', () => {
+	let actual = format(`a { width: --myFunc(1px); }`)
+	let expected = `a {
+	width: --myFunc(1px);
+}`
+	expect(actual).toEqual(expected)
+})
+
 test('relative colors', () => {
 	let actual = format(`a {
 		color: rgb(  from  red 0  0  255);
