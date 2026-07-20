@@ -75,6 +75,7 @@ export type FormatOptions = {
 }
 
 const UNQUOTE_RE = /(?:^['"])|(?:['"]$)/g
+const DATA_URL_RE = /^['"]?data:/i
 const FONT_SLASH_RE = /\s*\/\s*/
 const ATRULE_COLON_COMMA_RE = /\s*([:,])/g
 const ATRULE_PAREN_TEXT_RE = /\)([a-zA-Z])/g
@@ -91,12 +92,6 @@ export function unquote(str: string): string {
 	return str.replaceAll(UNQUOTE_RE, EMPTY_STRING)
 }
 
-/** Lowercases a CSS identifier, except a custom-ident starting with `--`,
- * which must keep its case as written. */
-function print_identifier(name: string): string {
-	return name.startsWith('--') ? name : name.toLowerCase()
-}
-
 function print_string(str: string | number | null, quote?: '"' | "'"): string {
 	str = str?.toString() || ''
 	let inner = unquote(str)
@@ -106,14 +101,26 @@ function print_string(str: string | number | null, quote?: '"' | "'"): string {
 	return quote + inner + quote
 }
 
-/** Prints a `url(...)`: lowercases a leading `url(` keyword but leaves quote
- * style untouched. */
-function print_url(node: Url | CSSNode): string {
-	let text = node.text
-	if (/^url\(/i.test(text)) {
-		return 'url(' + text.slice(4)
+function print_url(node: Url): string {
+	let value = node.value ?? ''
+	let unquoted = unquote(value)
+
+	let inner: string
+	if (DATA_URL_RE.test(value)) {
+		let has_double = unquoted.includes('"')
+		let has_single = unquoted.includes("'")
+		if (has_double && has_single) {
+			inner = print_string(unquoted.replaceAll('"', '%22'), '"')
+		} else if (has_double || has_single) {
+			inner = print_string(unquoted)
+		} else {
+			inner = unquoted
+		}
+	} else {
+		inner = print_string(value)
 	}
-	return text
+
+	return 'url(' + inner + CLOSE_PARENTHESES
 }
 
 function print_operator(node: Operator, optional_space = SPACE): string {
@@ -131,7 +138,7 @@ function print_list(nodes: CSSNode[], optional_space = SPACE): string {
 	let parts = []
 	for (let node of nodes) {
 		if (is_function(node)) {
-			let fn = print_identifier(node.name)
+			let fn = node.name.toLowerCase()
 			parts.push(fn, OPEN_PARENTHESES, print_list(node.children, optional_space), CLOSE_PARENTHESES)
 		} else if (is_dimension(node)) {
 			parts.push(node.value, node.unit?.toLowerCase())
@@ -190,7 +197,9 @@ export function format_declaration(
 		value += SPACE
 	}
 
-	property = print_identifier(property)
+	if (!property.startsWith('--')) {
+		property = property.toLowerCase()
+	}
 	return property + COLON + optional_space + value + important
 }
 
@@ -238,7 +247,7 @@ function print_combinator(node: Combinator, optional_space: string, is_first: bo
 
 /** Prints an attribute selector, e.g. `[href^="https://" i]`. */
 function print_attribute_selector(node: AttributeSelector): string {
-	let parts = [OPEN_BRACKET, print_identifier(node.name)]
+	let parts = [OPEN_BRACKET, node.name.toLowerCase()]
 
 	if (node.attr_operator) {
 		parts.push(node.attr_operator)
@@ -261,7 +270,7 @@ function print_pseudo_selector(
 	optional_space = SPACE,
 ): string {
 	let parts = [COLON]
-	let name = print_identifier(node.name)
+	let name = node.name.toLowerCase()
 
 	// Legacy pseudo-elements or actual pseudo-elements use double colon
 	if (name === 'before' || name === 'after' || is_pseudo_element_selector(node)) {
@@ -298,12 +307,12 @@ function print_selector_component(
 	}
 
 	if (is_type_selector(node)) {
-		let prefix = node.namespace === null ? '' : print_identifier(node.namespace) + '|'
-		return prefix + print_identifier(node.name)
+		let prefix = node.namespace === null ? '' : node.namespace.toLowerCase() + '|'
+		return prefix + node.name.toLowerCase()
 	}
 
 	if (is_universal_selector(node)) {
-		let prefix = node.namespace === null ? '' : print_identifier(node.namespace) + '|'
+		let prefix = node.namespace === null ? '' : node.namespace.toLowerCase() + '|'
 		return prefix + '*'
 	}
 
@@ -436,7 +445,7 @@ function print_feature_range(node: FeatureRange, optional_space: string): string
 /** Prints a single media/container feature, e.g. `(min-width: 768px)` or the
  * boolean form `(hover)`. */
 function print_media_feature(node: MediaFeature, minify: boolean): string {
-	let property = print_identifier(node.property)
+	let property = node.property.startsWith('--') ? node.property : node.property.toLowerCase()
 	if (node.value === null) {
 		return OPEN_PARENTHESES + property + CLOSE_PARENTHESES
 	}
@@ -468,7 +477,7 @@ function print_supports_query(node: SupportsQuery, minify: boolean): string {
 
 /** Prints a functional container-query condition, e.g. `style(--foo: bar)`. */
 function print_prelude_function(node: CSSFunction, minify: boolean): string {
-	let name = print_identifier(node.name)
+	let name = node.name.startsWith('--') ? node.name : node.name.toLowerCase()
 	// `selector(...)` takes a selector list, not a declaration.
 	if (name === 'selector' && node.has_children && is_selector_list(node.first_child)) {
 		return (
@@ -487,6 +496,16 @@ function print_prelude_function(node: CSSFunction, minify: boolean): string {
 	}
 	if (node.value === null) return node.text
 	return name + OPEN_PARENTHESES + format_atrule_prelude(node.value, { minify }) + CLOSE_PARENTHESES
+}
+
+/** Prints an `@import` URL: lowercases a leading `url(` keyword but leaves
+ * quote style untouched (unlike value-position `url()`, see `print_url`). */
+function print_prelude_url(node: CSSNode): string {
+	let text = node.text
+	if (/^url\(/i.test(text)) {
+		return 'url(' + text.slice(4)
+	}
+	return text
 }
 
 /** Prints one child of an AtrulePrelude/MediaQuery/ContainerQuery. Falls back
@@ -512,7 +531,7 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
 		return print_prelude_function(node, minify)
 	}
 	if (is_url(node)) {
-		return print_url(node)
+		return print_prelude_url(node)
 	}
 	if (is_layer_name(node)) {
 		// @import's functional `layer(...)` notation has a keyword to
@@ -726,7 +745,7 @@ export function format(
 	}
 
 	function print_atrule(node: Atrule): string {
-		let name = '@' + print_identifier(node.name!)
+		let name = '@' + node.name!.toLowerCase()
 		if (node.prelude) {
 			name += SPACE + print_atrule_prelude_node(node.prelude, minify)
 		}
