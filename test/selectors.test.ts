@@ -202,6 +202,12 @@ test('lowercases attribute selector names', () => {
 	expect(actual).toEqual(expected)
 })
 
+test('lowercases attribute selector name but keeps the value as-is', () => {
+	let actual = format(`[HREF=Some-Value] {}`)
+	let expected = `[href="Some-Value"] {}`
+	expect(actual).toEqual(expected)
+})
+
 test('adds a space before attribute selector flags', () => {
 	let actual = format(`
 		[title="foo" i],
