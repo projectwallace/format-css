@@ -33,6 +33,8 @@ import {
 	type Declaration,
 	type Raw,
 	type AtrulePrelude,
+	type MediaQuery,
+	type ContainerQuery,
 	type SupportsQuery,
 	type SupportsDeclaration,
 	type FeatureRange,
@@ -419,7 +421,7 @@ function print_feature_range(node: FeatureRange, optional_space: string): string
 	let name_offset = node.start + node.text.indexOf(node.name, 1)
 	let items: { offset: number; text: string }[] = [{ offset: name_offset, text: node.name }]
 
-	for (let child of node as unknown as Iterable<CSSNode>) {
+	for (let child of node) {
 		let text = is_prelude_operator(child)
 			? optional_space + child.text + optional_space
 			: child.text
@@ -432,13 +434,12 @@ function print_feature_range(node: FeatureRange, optional_space: string): string
 
 /** Prints a single media/container feature, e.g. `(min-width: 768px)` or the
  * boolean form `(hover)`. */
-function print_media_feature(node: MediaFeature, minify: boolean): string {
+function print_media_feature(node: MediaFeature, optional_space: string): string {
 	let property = print_identifier(node.property)
 	if (node.value === null) {
 		return OPEN_PARENTHESES + property + CLOSE_PARENTHESES
 	}
 
-	let optional_space = minify ? EMPTY_STRING : SPACE
 	return (
 		OPEN_PARENTHESES +
 		property +
@@ -506,7 +507,7 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
 		return print_prelude_children(node, optional_space, minify)
 	}
 	if (is_media_feature(node)) {
-		return print_media_feature(node, minify)
+		return print_media_feature(node, optional_space)
 	}
 	if (is_feature_range(node)) {
 		return print_feature_range(node, optional_space)
@@ -535,9 +536,13 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
  * Same-type siblings (e.g. multiple `MediaQuery`s in `screen, print`) are
  * comma-separated; everything else gets a real space, always, since CSS
  * doesn't allow gluing them together. */
-function print_prelude_children(node: CSSNode, optional_space: string, minify: boolean): string {
+function print_prelude_children(
+	node: AtrulePrelude | MediaQuery | ContainerQuery,
+	optional_space: string,
+	minify: boolean,
+): string {
 	let parts: string[] = []
-	for (let child of node as unknown as Iterable<CSSNode>) {
+	for (let child of node) {
 		parts.push(print_prelude_component(child, optional_space, minify))
 		if (child.has_next) {
 			parts.push(child.type === child.next_sibling.type ? COMMA + optional_space : SPACE)
