@@ -92,14 +92,11 @@ function print_string(str: string | number | null, quote?: '"' | "'"): string {
 	return quote + inner + quote
 }
 
-/** Prints a `url(...)`: lowercases a leading `url(` keyword but leaves quote
- * style untouched. */
+/** Prints a `url(...)`: lowercases the `url(` keyword but leaves quote style
+ * untouched. A Url node's text always starts with `url(` (any casing) — it's
+ * how the parser identifies the node as a Url in the first place. */
 function print_url(node: Url): string {
-	let text = node.text
-	if (/^url\(/i.test(text)) {
-		return 'url(' + text.slice(4)
-	}
-	return text
+	return 'url(' + node.text.slice(4)
 }
 
 function print_operator(node: Operator, optional_space = SPACE): string {
