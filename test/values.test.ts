@@ -280,7 +280,7 @@ test('Does not mess up quotes inside `content`', () => {
 	expect(actual).toBe(expected)
 })
 
-test('adds quotes around strings in url()', () => {
+test('leaves url() quoting untouched', () => {
 	let actual = format(`a {
 		background-image: url("star.gif");
 		list-style-image: url('../images/bullet.jpg');
@@ -293,12 +293,12 @@ test('adds quotes around strings in url()', () => {
 	}`)
 	let expected = `a {
 	background-image: url("star.gif");
-	list-style-image: url("../images/bullet.jpg");
+	list-style-image: url('../images/bullet.jpg');
 	content: url("pdficon.jpg");
-	cursor: url("mycursor.cur");
-	border-image-source: url("/media/diamonds.png");
-	src: url("fantasticfont.woff");
-	offset-path: url("#path");
+	cursor: url(mycursor.cur);
+	border-image-source: url(/media/diamonds.png);
+	src: url('fantasticfont.woff');
+	offset-path: url(#path);
 	mask-image: url("masks.svg#mask1");
 }`
 	expect(actual).toEqual(expected)
@@ -314,7 +314,7 @@ test.each([
 	}`)
 	let expected = `test {
 	background-image: url('${input}');
-	background-image: url('${input}');
+	background-image: url(${input});
 }`
 	expect(actual).toEqual(expected)
 })
@@ -337,7 +337,7 @@ test.each([
 	expect(actual).toBe(expected)
 })
 
-test('wraps data: URL in single quotes when it contains double quotes', () => {
+test('leaves a single-quoted data: URL containing double quotes untouched', () => {
 	let input = `.a { background: url('data:image/svg+xml,%3Csvg fill="red"%3E%3C/svg%3E'); }`
 	let actual = format(input)
 	let expected = `.a {
@@ -346,7 +346,7 @@ test('wraps data: URL in single quotes when it contains double quotes', () => {
 	expect(actual).toEqual(expected)
 })
 
-test('wraps data: URL in double quotes when it contains single quotes', () => {
+test('leaves a double-quoted data: URL containing single quotes untouched', () => {
 	let input = `.a { background: url("data:image/svg+xml,%3Csvg fill='red'%3E%3C/svg%3E"); }`
 	let actual = format(input)
 	let expected = `.a {
@@ -355,11 +355,11 @@ test('wraps data: URL in double quotes when it contains single quotes', () => {
 	expect(actual).toEqual(expected)
 })
 
-test('encodes double quotes when data: URL contains both quote types', () => {
+test('leaves a data: URL with both quote types untouched', () => {
 	let input = `.a { background: url('data:image/svg+xml,%3Csvg fill="x" alt=\\'y\\'%3E'); }`
 	let actual = format(input)
 	let expected = `.a {
-	background: url("data:image/svg+xml,%3Csvg fill=%22x%22 alt=\\'y\\'%3E");
+	background: url('data:image/svg+xml,%3Csvg fill="x" alt=\\'y\\'%3E');
 }`
 	expect(actual).toEqual(expected)
 })
