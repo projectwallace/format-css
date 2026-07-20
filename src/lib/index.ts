@@ -78,6 +78,12 @@ export function unquote(str: string): string {
 	return str.replaceAll(UNQUOTE_RE, EMPTY_STRING)
 }
 
+/** Lowercases a CSS identifier, except a custom-ident starting with `--`,
+ * which must keep its case as written. */
+function print_identifier(name: string): string {
+	return name.startsWith('--') ? name : name.toLowerCase()
+}
+
 function print_string(str: string | number | null, quote?: '"' | "'"): string {
 	str = str?.toString() || ''
 	let inner = unquote(str)
@@ -124,7 +130,7 @@ function print_list(nodes: CSSNode[], optional_space = SPACE): string {
 	let parts = []
 	for (let node of nodes) {
 		if (is_function(node)) {
-			let fn = node.name.toLowerCase()
+			let fn = print_identifier(node.name)
 			parts.push(fn, OPEN_PARENTHESES, print_list(node.children, optional_space), CLOSE_PARENTHESES)
 		} else if (is_dimension(node)) {
 			parts.push(node.value, node.unit?.toLowerCase())
@@ -183,9 +189,7 @@ export function format_declaration(
 		value += SPACE
 	}
 
-	if (!property.startsWith('--')) {
-		property = property.toLowerCase()
-	}
+	property = print_identifier(property)
 	return property + COLON + optional_space + value + important
 }
 
@@ -233,7 +237,7 @@ function print_combinator(node: Combinator, optional_space: string, is_first: bo
 
 /** Prints an attribute selector, e.g. `[href^="https://" i]`. */
 function print_attribute_selector(node: AttributeSelector): string {
-	let parts = [OPEN_BRACKET, node.name.toLowerCase()]
+	let parts = [OPEN_BRACKET, print_identifier(node.name)]
 
 	if (node.attr_operator) {
 		parts.push(node.attr_operator)
@@ -256,7 +260,7 @@ function print_pseudo_selector(
 	optional_space = SPACE,
 ): string {
 	let parts = [COLON]
-	let name = node.name.toLowerCase()
+	let name = print_identifier(node.name)
 
 	// Legacy pseudo-elements or actual pseudo-elements use double colon
 	if (name === 'before' || name === 'after' || is_pseudo_element_selector(node)) {
@@ -293,12 +297,12 @@ function print_selector_component(
 	}
 
 	if (is_type_selector(node)) {
-		let prefix = node.namespace === null ? '' : node.namespace.toLowerCase() + '|'
-		return prefix + node.name.toLowerCase()
+		let prefix = node.namespace === null ? '' : print_identifier(node.namespace) + '|'
+		return prefix + print_identifier(node.name)
 	}
 
 	if (is_universal_selector(node)) {
-		let prefix = node.namespace === null ? '' : node.namespace.toLowerCase() + '|'
+		let prefix = node.namespace === null ? '' : print_identifier(node.namespace) + '|'
 		return prefix + '*'
 	}
 
@@ -588,7 +592,7 @@ export function format(
 	}
 
 	function print_atrule(node: Atrule): string {
-		let name = '@' + node.name!.toLowerCase()
+		let name = '@' + print_identifier(node.name!)
 		if (node.prelude) {
 			name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
 		}
