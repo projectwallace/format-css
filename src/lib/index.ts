@@ -61,7 +61,6 @@ export type FormatOptions = {
 }
 
 const UNQUOTE_RE = /(?:^['"])|(?:['"]$)/g
-const DATA_URL_RE = /^['"]?data:/i
 const FONT_SLASH_RE = /\s*\/\s*/
 const ATRULE_COLON_COMMA_RE = /\s*([:,])/g
 const ATRULE_PAREN_TEXT_RE = /\)([a-zA-Z])/g
@@ -87,26 +86,14 @@ function print_string(str: string | number | null, quote?: '"' | "'"): string {
 	return quote + inner + quote
 }
 
+/** Prints a `url(...)`: lowercases a leading `url(` keyword but leaves quote
+ * style untouched. */
 function print_url(node: Url): string {
-	let value = node.value ?? ''
-	let unquoted = unquote(value)
-
-	let inner: string
-	if (DATA_URL_RE.test(value)) {
-		let has_double = unquoted.includes('"')
-		let has_single = unquoted.includes("'")
-		if (has_double && has_single) {
-			inner = print_string(unquoted.replaceAll('"', '%22'), '"')
-		} else if (has_double || has_single) {
-			inner = print_string(unquoted)
-		} else {
-			inner = unquoted
-		}
-	} else {
-		inner = print_string(value)
+	let text = node.text
+	if (/^url\(/i.test(text)) {
+		return 'url(' + text.slice(4)
 	}
-
-	return 'url(' + inner + CLOSE_PARENTHESES
+	return text
 }
 
 function print_operator(node: Operator, optional_space = SPACE): string {
