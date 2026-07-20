@@ -433,7 +433,7 @@ function print_feature_range(node: FeatureRange, optional_space: string): string
 /** Prints a single media/container feature, e.g. `(min-width: 768px)` or the
  * boolean form `(hover)`. */
 function print_media_feature(node: MediaFeature, minify: boolean): string {
-	let property = node.property.startsWith('--') ? node.property : node.property.toLowerCase()
+	let property = print_identifier(node.property)
 	if (node.value === null) {
 		return OPEN_PARENTHESES + property + CLOSE_PARENTHESES
 	}
@@ -465,7 +465,7 @@ function print_supports_query(node: SupportsQuery, minify: boolean): string {
 
 /** Prints a functional container-query condition, e.g. `style(--foo: bar)`. */
 function print_prelude_function(node: CSSFunction, minify: boolean): string {
-	let name = node.name.startsWith('--') ? node.name : node.name.toLowerCase()
+	let name = print_identifier(node.name)
 	// `selector(...)` takes a selector list, not a declaration.
 	if (name === 'selector' && node.has_children && is_selector_list(node.first_child)) {
 		return (
@@ -486,8 +486,10 @@ function print_prelude_function(node: CSSFunction, minify: boolean): string {
 	return name + OPEN_PARENTHESES + format_atrule_prelude(node.value, { minify }) + CLOSE_PARENTHESES
 }
 
-/** Prints an `@import` URL: lowercases a leading `url(` keyword but leaves
- * quote style untouched (unlike value-position `url()`, see `print_url`). */
+/** Prints an `@import` specifier: lowercases a leading `url(` keyword, if
+ * present, but leaves quote style untouched. Unlike value-position `url()`
+ * (see `print_url`), an `@import` specifier's Url node can also be a bare
+ * string (`@import "foo";`) with no `url(` to lowercase. */
 function print_prelude_url(node: CSSNode): string {
 	let text = node.text
 	if (/^url\(/i.test(text)) {
