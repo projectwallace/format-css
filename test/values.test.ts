@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { format } from '../src/lib/index.js'
+import { format, minify } from '../src/lib/index.js'
 
 test('collapses abundant whitespace', () => {
 	let actual = format(`a {
@@ -257,12 +257,11 @@ test('does not break space toggles', () => {
 })
 
 test('does not break space toggles (minified)', () => {
-	let actual = format(
+	let actual = minify(
 		`a {
 		--ON: initial;
 		--OFF: ;
 	}`,
-		{ minify: true },
 	)
 	let expected = `a{--ON:initial;--OFF: }`
 	expect(actual).toEqual(expected)

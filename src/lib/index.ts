@@ -39,6 +39,7 @@ import {
 	type CSSNode,
 	type Url,
 } from '@projectwallace/css-parser'
+import { minify } from './minify.js'
 
 const SPACE = ' '
 const EMPTY_STRING = ''
@@ -54,7 +55,12 @@ const CLOSE_BRACE = '}'
 const COMMA = ','
 
 export type FormatOptions = {
-	/** Whether to minify the CSS or keep it formatted */
+	/**
+	 * @deprecated Use `minify()` instead. This option (and the matching
+	 * `{ minify }` option on `format_value`, `format_declaration`,
+	 * `format_selector`, `format_selector_list` and `format_atrule_prelude`)
+	 * will be removed in a future major version.
+	 */
 	minify?: boolean
 	/** Tell the formatter to use N spaces instead of tabs  */
 	tab_size?: number
@@ -403,8 +409,12 @@ export function format_atrule_prelude(
  */
 export function format(
 	css: string,
-	{ minify = false, tab_size = undefined }: FormatOptions = Object.create(null),
+	{ minify: use_minify = false, tab_size = undefined }: FormatOptions = Object.create(null),
 ): string {
+	// Deprecated escape hatch: delegate to the standalone minifier instead of
+	// pretty-printing. `tab_size` has no meaning when minifying, so it's ignored.
+	if (use_minify) return minify(css)
+
 	if (tab_size !== undefined) {
 		let normalized = Number(tab_size)
 		// An invalid tab_size (non-numeric, fractional, NaN, Infinity, < 1) falls
@@ -412,26 +422,22 @@ export function format(
 		tab_size = Number.isInteger(normalized) && normalized >= 1 ? normalized : undefined
 	}
 
-	const NEWLINE = minify ? EMPTY_STRING : '\n'
-	const OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE
-	const LAST_SEMICOLON = minify ? EMPTY_STRING : SEMICOLON
+	const NEWLINE = '\n'
+	const OPTIONAL_SPACE = SPACE
+	const LAST_SEMICOLON = SEMICOLON
 
 	// First pass: collect all comments
 	let comments: number[] = []
 	let ast = parse(css, {
 		parse_atrule_preludes: false,
-		on_comment: minify
-			? undefined
-			: ({ start, end }) => {
-					comments.push(start, end)
-				},
+		on_comment: ({ start, end }) => {
+			comments.push(start, end)
+		},
 	})
 
 	let depth = 0
 
 	function indent(size: number) {
-		if (minify === true) return EMPTY_STRING
-
 		if (tab_size !== undefined) {
 			return SPACE.repeat(tab_size * size)
 		}
@@ -447,7 +453,7 @@ export function format(
 	 * @returns The formatted comment string, or empty string if no comment found
 	 */
 	function get_comment(after?: number, before?: number, level: number = depth): string {
-		if (minify || after === undefined || before === undefined) {
+		if (after === undefined || before === undefined) {
 			return EMPTY_STRING
 		}
 
@@ -520,7 +526,7 @@ export function format(
 
 			if (is_declaration(child)) {
 				let is_last = !child.has_next || !is_declaration(child.next_sibling)
-				let declaration = format_declaration(child, { minify })
+				let declaration = format_declaration(child)
 				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
 				lines.push(indent(depth) + declaration + semi)
 			} else if (is_rule(child)) {
@@ -578,7 +584,7 @@ export function format(
 	function print_atrule(node: Atrule): string {
 		let name = '@' + print_identifier(node.name!)
 		if (node.prelude) {
-			name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
+			name += SPACE + format_atrule_prelude(node.prelude.text)
 		}
 
 		let block_has_content =
@@ -650,11 +656,4 @@ export function format(
 	return print_stylesheet(ast).trimEnd()
 }
 
-/**
- * Minify a string of CSS
- * @param {string} css The original CSS
- * @returns {string} The minified CSS
- */
-export function minify(css: string): string {
-	return format(css, { minify: true })
-}
+export { minify }

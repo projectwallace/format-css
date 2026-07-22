@@ -77,12 +77,9 @@ format_selector(node)
 format_atrule_prelude(node.prelude.text)
 ```
 
-All of these accept the same options as `format()`. However, `tab_size` has no effect on them since they do not produce indented output.
+These always pretty-print, the same as `format()`. To minify, use `minify()` (see below) instead.
 
-```js
-format_declaration(node, { minify: true })
-format_selector(node, { minify: true })
-```
+Each of these also still accepts a `{ minify: true }` option, same as `format()`. **This is deprecated** and will be removed in a future major version - it's kept only for backwards compatibility.
 
 ## Formatting rules
 
@@ -101,17 +98,21 @@ format_selector(node, { minify: true })
 
 ### Minify CSS
 
-This package also exposes a minifier function since minifying CSS follows many of the same rules as formatting.
+This package also exposes a standalone minifier function. Unlike `format()`, it doesn't build a syntax tree - it walks the CSS token stream directly, dropping comments and unnecessary whitespace, so it's not affected by (and doesn't accept) any of `format()`'s options.
 
 ```js
-import { format, minify } from '@projectwallace/format-css'
+import { minify } from '@projectwallace/format-css'
 
 let minified = minify('a {}')
-
-// which is an alias for
-
-let formatted_mini = format('a {}', { minify: true })
 ```
+
+If bundle size matters and you only need `minify()`, import it from the `/minify` subpath instead, so `format()`'s pretty-printer isn't pulled in:
+
+```js
+import { minify } from '@projectwallace/format-css/minify'
+```
+
+`format()` also still accepts a `{ minify: true }` option as a deprecated alias for `minify()` (`tab_size` is ignored when combined with it). **This is deprecated** and will be removed in a future major version - prefer calling `minify()` directly.
 
 ### Tab size
 

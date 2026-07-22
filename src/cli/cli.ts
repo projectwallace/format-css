@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 // to prevent lib/index.js being bundled into cli.js, which would mean that indexjs
 // ends up in our /dist twice, which is wasteful
 import { format } from '@projectwallace/format-css'
+import { minify } from '@projectwallace/format-css/minify'
 
 function help(): string {
 	return `
@@ -94,17 +95,17 @@ export async function run(args: string[], io: CliIO): Promise<void> {
 		return
 	}
 
-	const { files, minify, tab_size } = parse_arguments(args)
-	const options = { minify, tab_size }
+	const { files, minify: use_minify, tab_size } = parse_arguments(args)
+	const process_css = use_minify ? minify : (contents: string) => format(contents, { tab_size })
 
 	if (files.length > 0) {
 		for (const file of files) {
-			io.write(format(io.readFile(file), options))
+			io.write(process_css(io.readFile(file)))
 		}
 	} else if (io.isTTY) {
 		io.write(help() + '\n')
 	} else {
-		io.write(format(await io.readStdin(), options))
+		io.write(process_css(await io.readStdin()))
 	}
 }
 

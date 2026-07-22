@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { format } from '../src/lib/index.js'
+import { format, minify } from '../src/lib/index.js'
 
 describe('comments', () => {
 	test('only comment', () => {
@@ -545,7 +545,7 @@ a + b {}`
 	})
 
 	test('strips comments in minification mode', () => {
-		let actual = format(
+		let actual = minify(
 			`
 	/* comment 1 */
 	selector {}
@@ -557,7 +557,6 @@ a + b {}`
 	}
 	/* comment 5 */
 	`,
-			{ minify: true },
 		)
 		let expected = `selector{}@media (min-width:1000px){selector{}}`
 		expect(actual).toEqual(expected)

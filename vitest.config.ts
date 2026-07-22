@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 export default defineConfig({
 	resolve: {
 		alias: {
+			'@projectwallace/format-css/minify': resolve('./src/lib/minify.ts'),
 			'@projectwallace/format-css': resolve('./src/lib/index.ts'),
 		},
 	},

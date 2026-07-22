@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { format } from '../src/lib/index.js'
+import { format, minify } from '../src/lib/index.js'
 
 test('A single selector is rendered without a trailing comma', () => {
 	let actual = format('a {}')
@@ -139,7 +139,7 @@ test.each([
 	[`li:nth-child(-n+3 of li.important) {}`, `li:nth-child(-n+3 of li.important){}`],
 	[`p:nth-child(n+8):nth-child(-n+15) {}`, `p:nth-child(n+8):nth-child(-n+15){}`],
 ])('minifies nth selector: %s', (css, expected) => {
-	let actual = format(css, { minify: true })
+	let actual = minify(css)
 	expect(actual).toEqual(expected)
 })
 

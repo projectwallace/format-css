@@ -100,7 +100,7 @@ describe('format_atrule_prelude', () => {
 		expect(format_atrule_prelude('(width>=300px)')).toBe('(width >= 300px)')
 	})
 
-	test('removes space around >= when minified', () => {
+	test('removes space around >= when minified (deprecated option)', () => {
 		expect(format_atrule_prelude('(width >= 300px)', { minify: true })).toBe('(width>=300px)')
 	})
 
@@ -112,7 +112,7 @@ describe('format_atrule_prelude', () => {
 		expect(format_atrule_prelude('(width > 0)and(height > 0)')).toBe('(width > 0) and (height > 0)')
 	})
 
-	test('adds space between media keyword "and" and opening parenthesis', () => {
+	test('adds space between media keyword "and" and opening parenthesis (deprecated option)', () => {
 		expect(format_atrule_prelude('(width > 0)and(height > 0)', { minify: true })).toBe(
 			'(width>0) and (height>0)',
 		)
@@ -159,7 +159,7 @@ describe('format_selector', () => {
 		expect(format_selector(node)).toBe('div > span')
 	})
 
-	test('combinator removes spaces when minified', () => {
+	test('combinator removes spaces when minified (deprecated option)', () => {
 		let node = parse_selector('div > span')
 		expect(format_selector(node, { minify: true })).toBe('div>span')
 	})
@@ -169,7 +169,7 @@ describe('format_selector', () => {
 		expect(format_selector_list(node)).toBe('div, span')
 	})
 
-	test('selector list minified', () => {
+	test('selector list minified (deprecated option)', () => {
 		let node = parse_selector_list('div, span')
 		expect(format_selector_list(node, { minify: true })).toBe('div,span')
 	})
@@ -186,7 +186,7 @@ describe('format_declaration', () => {
 		expect(format_declaration(node)).toBe('color: red')
 	})
 
-	test('minified removes space after colon', () => {
+	test('minified removes space after colon (deprecated option)', () => {
 		let node = parse_declaration('color: red')
 		expect(format_declaration(node, { minify: true })).toBe('color:red')
 	})
@@ -206,7 +206,7 @@ describe('format_declaration', () => {
 		expect(format_declaration(node)).toBe('color: red !important')
 	})
 
-	test('!important minified', () => {
+	test('!important minified (deprecated option)', () => {
 		let node = parse_declaration('color: red !important')
 		expect(format_declaration(node, { minify: true })).toBe('color:red!important')
 	})

@@ -65,7 +65,7 @@ test('invalid tab_size does not throw', () => {
 	expect(() => format(fixture, { tab_size: 0 }), 'invalid tab_size should not throw').not.toThrow()
 })
 
-test('combine tab_size and minify', () => {
+test('combine tab_size and minify (deprecated option)', () => {
 	let actual = format(fixture, {
 		tab_size: 2,
 		minify: true,
