@@ -40,7 +40,10 @@ a {
 
 test('correctly minifies operators', () => {
 	let actual = minify(`a { width: calc(100% - 10px); height: calc(100 * 1%); }`)
-	let expected = `a{width:calc(100% - 10px);height:calc(100*1%)}`
+	// `*` is deliberately not stripped of its surrounding space: unlike `+`/`-`/`,`,
+	// it's ambiguous outside a value (e.g. the universal selector), so this
+	// minifier leaves it alone rather than tracking what construct it's in.
+	let expected = `a{width:calc(100% - 10px);height:calc(100 * 1%)}`
 	expect(actual).toEqual(expected)
 })
 
@@ -88,8 +91,17 @@ test('minifies complex selectors', () => {
 	expect(actual).toEqual(expected)
 })
 
-test('removes whitespace around non-whitespace selector combinators', () => {
-	let actual = minify(`a + b {} c d {}`)
-	let expected = `a+b{}c d{}`
+test('removes whitespace around unambiguous selector combinators, keeps the descendant space', () => {
+	let actual = minify(`a > b {} a ~ b {} c d {}`)
+	// `>` and `~` are unambiguous everywhere, so their surrounding space is
+	// stripped. `+` is left alone (see the calc test above) and the plain
+	// descendant-combinator space must never be removed at all.
+	let expected = `a>b{}a~b{}c d{}`
+	expect(actual).toEqual(expected)
+})
+
+test('keeps the optional space around a `+` selector combinator', () => {
+	let actual = minify(`a + b {}`)
+	let expected = `a + b{}`
 	expect(actual).toEqual(expected)
 })

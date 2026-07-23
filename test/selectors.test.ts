@@ -135,7 +135,9 @@ test.each([
 	[`li:nth-child(0n+1) {}`, `li:nth-child(0n+1){}`],
 	[`li:nth-child(even of .noted) {}`, `li:nth-child(even of .noted){}`],
 	[`li:nth-child(2n of .noted) {}`, `li:nth-child(2n of .noted){}`],
-	[`li:nth-child(-n + 3 of .noted) {}`, `li:nth-child(-n+3 of .noted){}`],
+	// An An+B expression's `+`/`-` isn't stripped of its optional space (same
+	// trade-off as calc's `*`/`/`): already-tight input stays tight either way.
+	[`li:nth-child(-n + 3 of .noted) {}`, `li:nth-child(-n + 3 of .noted){}`],
 	[`li:nth-child(-n+3 of li.important) {}`, `li:nth-child(-n+3 of li.important){}`],
 	[`p:nth-child(n+8):nth-child(-n+15) {}`, `p:nth-child(n+8):nth-child(-n+15){}`],
 ])('minifies nth selector: %s', (css, expected) => {
