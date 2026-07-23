@@ -28,16 +28,16 @@ function is_unambiguous_delim(code: number): boolean {
  * True if a token of this `type` (and, for a DELIM, this char `code`) never
  * needs a space immediately BEFORE it, in any CSS context.
  *
- * `,` `:` `;` and the unambiguous delimiters above are always tight on both
+ * `,` `:` and the unambiguous delimiters above are always tight on both
  * sides. `)` `]` only drop their leading space here; their trailing space
  * is left to the default rule (see `no_trailing_space`), since e.g. the gap
- * between `)` and a following `and` in a media query must survive.
+ * between `)` and a following `and` in a media query must survive. `;`
+ * doesn't need an entry here - see `minify()`, it's never written eagerly.
  */
 function no_leading_space(type: TokenType, code: number): boolean {
 	switch (type) {
 		case TOKEN_COMMA:
 		case TOKEN_COLON:
-		case TOKEN_SEMICOLON:
 		case TOKEN_LEFT_BRACE:
 		case TOKEN_RIGHT_BRACE:
 		case TOKEN_RIGHT_PAREN:
@@ -99,6 +99,11 @@ export function minify(css: string): string {
 	let had_space = false
 	let prev_type: TokenType | -1 = -1
 	let prev_code = 0
+	// A `;` is never written right away - only once we see what follows it.
+	// A redundant one right before a block closes then simply never gets
+	// written at all, instead of being appended and sliced back off (which,
+	// on a large accumulated `out`, would copy the whole string every time).
+	let pending_semicolon = false
 
 	for (let { type, start, end } of tokenize(css)) {
 		if (
@@ -111,18 +116,28 @@ export function minify(css: string): string {
 			continue
 		}
 
-		let code = type === TOKEN_DELIM ? css.charCodeAt(start) : 0
-
-		// A redundant `;` right before the block closes can just go.
-		if (type === TOKEN_RIGHT_BRACE && prev_type === TOKEN_SEMICOLON) {
-			out = out.slice(0, -1)
-		}
-
 		if (prev_type === TOKEN_COLON && (type === TOKEN_SEMICOLON || type === TOKEN_RIGHT_BRACE)) {
 			// An empty declaration value (the `--foo: ;` "space toggle" trick)
 			// must keep at least one space, or it silently becomes invalid.
 			out += ' '
-		} else if (
+		}
+
+		if (type === TOKEN_SEMICOLON) {
+			pending_semicolon = true
+			prev_type = type
+			prev_code = 0
+			had_space = false
+			continue
+		}
+
+		if (pending_semicolon) {
+			pending_semicolon = false
+			if (type !== TOKEN_RIGHT_BRACE) out += ';'
+		}
+
+		let code = type === TOKEN_DELIM ? css.charCodeAt(start) : 0
+
+		if (
 			out !== '' &&
 			had_space &&
 			!no_leading_space(type, code) &&
@@ -136,6 +151,10 @@ export function minify(css: string): string {
 		prev_code = code
 		had_space = false
 	}
+
+	// A `;` at the very end of the input (e.g. `@layer test;` with nothing
+	// after it) never reached a following token to flush it against.
+	if (pending_semicolon) out += ';'
 
 	return out
 }
