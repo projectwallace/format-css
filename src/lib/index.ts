@@ -423,8 +423,6 @@ export function format(
 	}
 
 	const NEWLINE = '\n'
-	const OPTIONAL_SPACE = SPACE
-	const LAST_SEMICOLON = SEMICOLON
 
 	// First pass: collect all comments
 	let comments: number[] = []
@@ -484,7 +482,7 @@ export function format(
 				}
 			}
 
-			let printed = print_selector(selector, OPTIONAL_SPACE)
+			let printed = print_selector(selector, SPACE)
 			if (selector.has_next) {
 				printed += COMMA
 			}
@@ -525,10 +523,8 @@ export function format(
 			}
 
 			if (is_declaration(child)) {
-				let is_last = !child.has_next || !is_declaration(child.next_sibling)
 				let declaration = format_declaration(child)
-				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
-				lines.push(indent(depth) + declaration + semi)
+				lines.push(indent(depth) + declaration + SEMICOLON)
 			} else if (is_rule(child)) {
 				if (prev_end !== undefined && lines.length > 0) {
 					lines.push(EMPTY_STRING)
@@ -567,7 +563,7 @@ export function format(
 				list += NEWLINE + indent(depth) + comment
 			}
 
-			list += OPTIONAL_SPACE + OPEN_BRACE
+			list += SPACE + OPEN_BRACE
 			if (!block_has_content) {
 				list += CLOSE_BRACE
 			}
@@ -590,7 +586,7 @@ export function format(
 		let block_has_content =
 			node.has_block && (!node.block.is_empty || !!get_comment(node.block.start, node.block.end))
 		if (node.has_block) {
-			name += OPTIONAL_SPACE + OPEN_BRACE
+			name += SPACE + OPEN_BRACE
 			if (!block_has_content) {
 				name += CLOSE_BRACE
 			}
