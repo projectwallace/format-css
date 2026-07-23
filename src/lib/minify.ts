@@ -62,8 +62,12 @@ function is_brace_close(t: TokenType): boolean {
 
 /**
  * Adapted from the pretty-printer's at-rule prelude formatter, hardcoded to
- * always minify (at-rule preludes are matched as raw text, not tokenized
- * into a real value tree, so this text-based approach is reused as-is).
+ * always minify. `@projectwallace/css-parser` can parse at-rule preludes
+ * into a real tree (`parse_atrule_preludes: true`), but format()'s own
+ * pretty-printer opts out of that and handles preludes as raw text via
+ * regex instead - see the comment above `format_atrule_prelude` in
+ * index.ts for why. This reuses that same regex-based approach rather than
+ * introducing a second, different way to format prelude text.
  */
 function minify_atrule_prelude(prelude: string): string {
 	return prelude

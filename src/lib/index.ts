@@ -482,7 +482,7 @@ export function format(
 				}
 			}
 
-			let printed = print_selector(selector, SPACE)
+			let printed = print_selector(selector)
 			if (selector.has_next) {
 				printed += COMMA
 			}
