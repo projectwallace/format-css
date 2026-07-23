@@ -20,7 +20,8 @@
 		"outDir": "dist",
 		"paths": {
 			// So we can import like an external in the CLI
-			"@projectwallace/format-css": ["./src/lib/index.ts"]
+			"@projectwallace/format-css": ["./src/lib/index.ts"],
+			"@projectwallace/format-css/minify": ["./src/lib/minify.ts"]
 		}
 	},
 	"include": ["src/lib/index.ts", "src/cli/cli.ts"],
