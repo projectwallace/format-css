@@ -50,7 +50,7 @@
 		"@projectwallace/preset-oxlint": "^0.0.11",
 		"@types/node": "^26.0.1",
 		"@vitest/coverage-v8": "^4.1.10",
-		"oxfmt": "^0.59.0",
+		"oxfmt": "^0.61.0",
 		"oxlint": "^1.74.0",
 		"publint": "^0.3.21",
 		"tsdown": "^0.22.9",
