@@ -63,7 +63,7 @@ test('format minified Vadims example', () => {
 
 	let expected = `@layer what {
 	@container (width > 0) {
-		@media (min-height: .001px) {
+		@media (min-height: 0.001px) {
 			ul:has(:nth-child(1 of li)):hover {
 				--is: this;
 			}
@@ -74,7 +74,7 @@ test('format minified Vadims example', () => {
 })
 
 test('minify keeps already-minified CSS unchanged', () => {
-	let input = `@layer what{@container (width>0){@media (min-height:.001px){ul:has(:nth-child(1 of li)):hover{--is:this}}}}`
+	let input = `@layer what{@container (width>0){@media (min-height:0.001px){ul:has(:nth-child(1 of li)):hover{--is:this}}}}`
 	let actual = minify(input)
 	expect(actual).toEqual(input)
 })

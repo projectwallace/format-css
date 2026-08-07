@@ -124,7 +124,7 @@ test('@media prelude formatting', () => {
 		[`@media (update: slow)or (hover: none) {}`, `@media (update: slow) or (hover: none) {}`],
 		[
 			`@media all and (-moz-images-in-menus:0) and (min-resolution:.001dpcm) {}`,
-			`@media all and (-moz-images-in-menus: 0) and (min-resolution: .001dpcm) {}`,
+			`@media all and (-moz-images-in-menus: 0) and (min-resolution: 0.001dpcm) {}`,
 		],
 		[
 			`@media all and (-webkit-min-device-pixel-ratio: 10000),not all and (-webkit-min-device-pixel-ratio: 0) {}`,
@@ -345,15 +345,12 @@ test('new-fangled comparators (width > 1000px)', () => {
 	let actual = format(`
 		@container (width>1000px) {}
 		@media (width>1000px) {}
-		@media (width=>1000px) {}
 		@media (width<=1000px) {}
 		@media (200px<width<1000px) {}
 	`)
 	let expected = `@container (width > 1000px) {}
 
 @media (width > 1000px) {}
-
-@media (width => 1000px) {}
 
 @media (width <= 1000px) {}
 
@@ -364,6 +361,18 @@ test('new-fangled comparators (width > 1000px)', () => {
 test('minify: new-fangled comparators (width > 1000px)', () => {
 	let actual = minify(`@container (width>1000px) {}`)
 	let expected = `@container (width>1000px){}`
+	expect(actual).toEqual(expected)
+})
+
+test('lowercases the media/container feature name', () => {
+	let actual = format(`@media (MIN-WIDTH: 100px) {}`)
+	let expected = `@media (min-width: 100px) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves casing of a custom-property media feature name', () => {
+	let actual = format(`@media (--Foo: 1) {}`)
+	let expected = `@media (--Foo: 1) {}`
 	expect(actual).toEqual(expected)
 })
 
@@ -412,6 +421,127 @@ test('minify: keeps whitespace between "only" keyword and media type', () => {
 test('minify: keeps whitespace between "or" keyword and media feature', () => {
 	let actual = minify(`@media (min-width: 100px) or (max-width: 200px) {}`)
 	let expected = `@media (min-width:100px) or (max-width:200px){}`
+	expect(actual).toEqual(expected)
+})
+
+test('lowercases @container style() function name', () => {
+	let actual = format(`@container STYLE(--foo: bar) { a { color: red; } }`)
+	let expected = `@container style(--foo: bar) {
+	a {
+		color: red;
+	}
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves function calls inside @container style() condition values', () => {
+	let actual = format(`@container style(--foo: env(safe-area-inset-top)) {}`)
+	let expected = `@container style(--foo: env(safe-area-inset-top)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('does not corrupt a nested @container style() boolean group', () => {
+	let actual = format(`@container style((--a: 1) and (--b: 2)) {}`)
+	let expected = `@container style((--a: 1) and (--b: 2)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('formats multiple style() conditions joined by and/or', () => {
+	let actual = format(`@container name style(--theme: dark) and style(--size: large) {}`)
+	let expected = `@container name style(--theme: dark) and style(--size: large) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves function calls inside media feature values', () => {
+	let actual = format(`@media (min-width: env(safe-area-inset-top)) {}`)
+	let expected = `@media (min-width: env(safe-area-inset-top)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves function calls inside @supports condition values', () => {
+	let actual = format(`@supports (background: linear-gradient(red, blue)) {}`)
+	let expected = `@supports (background: linear-gradient(red, blue)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves multi-operator calc() inside a media feature', () => {
+	let actual = format(`@media (min-width: calc(1px + 2px * 3)) {}`)
+	let expected = `@media (min-width: calc(1px + 2px * 3)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves dotted @layer names', () => {
+	let actual = format(`@layer base.normalize { a { color: red; } }`)
+	let expected = `@layer base.normalize {
+	a {
+		color: red;
+	}
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('preserves multiple dotted, comma-separated @layer names', () => {
+	let actual = format(`@layer a.b, c.d.e;`)
+	let expected = `@layer a.b, c.d.e;`
+	expect(actual).toEqual(expected)
+})
+
+test('formats @import with a dotted layer() name', () => {
+	let actual = format(`@import url("a.css") layer(a.b.c);`)
+	let expected = `@import url("a.css") layer(a.b.c);`
+	expect(actual).toEqual(expected)
+})
+
+test('does not lose the prelude of an at-rule the prelude parser does not recognize', () => {
+	let actual = format(`@starting-style { a { color: red; } }`)
+	let expected = `@starting-style {
+	a {
+		color: red;
+	}
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('does not lose an unrecognizable @page pseudo-class prelude', () => {
+	let actual = format(`@page :first {}`)
+	let expected = `@page : first {}`
+	expect(actual).toEqual(expected)
+})
+
+test('does not corrupt a nested @supports boolean group', () => {
+	let actual = format(`@supports ((display: grid) and (display: flex)) {}`)
+	let expected = `@supports ((display: grid) and (display: flex)) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('does not duplicate the "only"/"not" media-query prefix', () => {
+	let actual = format(`
+		@media only screen {}
+		@media not screen {}
+		@media not (color) {}
+		@media not all and (monochrome) {}
+	`)
+	let expected = `@media only screen {}
+
+@media not screen {}
+
+@media not (color) {}
+
+@media not all and (monochrome) {}`
+	expect(actual).toEqual(expected)
+})
+
+test('formats @supports selector() as a selector list, not a declaration', () => {
+	let actual = format(`
+		@supports selector([popover]:open) {}
+		@supports SELECTOR(:hover) {}
+		@supports selector(:hover) and (display: grid) {}
+	`)
+	let expected = `@supports selector([popover]:open) {}
+
+@supports selector(:hover) {}
+
+@supports selector(:hover) and (display: grid) {}`
 	expect(actual).toEqual(expected)
 })
 

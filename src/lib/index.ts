@@ -20,10 +20,26 @@ import {
 	is_declaration,
 	is_rule,
 	is_atrule,
+	is_media_query,
+	is_container_query,
+	is_media_feature,
+	is_feature_range,
+	is_supports_query,
+	is_prelude_operator,
+	is_prelude_selectorlist,
+	is_layer_name,
 	type Operator,
 	type Value,
 	type Declaration,
 	type Raw,
+	type AtrulePrelude,
+	type MediaQuery,
+	type ContainerQuery,
+	type SupportsQuery,
+	type SupportsDeclaration,
+	type FeatureRange,
+	type MediaFeature,
+	type Function as CSSFunction,
 	type NthSelector,
 	type NthOfSelector,
 	type PseudoClassSelector,
@@ -398,6 +414,154 @@ export function format_atrule_prelude(
 		.replaceAll(ATRULE_FN_NAME_RE, (match) => match.toLowerCase()) // lowercase function names
 }
 
+/** Prints a two-sided (`200px < width < 1000px`) or one-sided (`width >
+ * 1000px`) media-feature range, reordering by source offset since the
+ * feature name isn't a child node. */
+function print_feature_range(node: FeatureRange, optional_space: string): string {
+	let name_offset = node.start + node.text.indexOf(node.name, 1)
+	let items: { offset: number; text: string }[] = [{ offset: name_offset, text: node.name }]
+
+	for (let child of node) {
+		let text = is_prelude_operator(child)
+			? optional_space + child.text + optional_space
+			: child.text
+		items.push({ offset: child.start, text })
+	}
+
+	items.sort((a, b) => a.offset - b.offset)
+	return OPEN_PARENTHESES + items.map((item) => item.text).join(EMPTY_STRING) + CLOSE_PARENTHESES
+}
+
+/** Prints a single media/container feature, e.g. `(min-width: 768px)` or the
+ * boolean form `(hover)`. */
+function print_media_feature(node: MediaFeature, optional_space: string): string {
+	let property = print_identifier(node.property)
+	if (node.value === null) {
+		return OPEN_PARENTHESES + property + CLOSE_PARENTHESES
+	}
+
+	return (
+		OPEN_PARENTHESES +
+		property +
+		COLON +
+		optional_space +
+		print_list([node.value], optional_space) +
+		CLOSE_PARENTHESES
+	)
+}
+
+/** Prints `@supports (display: grid)`-style conditions, including
+ * `and`/`or`/`not`-joined and nested-boolean-group forms that don't reduce to
+ * a single declaration (e.g. `selector(:hover)`), which print as-is. */
+function print_supports_query(node: SupportsQuery, minify: boolean): string {
+	// has_children means a simple `prop: value` declaration was found inside.
+	let condition = node.has_children
+		? format_declaration(node.first_child.first_child, { minify })
+		: format_atrule_prelude(node.value, { minify })
+	// @import's functional `supports(...)` notation needs the keyword;
+	// standalone @supports's bare `(...)` form doesn't.
+	let prefix = /^supports\(/i.test(node.text) ? 'supports' : EMPTY_STRING
+	return prefix + OPEN_PARENTHESES + condition + CLOSE_PARENTHESES
+}
+
+/** Prints a functional container-query condition, e.g. `style(--foo: bar)`. */
+function print_prelude_function(node: CSSFunction, minify: boolean): string {
+	let name = print_identifier(node.name)
+	// `selector(...)` takes a selector list, not a declaration.
+	if (name === 'selector' && node.has_children && is_selector_list(node.first_child)) {
+		return (
+			name +
+			OPEN_PARENTHESES +
+			format_selector_list(node.first_child, { minify }) +
+			CLOSE_PARENTHESES
+		)
+	}
+	// style()'s condition is a SupportsDeclaration, same as @supports's own
+	// (see print_supports_query); Function's declared child type doesn't
+	// include it, hence the cast.
+	if (node.has_children) {
+		let declaration = (node.first_child as unknown as SupportsDeclaration).first_child
+		return name + OPEN_PARENTHESES + format_declaration(declaration, { minify }) + CLOSE_PARENTHESES
+	}
+	if (node.value === null) return node.text
+	return name + OPEN_PARENTHESES + format_atrule_prelude(node.value, { minify }) + CLOSE_PARENTHESES
+}
+
+/** Prints an `@import` specifier: lowercases a leading `url(` keyword, if
+ * present, but leaves quote style untouched. Unlike value-position `url()`
+ * (see `print_url`), an `@import` specifier's Url node can also be a bare
+ * string (`@import "foo";`) with no `url(` to lowercase. */
+function print_prelude_url(node: CSSNode): string {
+	let text = node.text
+	if (/^url\(/i.test(text)) {
+		return 'url(' + text.slice(4)
+	}
+	return text
+}
+
+/** Prints one child of an AtrulePrelude/MediaQuery/ContainerQuery. Falls back
+ * to the node's raw text for anything the prelude parser doesn't specifically
+ * model (Identifier, String, Raw, ...). */
+function print_prelude_component(node: CSSNode, optional_space: string, minify: boolean): string {
+	if (is_media_query(node) || is_container_query(node)) {
+		return print_prelude_children(node, optional_space, minify)
+	}
+	if (is_media_feature(node)) {
+		return print_media_feature(node, optional_space)
+	}
+	if (is_feature_range(node)) {
+		return print_feature_range(node, optional_space)
+	}
+	if (is_supports_query(node)) {
+		return print_supports_query(node, minify)
+	}
+	if (is_prelude_selectorlist(node)) {
+		return node.text
+	}
+	if (is_function(node)) {
+		return print_prelude_function(node, minify)
+	}
+	if (is_url(node)) {
+		return print_prelude_url(node)
+	}
+	if (is_layer_name(node)) {
+		// @import's functional `layer(...)` notation has a keyword to
+		// lowercase; the standalone `@layer name;` statement form doesn't.
+		return /^layer\(/i.test(node.text) ? 'layer(' + node.text.slice(6) : node.text
+	}
+	return node.text
+}
+
+/** Prints a `,`-or-space joined sequence of at-rule prelude components.
+ * Same-type siblings (e.g. multiple `MediaQuery`s in `screen, print`) are
+ * comma-separated; everything else gets a real space, always, since CSS
+ * doesn't allow gluing them together. */
+function print_prelude_children(
+	node: AtrulePrelude | MediaQuery | ContainerQuery,
+	optional_space: string,
+	minify: boolean,
+): string {
+	let parts: string[] = []
+	for (let child of node) {
+		parts.push(print_prelude_component(child, optional_space, minify))
+		if (child.has_next) {
+			parts.push(child.type === child.next_sibling.type ? COMMA + optional_space : SPACE)
+		}
+	}
+	return parts.join(EMPTY_STRING)
+}
+
+/** Prints a structured at-rule prelude node. Falls back to the regex-based
+ * `format_atrule_prelude` when the prelude parser doesn't recognize the
+ * at-rule or its shape (`@page :first`, `@starting-style`, ...). */
+function print_atrule_prelude_node(node: AtrulePrelude | Raw, minify: boolean): string {
+	if (is_raw(node) || !node.has_children) {
+		return format_atrule_prelude(node.text, { minify })
+	}
+	let optional_space = minify ? EMPTY_STRING : SPACE
+	return print_prelude_children(node, optional_space, minify)
+}
+
 /**
  * Format a string of CSS using some simple rules
  */
@@ -419,7 +583,7 @@ export function format(
 	// First pass: collect all comments
 	let comments: number[] = []
 	let ast = parse(css, {
-		parse_atrule_preludes: false,
+		parse_atrule_preludes: true,
 		on_comment: minify
 			? undefined
 			: ({ start, end }) => {
@@ -578,7 +742,7 @@ export function format(
 	function print_atrule(node: Atrule): string {
 		let name = '@' + print_identifier(node.name!)
 		if (node.prelude) {
-			name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
+			name += SPACE + print_atrule_prelude_node(node.prelude, minify)
 		}
 
 		let block_has_content =
