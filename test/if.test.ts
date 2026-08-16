@@ -93,3 +93,45 @@ test('formats an if() branch with an empty value', () => {
 }`
 	expect(actual).toEqual(expected)
 })
+
+test('formats an if() without an else', () => {
+	let actual = format(`a { --x: if(style(--y: 1):1; }`)
+	let expected = `a {
+	--x: if(
+		style(--y: 1): 1;
+	);
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('formats an if() without a condition, only an else', () => {
+	let actual = format(`a { --x: if(else:1); }`)
+	let expected = `a {
+	--x: if(
+		else: 1;
+	);
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('formats an if() with multiple else', () => {
+	let actual = format(`
+		div {
+			background-image: if(
+				style(--scheme: ice): linear-gradient(#caf0f8, white, #caf0f8);
+				else: url("debug.png");
+				style(--scheme: fire): linear-gradient(#ffc971, white, #ffc971);
+				else: none;
+			);
+		}
+	`)
+	let expected = `div {
+	background-image: if(
+		style(--scheme: ice): linear-gradient(#caf0f8, white, #caf0f8);
+		else: url("debug.png");
+		style(--scheme: fire): linear-gradient(#ffc971, white, #ffc971);
+		else: none;
+	);
+}`
+	expect(actual).toBe(expected)
+})
