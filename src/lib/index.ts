@@ -113,9 +113,9 @@ function print_operator(node: Operator, optional_space = SPACE): string {
 	return (code === 44 ? EMPTY_STRING : space) + operator + space
 }
 
-/** Indentation string for a given nesting depth, honoring `tab_size`/`minify`. */
-function get_indent(size: number, minify: boolean, tab_size?: number): string {
-	if (minify) return EMPTY_STRING
+/** Indentation string for a given nesting depth, honoring `tab_size`. Undefined
+ * `tab_size` means real tab characters — there's no numeric size to default to. */
+function print_indent(size: number, tab_size?: number): string {
 	if (tab_size !== undefined) return SPACE.repeat(tab_size * size)
 	return '\t'.repeat(size)
 }
@@ -162,8 +162,8 @@ function print_if(node: Function, depth: number, minify: boolean, tab_size?: num
 		return 'if(' + parts.join(SEMICOLON) + ')'
 	}
 
-	let inner_indent = get_indent(depth + 1, minify, tab_size)
-	let outer_indent = get_indent(depth, minify, tab_size)
+	let inner_indent = print_indent(depth + 1, tab_size)
+	let outer_indent = print_indent(depth, tab_size)
 	let lines = branches.map(
 		(branch) =>
 			inner_indent + print_if_branch(branch, SPACE, depth + 1, minify, tab_size) + SEMICOLON,
@@ -521,7 +521,7 @@ export function format(
 	let depth = 0
 
 	function indent(size: number) {
-		return get_indent(size, minify, tab_size)
+		return minify ? EMPTY_STRING : print_indent(size, tab_size)
 	}
 
 	/**
