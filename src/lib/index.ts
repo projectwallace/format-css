@@ -20,9 +20,12 @@ import {
 	is_declaration,
 	is_rule,
 	is_atrule,
+	is_if_branch,
 	type Operator,
 	type Value,
 	type Declaration,
+	type IfBranch,
+	type Function,
 	type Raw,
 	type NthSelector,
 	type NthOfSelector,
@@ -110,12 +113,92 @@ function print_operator(node: Operator, optional_space = SPACE): string {
 	return (code === 44 ? EMPTY_STRING : space) + operator + space
 }
 
-function print_list(nodes: CSSNode[], optional_space = SPACE): string {
+/** Indentation string for a given nesting depth, honoring `tab_size`/`minify`. */
+function get_indent(size: number, minify: boolean, tab_size?: number): string {
+	if (minify) return EMPTY_STRING
+	if (tab_size !== undefined) return SPACE.repeat(tab_size * size)
+	return '\t'.repeat(size)
+}
+
+/**
+ * Prints an `if()` branch condition: `style()`/`supports()`/`media()` or the
+ * `else` keyword. The function's argument list is the same grammar as a
+ * `@supports`/`@media` prelude, so it's normalized through that same
+ * string-based prelude formatter; only the function name itself is lowercased
+ * separately, since `format_atrule_prelude` doesn't know to touch it.
+ */
+function print_if_condition(condition: IfBranch['condition'], minify: boolean): string {
+	if (is_function(condition)) {
+		let name = print_identifier(condition.name)
+		let inner = condition.text.slice(condition.name.length + 1, -1)
+		return name + OPEN_PARENTHESES + format_atrule_prelude(inner, { minify }) + CLOSE_PARENTHESES
+	}
+	return print_identifier(condition.text)
+}
+
+/** Prints one `<condition>: <value>` branch of an `if()` value, e.g. `media(print): black`. */
+function print_if_branch(
+	node: IfBranch,
+	optional_space: string,
+	depth: number,
+	minify: boolean,
+	tab_size?: number,
+): string {
+	let condition_str = print_if_condition(node.condition, minify)
+	let value_str = node.value ? format_value(node.value, { minify, tab_size }, depth) : EMPTY_STRING
+	if (value_str === EMPTY_STRING) return condition_str + COLON
+
+	return condition_str + COLON + optional_space + value_str
+}
+
+/** Prints an `if(...)` value function, one condition/value branch per line. */
+function print_if(node: Function, depth: number, minify: boolean, tab_size?: number): string {
+	let branches = node.children as IfBranch[]
+
+	if (minify) {
+		let parts = branches.map((branch) =>
+			print_if_branch(branch, EMPTY_STRING, depth, true, tab_size),
+		)
+		return 'if(' + parts.join(SEMICOLON) + ')'
+	}
+
+	let inner_indent = get_indent(depth + 1, minify, tab_size)
+	let outer_indent = get_indent(depth, minify, tab_size)
+	let lines = branches.map(
+		(branch) =>
+			inner_indent + print_if_branch(branch, SPACE, depth + 1, minify, tab_size) + SEMICOLON,
+	)
+	return 'if(\n' + lines.join('\n') + '\n' + outer_indent + CLOSE_PARENTHESES
+}
+
+/** An `if(...)` value function has `IfBranch` children instead of ordinary value nodes. */
+function is_if_function(node: Function): boolean {
+	return (
+		node.name.toLowerCase() === 'if' && node.first_child !== null && is_if_branch(node.first_child)
+	)
+}
+
+function print_list(
+	nodes: CSSNode[],
+	optional_space = SPACE,
+	depth = 0,
+	minify = false,
+	tab_size?: number,
+): string {
 	let parts = []
 	for (let node of nodes) {
 		if (is_function(node)) {
-			let fn = print_identifier(node.name)
-			parts.push(fn, OPEN_PARENTHESES, print_list(node.children, optional_space), CLOSE_PARENTHESES)
+			if (is_if_function(node)) {
+				parts.push(print_if(node, depth, minify, tab_size))
+			} else {
+				let fn = print_identifier(node.name)
+				parts.push(
+					fn,
+					OPEN_PARENTHESES,
+					print_list(node.children, optional_space, depth, minify, tab_size),
+					CLOSE_PARENTHESES,
+				)
+			}
 		} else if (is_dimension(node)) {
 			parts.push(node.value, node.unit?.toLowerCase())
 		} else if (is_string(node)) {
@@ -123,7 +206,11 @@ function print_list(nodes: CSSNode[], optional_space = SPACE): string {
 		} else if (is_operator(node)) {
 			parts.push(print_operator(node, optional_space))
 		} else if (is_parenthesis(node)) {
-			parts.push(OPEN_PARENTHESES, print_list(node.children, optional_space), CLOSE_PARENTHESES)
+			parts.push(
+				OPEN_PARENTHESES,
+				print_list(node.children, optional_space, depth, minify, tab_size),
+				CLOSE_PARENTHESES,
+			)
 		} else if (is_url(node) && node.value) {
 			parts.push(print_url(node))
 		} else {
@@ -140,16 +227,20 @@ function print_list(nodes: CSSNode[], optional_space = SPACE): string {
 
 export function format_value(
 	value: Value | Raw | null,
-	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
+	{ minify = false, tab_size = undefined }: Pick<FormatOptions, 'minify' | 'tab_size'> = {},
+	/** Indentation depth of the declaration this value belongs to; only relevant for
+	 * multi-line values like `if(...)`, which indent one level deeper than this. */
+	depth = 0,
 ): string {
 	if (value === null || is_raw(value)) return EMPTY_STRING
 	let optional_space = minify ? EMPTY_STRING : SPACE
-	return print_list(value.children, optional_space)
+	return print_list(value.children, optional_space, depth, minify, tab_size)
 }
 
 export function format_declaration(
 	node: Declaration,
-	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
+	{ minify = false, tab_size = undefined }: Pick<FormatOptions, 'minify' | 'tab_size'> = {},
+	depth = 0,
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
 
@@ -160,7 +251,7 @@ export function format_declaration(
 		important =
 			optional_space + text.slice(start, text.endsWith(SEMICOLON) ? -1 : undefined).toLowerCase()
 	}
-	let value = format_value(node.value, { minify })
+	let value = format_value(node.value, { minify, tab_size }, depth)
 	let property = node.property!
 
 	// Special case for `font` shorthand: remove whitespace around /
@@ -430,13 +521,7 @@ export function format(
 	let depth = 0
 
 	function indent(size: number) {
-		if (minify === true) return EMPTY_STRING
-
-		if (tab_size !== undefined) {
-			return SPACE.repeat(tab_size * size)
-		}
-
-		return '\t'.repeat(size)
+		return get_indent(size, minify, tab_size)
 	}
 
 	/**
@@ -520,7 +605,7 @@ export function format(
 
 			if (is_declaration(child)) {
 				let is_last = !child.has_next || !is_declaration(child.next_sibling)
-				let declaration = format_declaration(child, { minify })
+				let declaration = format_declaration(child, { minify, tab_size }, depth)
 				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
 				lines.push(indent(depth) + declaration + semi)
 			} else if (is_rule(child)) {
