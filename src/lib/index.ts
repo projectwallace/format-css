@@ -47,7 +47,6 @@ const SPACE = ' '
 const EMPTY_STRING = ''
 const COLON = ':'
 const SEMICOLON = ';'
-const QUOTE = '"'
 const OPEN_PARENTHESES = '('
 const CLOSE_PARENTHESES = ')'
 const OPEN_BRACKET = '['
@@ -116,7 +115,9 @@ function print_operator(node: Operator, optional_space = SPACE): string {
 /** Indentation string for a given nesting depth, honoring `tab_size`. Undefined
  * `tab_size` means real tab characters — there's no numeric size to default to. */
 function print_indent(size: number, tab_size?: number): string {
-	if (tab_size !== undefined) return SPACE.repeat(tab_size * size)
+	if (tab_size !== undefined) {
+		return SPACE.repeat(tab_size * size)
+	}
 	return '\t'.repeat(size)
 }
 
@@ -130,6 +131,7 @@ function print_indent(size: number, tab_size?: number): string {
 function print_if_condition(condition: IfBranch['condition'], minify: boolean): string {
 	if (is_function(condition)) {
 		let name = print_identifier(condition.name)
+		// Converting to string because format_atrule_prelude() expects a string
 		let inner = condition.text.slice(condition.name.length + 1, -1)
 		return name + OPEN_PARENTHESES + format_atrule_prelude(inner, { minify }) + CLOSE_PARENTHESES
 	}
@@ -144,11 +146,14 @@ function print_if_branch(
 	minify: boolean,
 	tab_size?: number,
 ): string {
-	let condition_str = print_if_condition(node.condition, minify)
-	let value_str = node.value ? format_value(node.value, { minify, tab_size }, depth) : EMPTY_STRING
-	if (value_str === EMPTY_STRING) return condition_str + COLON
+	let condition = print_if_condition(node.condition, minify)
+	let node_value = node.value
+	let value = node_value ? format_value(node_value, { minify, tab_size }, depth) : EMPTY_STRING
+	if (value === EMPTY_STRING) {
+		return condition + COLON
+	}
 
-	return condition_str + COLON + optional_space + value_str
+	return condition + COLON + optional_space + value
 }
 
 /** Prints an `if(...)` value function, one condition/value branch per line. */
@@ -164,10 +169,9 @@ function print_if(node: Function, depth: number, minify: boolean, tab_size?: num
 
 	let inner_indent = print_indent(depth + 1, tab_size)
 	let outer_indent = print_indent(depth, tab_size)
-	let lines = branches.map(
-		(branch) =>
-			inner_indent + print_if_branch(branch, SPACE, depth + 1, minify, tab_size) + SEMICOLON,
-	)
+	let lines = branches.map((branch) => {
+		return inner_indent + print_if_branch(branch, SPACE, depth + 1, minify, tab_size) + SEMICOLON
+	})
 	return 'if(\n' + lines.join('\n') + '\n' + outer_indent + CLOSE_PARENTHESES
 }
 
