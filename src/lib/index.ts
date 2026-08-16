@@ -21,10 +21,12 @@ import {
 	is_rule,
 	is_atrule,
 	is_if_branch,
+	is_if_condition,
 	type Operator,
 	type Value,
 	type Declaration,
 	type IfBranch,
+	type IfCondition,
 	type Function,
 	type Raw,
 	type NthSelector,
@@ -122,17 +124,25 @@ function print_indent(size: number, tab_size?: number): string {
 }
 
 /**
- * Prints an `if()` branch condition: `style()`/`supports()`/`media()` or the
- * `else` keyword. The function's argument list is the same grammar as a
+ * Prints an `if()` branch condition: `style()`/`supports()`/`media()`, the
+ * `else` keyword, or a compound `not`/`and`/`or` condition combining several
+ * of those. The function's argument list is the same grammar as a
  * `@supports`/`@media` prelude, so it's normalized through that same
  * string-based prelude formatter; only the function name itself is lowercased
  * separately, since `format_atrule_prelude` doesn't know to touch it.
  */
-function print_if_condition(condition: IfBranch['condition'], minify: boolean): string {
+function print_if_condition(
+	condition: IfBranch['condition'] | IfCondition['children'][number],
+	minify: boolean,
+): string {
 	if (is_function(condition)) {
 		let name = print_identifier(condition.name)
 		let inner = condition.value ?? ''
 		return name + OPEN_PARENTHESES + format_atrule_prelude(inner, { minify }) + CLOSE_PARENTHESES
+	}
+	if (is_if_condition(condition)) {
+		let parts = condition.children.map((child) => print_if_condition(child, minify))
+		return parts.join(SPACE)
 	}
 	return print_identifier(condition.text)
 }

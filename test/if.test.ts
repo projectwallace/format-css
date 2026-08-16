@@ -95,7 +95,7 @@ test('formats an if() branch with an empty value', () => {
 })
 
 test('formats an if() without an else', () => {
-	let actual = format(`a { --x: if(style(--y: 1):1; }`)
+	let actual = format(`a { --x: if(style(--y: 1):1 }`)
 	let expected = `a {
 	--x: if(
 		style(--y: 1): 1;
@@ -105,7 +105,7 @@ test('formats an if() without an else', () => {
 })
 
 test('formats an if() without a condition, only an else', () => {
-	let actual = format(`a { --x: if(else:1); }`)
+	let actual = format(`a { --x: if(else:1) }`)
 	let expected = `a {
 	--x: if(
 		else: 1;
@@ -121,7 +121,7 @@ test('formats an if() with multiple else', () => {
 				style(--scheme: ice): linear-gradient(#caf0f8, white, #caf0f8);
 				else: url("debug.png");
 				style(--scheme: fire): linear-gradient(#ffc971, white, #ffc971);
-				else: none;
+				else: none
 			);
 		}
 	`)
@@ -131,6 +131,44 @@ test('formats an if() with multiple else', () => {
 		else: url("debug.png");
 		style(--scheme: fire): linear-gradient(#ffc971, white, #ffc971);
 		else: none;
+	);
+}`
+	expect(actual).toBe(expected)
+})
+
+test('formats an empty if()', () => {
+	let actual = format(`a { --x: if(); }`)
+	let expected = `a {
+	--x: if();
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('formats operators', () => {
+	let actual = format(`
+		div {
+			background-color: if(
+				style((--scheme: dark) or (--scheme: very-dark)): black;
+			);
+
+			background-color: if(
+				style((--scheme: dark) and (--contrast: hi)): black;
+			);
+
+			background-color: if(
+				not style(--scheme: light): black;
+			);
+		}
+	`)
+	let expected = `div {
+	background-color: if(
+		style((--scheme: dark) or (--scheme: very-dark)): black;
+	);
+	background-color: if(
+		style((--scheme: dark) and (--contrast: hi)): black;
+	);
+	background-color: if(
+		not style(--scheme: light): black;
 	);
 }`
 	expect(actual).toBe(expected)
