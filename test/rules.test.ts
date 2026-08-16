@@ -176,7 +176,7 @@ test('formats unknown stuff in curly braces', () => {
 		}
 	`)
 	let expected = `selector {
- {
+	 {
 		color: red;
 	}
 }`

@@ -653,6 +653,12 @@ export function format(
 
 		if (node.has_prelude && is_selector_list(node.prelude)) {
 			let list = print_rule_selectors(node.prelude)
+			// An empty selector list (malformed/unknown block) prints no selector
+			// lines, so the indentation that print_rule_selectors would normally add
+			// per-selector has to be added here instead.
+			if (list === EMPTY_STRING) {
+				list = indent(depth)
+			}
 
 			let comment = get_comment(node.first_child?.end, node.block?.start)
 			if (comment) {
