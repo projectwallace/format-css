@@ -196,6 +196,18 @@ test('forces attribute selectors to have quoted values', () => {
 	expect(actual).toEqual(expected)
 })
 
+test('lowercases attribute selector names', () => {
+	let actual = format(`[HREF] {}`)
+	let expected = `[href] {}`
+	expect(actual).toEqual(expected)
+})
+
+test('lowercases attribute selector name but keeps the value as-is', () => {
+	let actual = format(`[HREF=Some-Value] {}`)
+	let expected = `[href="Some-Value"] {}`
+	expect(actual).toEqual(expected)
+})
+
 test('adds a space before attribute selector flags', () => {
 	let actual = format(`
 		[title="foo" i],
