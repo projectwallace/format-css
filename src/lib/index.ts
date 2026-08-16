@@ -131,8 +131,7 @@ function print_indent(size: number, tab_size?: number): string {
 function print_if_condition(condition: IfBranch['condition'], minify: boolean): string {
 	if (is_function(condition)) {
 		let name = print_identifier(condition.name)
-		// Converting to string because format_atrule_prelude() expects a string
-		let inner = condition.text.slice(condition.name.length + 1, -1)
+		let inner = condition.value ?? ''
 		return name + OPEN_PARENTHESES + format_atrule_prelude(inner, { minify }) + CLOSE_PARENTHESES
 	}
 	return print_identifier(condition.text)
