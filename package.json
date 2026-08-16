@@ -41,11 +41,11 @@
 		"build": "tsdown",
 		"test": "vitest --coverage",
 		"check": "tsc",
-		"lint": "oxlint; oxfmt --check",
+		"lint": "oxlint && oxfmt --check",
 		"knip": "knip"
 	},
 	"dependencies": {
-		"@projectwallace/css-parser": "~0.18.4"
+		"@projectwallace/css-parser": "^0.18.6"
 	},
 	"devDependencies": {
 		"@projectwallace/preset-oxlint": "^0.0.11",
