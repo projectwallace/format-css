@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@projectwallace/css-parser':
-        specifier: https://pkg.pr.new/@projectwallace/css-parser@b7c3d5c
-        version: https://pkg.pr.new/@projectwallace/css-parser@b7c3d5c
+        specifier: ^0.18.5
+        version: 0.18.5
     devDependencies:
       '@projectwallace/preset-oxlint':
         specifier: ^0.0.11
@@ -590,9 +590,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@projectwallace/css-parser@https://pkg.pr.new/@projectwallace/css-parser@b7c3d5c':
-    resolution: {integrity: sha512-haybL2EHBKXyGQpWxkYUPKFrJJ5UpaVEvsuP3RI3Vd15fo/N7WPRNUPSKy3wwqpomy6YKQT453nc5S8OnNuyDA==, tarball: https://pkg.pr.new/@projectwallace/css-parser@b7c3d5c}
-    version: 0.18.4
+  '@projectwallace/css-parser@0.18.5':
+    resolution: {integrity: sha512-NMPGivuvTTo56AeRemSZTogTDStnYgyezoXrUx0kyCZrELgXDcWrsxC3HXcrwDRBmKL2O7+nDo1BXDO6yBZ/tA==}
     engines: {pnpm: '>=11.0.0'}
 
   '@projectwallace/preset-oxlint@0.0.11':
@@ -1962,7 +1961,7 @@ snapshots:
   '@oxlint/binding-win32-x64-msvc@1.76.0':
     optional: true
 
-  '@projectwallace/css-parser@https://pkg.pr.new/@projectwallace/css-parser@b7c3d5c': {}
+  '@projectwallace/css-parser@0.18.5': {}
 
   '@projectwallace/preset-oxlint@0.0.11(oxlint@1.76.0)':
     dependencies:
