@@ -1,5 +1,8 @@
 import {
 	parse,
+	str_equals,
+	str_index_of,
+	is_custom,
 	is_function,
 	is_dimension,
 	is_parenthesis,
@@ -83,7 +86,7 @@ export function unquote(str: string): string {
 /** Lowercases a CSS identifier, except a custom-ident starting with `--`,
  * which must keep its case as written. */
 function print_identifier(name: string): string {
-	return name.startsWith('--') ? name : name.toLowerCase()
+	return is_custom(name) ? name : name.toLowerCase()
 }
 
 function print_string(str: string): string {
@@ -184,7 +187,7 @@ function print_list(
 	for (let node of nodes) {
 		if (is_function(node)) {
 			// An `if(...)` value function has `IfBranch` children instead of ordinary value nodes
-			if (node.name.toLowerCase() === 'if' && node.first_child && is_if_branch(node.first_child)) {
+			if (str_equals('if', node.name) && node.first_child && is_if_branch(node.first_child)) {
 				parts.push(print_if(node, depth, minify, tab_size))
 			} else {
 				let fn = print_identifier(node.name)
@@ -253,7 +256,7 @@ export function format_declaration(
 	let property = node.property!
 
 	// Special case for `font` shorthand: remove whitespace around /
-	if (property === 'font') {
+	if (str_equals('font', property)) {
 		value = value.replace(FONT_SLASH_RE, '/')
 	}
 
@@ -471,7 +474,7 @@ export function format_atrule_prelude(
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
 	return prelude
-		.replaceAll(ATRULE_COLON_COMMA_RE, prelude.toLowerCase().includes('selector(') ? '$1' : '$1 ') // force whitespace after colon or comma, except inside `selector()`
+		.replaceAll(ATRULE_COLON_COMMA_RE, str_index_of(prelude, 'selector(') === -1 ? '$1 ' : '$1') // force whitespace after colon or comma, except inside `selector()`
 		.replaceAll(ATRULE_PAREN_TEXT_RE, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
 		.replaceAll(ATRULE_KEYWORD_PAREN_RE, '$1 (') // force whitespace between media/supports keywords and opening parenthesis
 		.replaceAll(ATRULE_ARROW_COMPARE_RE, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=

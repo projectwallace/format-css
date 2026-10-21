@@ -100,6 +100,18 @@ test('does not break font shorthand', () => {
 	expect(actual).toEqual(expected)
 })
 
+test('does not break font shorthand when the property is uppercase', () => {
+	let actual = format(`a {
+		FONT: 2em    /     2 sans-serif;
+		Font: 2em/ 2 sans-serif;
+	}`)
+	let expected = `a {
+	font: 2em/2 sans-serif;
+	font: 2em/2 sans-serif;
+}`
+	expect(actual).toEqual(expected)
+})
+
 test('formats whitespace around operators (*/+-) correctly', () => {
 	let actual = format(`a {
 	font: 2em/2 sans-serif;
