@@ -40,6 +40,7 @@ import {
 	type IfCondition,
 	type Function,
 	type Raw,
+	type Url,
 	type AtrulePrelude,
 	type MediaQuery,
 	type ContainerQuery,
@@ -127,7 +128,7 @@ function print_string(str: string): string {
 /** Lowercases a leading `url(` keyword but leaves quote style untouched. In value position a Url
  * node's text always starts with `url(` (any casing), but an `@import` specifier can also be a
  * bare string (`@import "foo";`) with no `url(` to lowercase. */
-function print_url(node: CSSNode): string {
+function print_url(node: Url): string {
 	let text = node.text
 	if (/^url\(/i.test(text)) {
 		return 'url(' + text.slice(4)
