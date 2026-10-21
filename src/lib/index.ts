@@ -91,8 +91,7 @@ const ATRULE_PROTECTED_RE = /"[^"]*"|'[^']*'|(?<=url\()[^\s"')][^)]*(?=\))/gi
 // Marks where a protected string was cut out of a prelude: NUL, the string's index, NUL
 const ATRULE_PLACEHOLDER_RE = /\0(\d+)\0/g
 const ATRULE_COMMA_RE = /\s*,\s*/g
-/** Atrules whose prelude is not a media/supports-style condition, so it is only
- * whitespace- and comma-normalized instead of being interpreted. */
+/** Atrules whose prelude is not a condition: only whitespace and commas are normalized */
 const OPAQUE_PRELUDE_ATRULES = new Set([
 	'page',
 	'namespace',
@@ -119,9 +118,7 @@ function print_string(str: string): string {
 	return quote + inner + quote
 }
 
-/** Lowercases a leading `url(` keyword but leaves quote style untouched. In value position a Url
- * node's text always starts with `url(` (any casing), but an `@import` specifier can also be a
- * bare string (`@import "foo";`) with no `url(` to lowercase. */
+/** Lowercases a leading `url(`; an @import specifier can also be a bare string */
 function print_url(node: Url): string {
 	let text = node.text
 	if (str_starts_with('url(', text)) {
@@ -514,9 +511,7 @@ export function format_atrule_prelude(
 		.replaceAll(ATRULE_FN_NAME_RE, (match) => match.toLowerCase()) // lowercase function names
 }
 
-/** Prints a two-sided (`200px < width < 1000px`) or one-sided (`width >
- * 1000px`) media-feature range, reordering by source offset since the
- * feature name isn't a child node. */
+/** Prints `(200px < width < 1000px)`, ordered by source offset since the name is not a child */
 function print_feature_range(node: FeatureRange, optional_space: string): string {
 	let name_offset = node.start + node.text.indexOf(node.name, 1)
 	let items: { offset: number; text: string }[] = [{ offset: name_offset, text: node.name }]
@@ -532,8 +527,7 @@ function print_feature_range(node: FeatureRange, optional_space: string): string
 	return '(' + items.map((item) => item.text).join(EMPTY_STRING) + ')'
 }
 
-/** Prints a single media/container feature, e.g. `(min-width: 768px)` or the
- * boolean form `(hover)`. */
+/** Prints `(min-width: 768px)` or the boolean form `(hover)` */
 function print_media_feature(node: MediaFeature, optional_space: string): string {
 	let property = print_identifier(node.property)
 	if (node.value === null) {
@@ -543,8 +537,7 @@ function print_media_feature(node: MediaFeature, optional_space: string): string
 	return '(' + property + ':' + optional_space + print_list([node.value], optional_space) + ')'
 }
 
-/** Prints the condition inside a `SupportsQuery` or a `style()`/`supports()` Function: either a
- * single declaration (`display: grid`) or `and`/`or`/`not`-joined nested conditions. */
+/** Prints a single declaration or `and`/`or`/`not`-joined nested conditions */
 function print_condition(node: SupportsQuery | CSSFunction, minify: boolean): string {
 	let first = node.first_child
 	if (first === null) {
@@ -556,15 +549,14 @@ function print_condition(node: SupportsQuery | CSSFunction, minify: boolean): st
 	return print_prelude_children(node, minify ? EMPTY_STRING : SPACE, minify)
 }
 
-/** Prints a `@supports` condition group, e.g. `(display: grid)` or `((a: b) and (c: d))`. */
+/** Prints a `@supports` condition group, e.g. `((a: b) and (c: d))` */
 function print_supports_query(node: SupportsQuery, minify: boolean): string {
 	let condition = print_condition(node, minify)
 	// Inside `supports(...)` (@import) the query has no parentheses of its own
 	return node.text.startsWith('(') ? '(' + condition + ')' : condition
 }
 
-/** Prints a functional prelude condition, e.g. `style(--foo: bar)`, `selector(:hover)`,
- * or @import's `layer(...)` and `supports(...)`. */
+/** Prints `style()`, `selector()`, and @import's `layer()` and `supports()` */
 function print_prelude_function(node: CSSFunction, minify: boolean): string {
 	let name = print_identifier(node.name)
 	// `selector(...)` takes a selector list, not a declaration.
@@ -580,9 +572,7 @@ function print_prelude_function(node: CSSFunction, minify: boolean): string {
 	return node.text
 }
 
-/** Prints one child of an AtrulePrelude/MediaQuery/ContainerQuery. Falls back
- * to the node's raw text for anything the prelude parser doesn't specifically
- * model (Identifier, String, Raw, ...). */
+/** Prints one prelude child; unmodelled nodes fall back to their text */
 function print_prelude_component(node: CSSNode, optional_space: string, minify: boolean): string {
 	if (is_media_query(node) || is_container_query(node)) {
 		return print_prelude_children(node, optional_space, minify)
@@ -610,10 +600,7 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
 	return node.text
 }
 
-/** Prints a `,`-or-space joined sequence of at-rule prelude components.
- * Same-type siblings (e.g. multiple `MediaQuery`s in `screen, print`) are
- * comma-separated; everything else gets a real space, always, since CSS
- * doesn't allow gluing them together. */
+/** Joins prelude components: a comma for same-type siblings, otherwise a space */
 function print_prelude_children(
 	node: AtrulePrelude | MediaQuery | ContainerQuery | CSSFunction | SupportsQuery,
 	optional_space: string,
@@ -631,8 +618,7 @@ function print_prelude_children(
 	return parts.join(EMPTY_STRING)
 }
 
-/** Prints a prelude as plain text: collapses whitespace and normalizes commas, but never
- * touches colons, `<`/`>`, strings or url() contents (`@page :first`, `@function --f(--a <length>)`). */
+/** Collapses whitespace and normalizes commas, leaving strings, urls, colons and `<>` alone */
 function print_opaque_atrule_prelude(text: string, minify: boolean): string {
 	// 1. Cut every string and url() content out of the text and leave a numbered placeholder
 	//    (`\0<index>\0`) in its place, so the whitespace/comma cleanup below can't alter it
@@ -650,9 +636,7 @@ function print_opaque_atrule_prelude(text: string, minify: boolean): string {
 	return cleaned.replaceAll(ATRULE_PLACEHOLDER_RE, (_, index) => protected_parts[Number(index)]!)
 }
 
-/** Prints a structured at-rule prelude node. Falls back to the regex-based
- * `format_atrule_prelude` when the prelude parser doesn't recognize the
- * at-rule or its shape (`@page :first`, `@starting-style`, ...). */
+/** Prints a structured prelude, falling back to the regex formatter for raw preludes */
 function print_atrule_prelude_node(node: AtrulePrelude | Raw, minify: boolean): string {
 	if (is_raw(node) || !node.has_children) {
 		return format_atrule_prelude(node.text, { minify })
