@@ -31,6 +31,7 @@ import {
 	is_feature_range,
 	is_supports_query,
 	is_prelude_operator,
+	is_supports_declaration,
 	is_prelude_selectorlist,
 	type Operator,
 	type Value,
@@ -43,7 +44,6 @@ import {
 	type MediaQuery,
 	type ContainerQuery,
 	type SupportsQuery,
-	type SupportsDeclaration,
 	type FeatureRange,
 	type MediaFeature,
 	type Function as CSSFunction,
@@ -564,21 +564,30 @@ function print_media_feature(node: MediaFeature, optional_space: string): string
 	)
 }
 
-/** Prints `@supports (display: grid)`-style conditions, including
- * `and`/`or`/`not`-joined and nested-boolean-group forms that don't reduce to
- * a single declaration (e.g. `selector(:hover)`), which print as-is. */
+/** Prints the condition inside a `SupportsQuery` or a `style()`/`supports()` Function: either a
+ * single declaration (`display: grid`) or `and`/`or`/`not`-joined nested conditions. */
+function print_condition(node: SupportsQuery | CSSFunction, minify: boolean): string {
+	let first = node.first_child
+	if (first === null) {
+		return node.value ?? EMPTY_STRING
+	}
+	if (is_supports_declaration(first)) {
+		return format_declaration(first.first_child, { minify })
+	}
+	return print_prelude_children(node, minify ? EMPTY_STRING : SPACE, minify)
+}
+
+/** Prints a `@supports` condition group, e.g. `(display: grid)` or `((a: b) and (c: d))`. */
 function print_supports_query(node: SupportsQuery, minify: boolean): string {
-	// has_children means a simple `prop: value` declaration was found inside.
-	let condition = node.has_children
-		? format_declaration(node.first_child.first_child, { minify })
-		: format_atrule_prelude(node.value, { minify })
+	let condition = print_condition(node, minify)
 	// Inside `supports(...)` (@import) the query has no parentheses of its own
 	return node.text.startsWith(OPEN_PARENTHESES)
 		? OPEN_PARENTHESES + condition + CLOSE_PARENTHESES
 		: condition
 }
 
-/** Prints a functional container-query condition, e.g. `style(--foo: bar)`. */
+/** Prints a functional prelude condition, e.g. `style(--foo: bar)`, `selector(:hover)`,
+ * or @import's `layer(...)` and `supports(...)`. */
 function print_prelude_function(node: CSSFunction, minify: boolean): string {
 	let name = print_identifier(node.name)
 	// `selector(...)` takes a selector list, not a declaration.
@@ -590,25 +599,18 @@ function print_prelude_function(node: CSSFunction, minify: boolean): string {
 			CLOSE_PARENTHESES
 		)
 	}
-	// @import's `layer(...)` and `supports(...)` wrap Layer and SupportsQuery children
-	if (str_equals('layer', name) || str_equals('supports', name)) {
+	if (str_equals('layer', name)) {
 		return (
 			name +
 			OPEN_PARENTHESES +
-			print_prelude_children(node, minify ? EMPTY_STRING : SPACE, minify) +
+			print_prelude_children(node, EMPTY_STRING, minify) +
 			CLOSE_PARENTHESES
 		)
 	}
-	// style()'s condition is a SupportsDeclaration, same as @supports's own
-	// (see print_supports_query).
-	if (node.has_children) {
-		let declaration = (node.first_child as SupportsDeclaration).first_child
-		return name + OPEN_PARENTHESES + format_declaration(declaration, { minify }) + CLOSE_PARENTHESES
+	if (str_equals('style', name) || str_equals('supports', name)) {
+		return name + OPEN_PARENTHESES + print_condition(node, minify) + CLOSE_PARENTHESES
 	}
-	if (node.value === null) {
-		return node.text
-	}
-	return name + OPEN_PARENTHESES + format_atrule_prelude(node.value, { minify }) + CLOSE_PARENTHESES
+	return node.text
 }
 
 /** Prints one child of an AtrulePrelude/MediaQuery/ContainerQuery. Falls back
@@ -644,7 +646,7 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
  * comma-separated; everything else gets a real space, always, since CSS
  * doesn't allow gluing them together. */
 function print_prelude_children(
-	node: AtrulePrelude | MediaQuery | ContainerQuery | CSSFunction,
+	node: AtrulePrelude | MediaQuery | ContainerQuery | CSSFunction | SupportsQuery,
 	optional_space: string,
 	minify: boolean,
 ): string {

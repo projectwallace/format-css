@@ -452,3 +452,34 @@ describe('@import functional notation', () => {
 		expect(format(`@import "a.css" layer(a.b.c);`)).toEqual(`@import "a.css" layer(a.b.c);`)
 	})
 })
+
+describe('nested conditions in @supports and @container style()', () => {
+	test('@supports nested group', () => {
+		expect(format(`@supports ((display:grid)   and   (display:flex)) {}`)).toEqual(
+			`@supports ((display: grid) and (display: flex)) {}`,
+		)
+		expect(minify(`@supports ((display: grid) and (display: flex)) {}`)).toEqual(
+			`@supports ((display:grid) and (display:flex)){}`,
+		)
+	})
+	test('@supports not with nested or-group', () => {
+		expect(format(`@supports not ((a:1) or (b:2)) {}`)).toEqual(
+			`@supports not ((a: 1) or (b: 2)) {}`,
+		)
+	})
+	test('@supports three levels deep', () => {
+		expect(format(`@supports (((a:1) and (b:2)) or (c:3)) {}`)).toEqual(
+			`@supports (((a: 1) and (b: 2)) or (c: 3)) {}`,
+		)
+	})
+	test('@container style() with nested and-group', () => {
+		expect(format(`@container STYLE((--a:1) and (--b:2)) {}`)).toEqual(
+			`@container style((--a: 1) and (--b: 2)) {}`,
+		)
+	})
+	test('@container named style(not ...)', () => {
+		expect(format(`@container name style(not (--a:1)) {}`)).toEqual(
+			`@container name style(not (--a: 1)) {}`,
+		)
+	})
+})
