@@ -286,3 +286,9 @@ test.each([
 	let actual = format(css)
 	expect(actual).toEqual(expected)
 })
+
+test('whitespace before a comma does not leave a trailing combinator', () => {
+	let actual = format('a > b , c {}')
+	let expected = 'a > b,\nc {}'
+	expect(actual).toEqual(expected)
+})
