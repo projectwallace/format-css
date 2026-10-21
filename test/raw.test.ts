@@ -66,7 +66,7 @@ describe('parse_selectors: false', () => {
 	})
 
 	test('format_selector_list formats a raw prelude', () => {
-		expect(format_selector_list(prelude('A>b,.c  d{}'))).toBe('a > b, .c d')
+		expect(format_selector_list(prelude('A>b ,.c  d{}'))).toBe('a > b, .c d')
 	})
 
 	test.each(['::', '!!'])('falls back to the raw text for unparsable %s', (text) => {
@@ -74,7 +74,7 @@ describe('parse_selectors: false', () => {
 	})
 
 	test('minified', () => {
-		expect(format_selector_list(prelude('a > b, c{}'), { minify: true })).toBe('a>b,c')
+		expect(format_selector_list(prelude('a > b , c{}'), { minify: true })).toBe('a>b,c')
 	})
 })
 
