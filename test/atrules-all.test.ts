@@ -501,3 +501,23 @@ describe('@scope empty parentheses', () => {
 		expect(format(`@scope ( ) {}`)).toEqual(`@scope () {}`)
 	})
 })
+
+describe('plain-text preludes (@page, @document, @custom-selector, @function)', () => {
+	test('commas inside unquoted url() and strings are kept', () => {
+		expect(format(`@document url(http://x.com/a,b)  ,  domain( "a,b.com" ) {}`)).toEqual(
+			`@document url(http://x.com/a,b), domain( "a,b.com" ) {}`,
+		)
+		expect(minify(`@document url(http://x.com/a,b)  ,  domain( "a,b.com" ) {}`)).toEqual(
+			`@document url(http://x.com/a,b),domain( "a,b.com" ){}`,
+		)
+	})
+	test('collapses whitespace around commas', () => {
+		expect(format(`@page   :first ,  :left  {}`)).toEqual(`@page :first, :left {}`)
+		expect(minify(`@page   :first ,  :left  {}`)).toEqual(`@page :first,:left{}`)
+	})
+	test('@namespace is printed from its parsed children', () => {
+		expect(format(`@namespace   svg   URL(http://www.w3.org/2000/svg) ;`)).toEqual(
+			`@namespace svg url(http://www.w3.org/2000/svg);`,
+		)
+	})
+})

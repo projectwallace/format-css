@@ -1,5 +1,10 @@
 import {
 	parse,
+	tokenize,
+	TOKEN_COMMA,
+	TOKEN_FUNCTION,
+	TOKEN_RIGHT_PAREN,
+	TOKEN_WHITESPACE,
 	str_equals,
 	str_index_of,
 	str_starts_with,
@@ -86,15 +91,9 @@ const ATRULE_WHITESPACE_RE = /\s+/g
 const ATRULE_COLON_COMMA_SPACE_RE = /([:,]) /g
 const ATRULE_CALC_RE = /calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g
 const ATRULE_FN_NAME_RE = /selector|url|supports|layer\(/gi
-// Quoted strings and unquoted url() contents must keep their exact text
-const ATRULE_PROTECTED_RE = /"[^"]*"|'[^']*'|(?<=url\()[^\s"')][^)]*(?=\))/gi
-// Marks where a protected string was cut out of a prelude: NUL, the string's index, NUL
-const ATRULE_PLACEHOLDER_RE = /\0(\d+)\0/g
-const ATRULE_COMMA_RE = /\s*,\s*/g
 /** Atrules whose prelude is not a condition: only whitespace and commas are normalized */
 const OPAQUE_PRELUDE_ATRULES = new Set([
 	'page',
-	'namespace',
 	'document',
 	'-moz-document',
 	'custom-selector',
@@ -620,20 +619,30 @@ function print_prelude_children(
 
 /** Collapses whitespace and normalizes commas, leaving strings, urls, colons and `<>` alone */
 function print_opaque_atrule_prelude(text: string, minify: boolean): string {
-	// 1. Cut every string and url() content out of the text and leave a numbered placeholder
-	//    (`\0<index>\0`) in its place, so the whitespace/comma cleanup below can't alter it
-	let protected_parts: string[] = []
-	let masked = text.replaceAll(
-		ATRULE_PROTECTED_RE,
-		(match) => `\0${protected_parts.push(match) - 1}\0`,
-	)
-	// 2. Clean up whitespace and commas in what is left
-	let cleaned = masked
-		.replaceAll(ATRULE_WHITESPACE_RE, SPACE)
-		.replaceAll(ATRULE_COMMA_RE, minify ? ',' : ',' + SPACE)
-		.trim()
-	// 3. Put the original strings back where their placeholders are
-	return cleaned.replaceAll(ATRULE_PLACEHOLDER_RE, (_, index) => protected_parts[Number(index)]!)
+	let parts: string[] = []
+	let pending_space = false
+	let in_url = false
+	for (let token of tokenize(text)) {
+		let raw = text.slice(token.start, token.end)
+		if (in_url) {
+			// An unquoted url() is tokenized piece by piece: copy it verbatim up to the closing paren
+			parts.push(raw)
+			in_url = token.type !== TOKEN_RIGHT_PAREN
+		} else if (token.type === TOKEN_WHITESPACE) {
+			pending_space = parts.length > 0 && !(minify && parts.at(-1) === ',')
+		} else if (token.type === TOKEN_COMMA) {
+			parts.push(',')
+			pending_space = !minify
+		} else {
+			if (pending_space) {
+				parts.push(SPACE)
+			}
+			pending_space = false
+			parts.push(raw)
+			in_url = token.type === TOKEN_FUNCTION && str_equals('url(', raw)
+		}
+	}
+	return parts.join(EMPTY_STRING)
 }
 
 /** Prints a structured prelude, falling back to the regex formatter for raw preludes */
