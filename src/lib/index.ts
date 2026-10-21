@@ -590,18 +590,7 @@ export function format(
 		let lines = []
 		depth++
 
-		if (!node.has_children) {
-			let comment = get_comment(node.start, node.end)
-			if (comment) {
-				lines.push(indent(depth) + comment)
-				depth--
-				lines.push(indent(depth) + CLOSE_BRACE)
-				return lines.join(NEWLINE)
-			}
-		}
-
-		let first_child = node.first_child
-		let comment_before_first = get_comment(node.start, first_child?.start)
+		let comment_before_first = get_comment(node.start, node.first_child?.start ?? node.end)
 		if (comment_before_first) {
 			lines.push(indent(depth) + comment_before_first)
 		}
