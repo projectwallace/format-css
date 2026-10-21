@@ -44,6 +44,10 @@ describe('parse_values: false', () => {
 		)
 	})
 
+	test.each(['@@', '@@ @@'])('falls back to the raw text for unparsable %s', (text) => {
+		expect(format_value(first_declaration(`a{b:${text}}`).value)).toBe(text)
+	})
+
 	test('!important', () => {
 		expect(format_declaration(first_declaration('a{color:red   !IMPORTANT}'))).toBe(
 			'color: red !important',
@@ -63,6 +67,10 @@ describe('parse_selectors: false', () => {
 
 	test('format_selector_list formats a raw prelude', () => {
 		expect(format_selector_list(prelude('A>b,.c  d{}'))).toBe('a > b, .c d')
+	})
+
+	test.each(['::', '!!'])('falls back to the raw text for unparsable %s', (text) => {
+		expect(format_selector_list(prelude(`${text}{}`))).toBe(text)
 	})
 
 	test('minified', () => {

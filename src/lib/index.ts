@@ -240,7 +240,12 @@ export function format_value(
 	}
 	// Raw values (parse_values: false) are parsed inline so they get formatted too
 	if (is_raw(value)) {
-		value = parse_value(value.text)
+		let parsed = parse_value(value.text)
+		// Last resort: if nothing could be parsed, print the raw text as written
+		if (!parsed.has_children) {
+			return value.text
+		}
+		value = parsed
 	}
 	let optional_space = minify ? EMPTY_STRING : SPACE
 	return print_list(value.children, optional_space, depth, minify, tab_size)
@@ -468,7 +473,12 @@ export function format_selector_list(
 	let optional_space = minify ? EMPTY_STRING : SPACE
 	// Raw preludes (parse_selectors: false) are parsed inline so they get formatted too
 	if (is_raw(node)) {
-		node = parse_selector_list(node.text)
+		let parsed = parse_selector_list(node.text)
+		// Last resort: if nothing could be parsed, print the raw text as written
+		if (!parsed.has_children) {
+			return node.text
+		}
+		node = parsed
 	}
 	return print_selector_list(node, optional_space)
 }
@@ -567,7 +577,12 @@ export function format(
 	/** Prints a rule's selector list one selector per line, e.g. `.a,\n.b {`. */
 	function print_rule_selectors(node: SelectorList | Raw): string {
 		if (is_raw(node)) {
-			node = parse_selector_list(node.text)
+			let parsed = parse_selector_list(node.text)
+			// Last resort: if nothing could be parsed, print the raw text as written
+			if (!parsed.has_children) {
+				return indent(depth) + node.text
+			}
+			node = parsed
 		}
 		let lines = []
 		let prev_end: number | undefined
