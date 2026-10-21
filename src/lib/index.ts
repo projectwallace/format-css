@@ -125,6 +125,17 @@ function print_string(str: string): string {
 	return quote + inner + quote
 }
 
+/** Lowercases a leading `url(` keyword but leaves quote style untouched. In value position a Url
+ * node's text always starts with `url(` (any casing), but an `@import` specifier can also be a
+ * bare string (`@import "foo";`) with no `url(` to lowercase. */
+function print_url(node: CSSNode): string {
+	let text = node.text
+	if (/^url\(/i.test(text)) {
+		return 'url(' + text.slice(4)
+	}
+	return text
+}
+
 function print_operator(node: Operator, optional_space = SPACE): string {
 	// https://developer.mozilla.org/en-US/docs/Web/CSS/calc#notes
 	// The + and - operators must be surrounded by whitespace
@@ -240,10 +251,8 @@ function print_list(
 				print_list(node.children, optional_space, depth, minify, tab_size),
 				CLOSE_PARENTHESES,
 			)
-		} else if (is_url(node) && node.value) {
-			// Lowercase the `url(` keyword but leave quote style untouched. A Url node's text
-			// always starts with `url(` (any casing), that's how the parser identifies it.
-			parts.push('url(' + node.text.slice(4))
+		} else if (is_url(node)) {
+			parts.push(print_url(node))
 		} else {
 			parts.push(node.text)
 		}
@@ -564,8 +573,10 @@ function print_supports_query(node: SupportsQuery, minify: boolean): string {
 	let condition = node.has_children
 		? format_declaration(node.first_child.first_child, { minify })
 		: format_atrule_prelude(node.value, { minify })
-	// @import's functional `supports(...)` notation needs the keyword;
-	// standalone @supports's bare `(...)` form doesn't.
+	// Known limitation: the parser doesn't model `supports(...)` in @import as Function(name=supports) wrapping
+	// a SupportsQuery, it gives us a SupportsQuery whose text includes the `supports(` keyword
+	// (see css-parser#195). Until then, detect the functional notation from the text:
+	// @import needs the keyword, standalone @supports's bare `(...)` form doesn't.
 	let prefix = /^supports\(/i.test(node.text) ? 'supports' : EMPTY_STRING
 	return prefix + OPEN_PARENTHESES + condition + CLOSE_PARENTHESES
 }
@@ -574,7 +585,7 @@ function print_supports_query(node: SupportsQuery, minify: boolean): string {
 function print_prelude_function(node: CSSFunction, minify: boolean): string {
 	let name = print_identifier(node.name)
 	// `selector(...)` takes a selector list, not a declaration.
-	if (name === 'selector' && node.has_children && is_selector_list(node.first_child)) {
+	if (str_equals('selector', name) && node.has_children && is_selector_list(node.first_child)) {
 		return (
 			name +
 			OPEN_PARENTHESES +
@@ -589,20 +600,10 @@ function print_prelude_function(node: CSSFunction, minify: boolean): string {
 		let declaration = (node.first_child as unknown as SupportsDeclaration).first_child
 		return name + OPEN_PARENTHESES + format_declaration(declaration, { minify }) + CLOSE_PARENTHESES
 	}
-	if (node.value === null) return node.text
-	return name + OPEN_PARENTHESES + format_atrule_prelude(node.value, { minify }) + CLOSE_PARENTHESES
-}
-
-/** Prints an `@import` specifier: lowercases a leading `url(` keyword, if
- * present, but leaves quote style untouched. Unlike value-position `url()`
- * (see `print_url`), an `@import` specifier's Url node can also be a bare
- * string (`@import "foo";`) with no `url(` to lowercase. */
-function print_prelude_url(node: CSSNode): string {
-	let text = node.text
-	if (/^url\(/i.test(text)) {
-		return 'url(' + text.slice(4)
+	if (node.value === null) {
+		return node.text
 	}
-	return text
+	return name + OPEN_PARENTHESES + format_atrule_prelude(node.value, { minify }) + CLOSE_PARENTHESES
 }
 
 /** Prints one child of an AtrulePrelude/MediaQuery/ContainerQuery. Falls back
@@ -628,7 +629,7 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
 		return print_prelude_function(node, minify)
 	}
 	if (is_url(node)) {
-		return print_prelude_url(node)
+		return print_url(node)
 	}
 	if (is_layer_name(node)) {
 		// @import's functional `layer(...)` notation has a keyword to
@@ -701,7 +702,6 @@ export function format(
 	// First pass: collect all comments
 	let comments: number[] = []
 	let ast = parse(css, {
-		parse_atrule_preludes: true,
 		on_comment: minify
 			? undefined
 			: ({ start, end }) => {
