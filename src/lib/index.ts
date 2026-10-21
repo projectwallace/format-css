@@ -87,12 +87,9 @@ function print_identifier(name: string): string {
 	return name.startsWith('--') ? name : name.toLowerCase()
 }
 
-function print_string(str: string | number | null, quote?: '"' | "'"): string {
-	str = str?.toString() || ''
+function print_string(str: string): string {
 	let inner = unquote(str)
-	if (quote === undefined) {
-		quote = inner.includes('"') ? "'" : '"'
-	}
+	let quote = inner.includes('"') ? "'" : '"'
 	return quote + inner + quote
 }
 
@@ -428,7 +425,7 @@ function print_selector_argument(node: CSSNode, optional_space = SPACE): string 
 	}
 
 	if (is_lang_selector(node)) {
-		return print_string(node.name)
+		return print_string(node.name ?? EMPTY_STRING)
 	}
 
 	return print_selector(node as Selector, optional_space)
