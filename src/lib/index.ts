@@ -78,19 +78,6 @@ const ATRULE_WHITESPACE_RE = /\s+/g
 const ATRULE_COLON_COMMA_SPACE_RE = /([:,]) /g
 const ATRULE_CALC_RE = /calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g
 const ATRULE_FN_NAME_RE = /selector|url|supports|layer\(/gi
-// Quoted strings and unquoted url() contents must never be touched by prelude formatting
-const ATRULE_PROTECTED_RE = /"[^"]*"|'[^']*'|(?<=url\()[^\s"')][^)]*(?=\))/gi
-const ATRULE_PLACEHOLDER_RE = /\0(\d+)\0/g
-const ATRULE_COMMA_RE = /\s*,\s*/g
-/** Atrules whose prelude isn't a media/supports-style condition: they only get whitespace and comma cleanup */
-const OPAQUE_PRELUDE_ATRULES = new Set([
-	'page',
-	'namespace',
-	'document',
-	'-moz-document',
-	'custom-selector',
-	'function',
-])
 
 export function unquote(str: string): string {
 	return str.replaceAll(UNQUOTE_RE, EMPTY_STRING)
@@ -486,46 +473,21 @@ export function format_atrule_prelude(
 	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
-	return with_protected_parts(
-		prelude,
-		(masked) =>
-			masked
-				.replaceAll(ATRULE_COLON_COMMA_RE, str_index_of(prelude, 'selector(') === -1 ? '$1 ' : '$1') // force whitespace after colon or comma, except inside `selector()`
-				.replaceAll(ATRULE_PAREN_TEXT_RE, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
-				.replaceAll(ATRULE_KEYWORD_PAREN_RE, '$1 (') // force whitespace between media/supports keywords and opening parenthesis
-				.replaceAll(ATRULE_ARROW_COMPARE_RE, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
-				.replaceAll(ATRULE_COMPARE_RE, `$1${optional_space}$2${optional_space}$3`) // add spacing around < or > except when it's part of <=, >=, =>
-				.replaceAll(ATRULE_COMPARE_SPACED_RE, `$1${optional_space}$2${optional_space}$3`) // handle spaces around < or > when they already have surrounding whitespace
-				.replaceAll(ATRULE_WHITESPACE_RE, SPACE) // collapse multiple whitespaces into one
-				.replaceAll(ATRULE_COLON_COMMA_SPACE_RE, minify ? '$1' : '$1 ') // in minify mode, remove optional spaces after : and ,
-				.replaceAll(ATRULE_CALC_RE, (_, left, operator, right) => {
-					// force required or optional whitespace around * and / in calc()
-					let space = operator === '+' || operator === '-' ? SPACE : optional_space
-					return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
-				})
-				.replaceAll(ATRULE_FN_NAME_RE, (match) => match.toLowerCase()), // lowercase function names
-	)
-}
-
-/**
- * Prelude formatting for atrules that are not media/supports-style conditions
- * (e.g. `@page :first`, `@namespace svg url(...)`, `@function --f(--a <length>)`).
- * Colons and `<`/`>` have a different meaning there, so only whitespace and commas are normalized.
- */
-function format_opaque_atrule_prelude(prelude: string, minify: boolean): string {
-	return with_protected_parts(prelude, (masked) =>
-		masked
-			.replaceAll(ATRULE_WHITESPACE_RE, SPACE)
-			.replaceAll(ATRULE_COMMA_RE, minify ? COMMA : COMMA + SPACE)
-			.trim(),
-	)
-}
-
-/** Hides strings and unquoted url() contents from `fn`, then puts them back untouched */
-function with_protected_parts(text: string, fn: (masked: string) => string): string {
-	let parts: string[] = []
-	let masked = text.replaceAll(ATRULE_PROTECTED_RE, (match) => `\0${parts.push(match) - 1}\0`)
-	return fn(masked).replaceAll(ATRULE_PLACEHOLDER_RE, (_, i) => parts[Number(i)]!)
+	return prelude
+		.replaceAll(ATRULE_COLON_COMMA_RE, str_index_of(prelude, 'selector(') === -1 ? '$1 ' : '$1') // force whitespace after colon or comma, except inside `selector()`
+		.replaceAll(ATRULE_PAREN_TEXT_RE, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
+		.replaceAll(ATRULE_KEYWORD_PAREN_RE, '$1 (') // force whitespace between media/supports keywords and opening parenthesis
+		.replaceAll(ATRULE_ARROW_COMPARE_RE, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
+		.replaceAll(ATRULE_COMPARE_RE, `$1${optional_space}$2${optional_space}$3`) // add spacing around < or > except when it's part of <=, >=, =>
+		.replaceAll(ATRULE_COMPARE_SPACED_RE, `$1${optional_space}$2${optional_space}$3`) // handle spaces around < or > when they already have surrounding whitespace
+		.replaceAll(ATRULE_WHITESPACE_RE, SPACE) // collapse multiple whitespaces into one
+		.replaceAll(ATRULE_COLON_COMMA_SPACE_RE, minify ? '$1' : '$1 ') // in minify mode, remove optional spaces after : and ,
+		.replaceAll(ATRULE_CALC_RE, (_, left, operator, right) => {
+			// force required or optional whitespace around * and / in calc()
+			let space = operator === '+' || operator === '-' ? SPACE : optional_space
+			return `calc(${left.trim()}${space}${operator}${space}${right.trim()})`
+		})
+		.replaceAll(ATRULE_FN_NAME_RE, (match) => match.toLowerCase()) // lowercase function names
 }
 
 /**
@@ -697,12 +659,7 @@ export function format(
 	function print_atrule(node: Atrule): string {
 		let name = '@' + print_identifier(node.name!)
 		if (node.prelude) {
-			let prelude = node.prelude.text
-			name +=
-				SPACE +
-				(OPAQUE_PRELUDE_ATRULES.has(node.name!.toLowerCase())
-					? format_opaque_atrule_prelude(prelude, minify)
-					: format_atrule_prelude(prelude, { minify }))
+			name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
 		}
 
 		let block_has_content =
