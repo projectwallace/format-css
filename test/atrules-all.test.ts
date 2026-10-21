@@ -25,7 +25,7 @@ describe('@namespace', () => {
 		expect(format(`@namespace url(x);`)).toEqual(`@namespace url(x);`)
 	})
 	// oxlint-disable-next-line vitest/no-disabled-tests
-	test.skip('format with quoted string keeps the // intact', () => {
+	test('format with quoted string keeps the // intact', () => {
 		expect(format(`@namespace svg "http://www.w3.org/2000/svg";`)).toEqual(
 			`@namespace svg "http://www.w3.org/2000/svg";`,
 		)
@@ -36,7 +36,7 @@ describe('@namespace', () => {
 		)
 	})
 	// oxlint-disable-next-line vitest/no-disabled-tests
-	test.skip('format with unquoted url() keeps the // intact', () => {
+	test('format with unquoted url() keeps the // intact', () => {
 		expect(format(`@namespace svg url(http://www.w3.org/2000/svg);`)).toEqual(
 			`@namespace svg url(http://www.w3.org/2000/svg);`,
 		)
@@ -173,7 +173,7 @@ describe('@page', () => {
 		expect(minify(`@page :first{margin:1in}`)).toEqual(`@page :first{margin:1in}`)
 	})
 	// oxlint-disable-next-line vitest/no-disabled-tests
-	test.skip('format keeps pseudo-class attached to the colon', () => {
+	test('format keeps pseudo-class attached to the colon', () => {
 		expect(format(`@page :first{margin:1in}`)).toEqual(`@page :first {\n\tmargin: 1in;\n}`)
 	})
 	// oxlint-disable-next-line vitest/no-disabled-tests
@@ -371,21 +371,50 @@ describe('unknown / custom atrules', () => {
 		)
 	})
 	// oxlint-disable-next-line vitest/no-disabled-tests
-	test.skip('@custom-selector keeps :--name together', () => {
+	test('@custom-selector keeps :--name together', () => {
 		expect(format(`@custom-selector :--heading h1,h2,h3;`)).toEqual(
 			`@custom-selector :--heading h1, h2, h3;`,
 		)
 	})
 	// oxlint-disable-next-line vitest/no-disabled-tests
-	test.skip('@function signature', () => {
+	test('@function signature', () => {
 		expect(format(`@function --f(--a <length>) returns <length>{result:var(--a)}`)).toEqual(
 			`@function --f(--a <length>) returns <length> {\n\tresult: var(--a);\n}`,
 		)
 	})
 	// oxlint-disable-next-line vitest/no-disabled-tests
-	test.skip('@document with unquoted url() keeps the // intact', () => {
+	test('@document with unquoted url() keeps the // intact', () => {
 		expect(format(`@document url(http://x){a{b:c}}`)).toEqual(
 			`@document url(http://x) {\n\ta {\n\t\tb: c;\n\t}\n}`,
+		)
+	})
+})
+
+describe('strings and urls in preludes are left untouched', () => {
+	test('@import with unquoted url()', () => {
+		expect(format(`@import url(http://x.com/a.css) screen;`)).toEqual(
+			`@import url(http://x.com/a.css) screen;`,
+		)
+	})
+	test('@import with quoted string', () => {
+		expect(format(`@import "http://x.com/a,b:c.css" screen;`)).toEqual(
+			`@import "http://x.com/a,b:c.css" screen;`,
+		)
+	})
+	test('@namespace with commas in url', () => {
+		expect(format(`@namespace url(http://x.com/a,b);`)).toEqual(`@namespace url(http://x.com/a,b);`)
+	})
+	test('@custom-selector comma list, minified', () => {
+		expect(minify(`@custom-selector :--heading h1 , h2 ,h3;`)).toEqual(
+			`@custom-selector :--heading h1,h2,h3;`,
+		)
+	})
+	test('@page with selector list', () => {
+		expect(format(`@page :first,:left{margin:0}`)).toEqual(`@page :first, :left {\n\tmargin: 0;\n}`)
+	})
+	test('@function with multiple params', () => {
+		expect(format(`@function --f(--a <length>,--b <number>:1) returns <length>{result:1}`)).toEqual(
+			`@function --f(--a <length>, --b <number>:1) returns <length> {\n\tresult: 1;\n}`,
 		)
 	})
 })
