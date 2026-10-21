@@ -173,13 +173,6 @@ function print_if(node: Function, depth: number, minify: boolean, tab_size?: num
 	return 'if(\n' + lines.join('\n') + '\n' + outer_indent + CLOSE_PARENTHESES
 }
 
-/** An `if(...)` value function has `IfBranch` children instead of ordinary value nodes. */
-function is_if_function(node: Function): boolean {
-	return (
-		node.name.toLowerCase() === 'if' && node.first_child !== null && is_if_branch(node.first_child)
-	)
-}
-
 function print_list(
 	nodes: CSSNode[],
 	optional_space = SPACE,
@@ -190,7 +183,8 @@ function print_list(
 	let parts = []
 	for (let node of nodes) {
 		if (is_function(node)) {
-			if (is_if_function(node)) {
+			// An `if(...)` value function has `IfBranch` children instead of ordinary value nodes
+			if (node.name.toLowerCase() === 'if' && node.first_child && is_if_branch(node.first_child)) {
 				parts.push(print_if(node, depth, minify, tab_size))
 			} else {
 				let fn = print_identifier(node.name)
