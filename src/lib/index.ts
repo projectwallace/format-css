@@ -3,6 +3,8 @@ import {
 	str_equals,
 	str_index_of,
 	is_custom,
+	parse_value,
+	parse_selector_list,
 	is_function,
 	is_dimension,
 	is_parenthesis,
@@ -233,7 +235,13 @@ export function format_value(
 	 * multi-line values like `if(...)`, which indent one level deeper than this. */
 	depth = 0,
 ): string {
-	if (value === null || is_raw(value)) return EMPTY_STRING
+	if (value === null) {
+		return EMPTY_STRING
+	}
+	// Raw values (parse_values: false) are parsed inline so they get formatted too
+	if (is_raw(value)) {
+		value = parse_value(value.text)
+	}
 	let optional_space = minify ? EMPTY_STRING : SPACE
 	return print_list(value.children, optional_space, depth, minify, tab_size)
 }
@@ -454,10 +462,14 @@ export function format_selector(
 }
 
 export function format_selector_list(
-	node: SelectorList,
+	node: SelectorList | Raw,
 	{ minify = false }: Pick<FormatOptions, 'minify'> = {},
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
+	// Raw preludes (parse_selectors: false) are parsed inline so they get formatted too
+	if (is_raw(node)) {
+		node = parse_selector_list(node.text)
+	}
 	return print_selector_list(node, optional_space)
 }
 
@@ -553,7 +565,10 @@ export function format(
 	}
 
 	/** Prints a rule's selector list one selector per line, e.g. `.a,\n.b {`. */
-	function print_rule_selectors(node: SelectorList): string {
+	function print_rule_selectors(node: SelectorList | Raw): string {
+		if (is_raw(node)) {
+			node = parse_selector_list(node.text)
+		}
 		let lines = []
 		let prev_end: number | undefined
 		for (let selector of node) {
@@ -628,7 +643,7 @@ export function format(
 			node.block && (node.block.has_children || get_comment(node.block.start, node.block.end))
 		let lines = []
 
-		if (node.has_prelude && is_selector_list(node.prelude)) {
+		if (node.has_prelude && (is_selector_list(node.prelude) || is_raw(node.prelude))) {
 			let list = print_rule_selectors(node.prelude)
 			// An empty selector list (malformed/unknown block) prints no selector
 			// lines, so the indentation that print_rule_selectors would normally add
