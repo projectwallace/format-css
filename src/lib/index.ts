@@ -474,7 +474,7 @@ export function format_atrule_prelude(
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
 	return prelude
-		.replaceAll(ATRULE_COLON_COMMA_RE, str_index_of(prelude, 'selector(') === -1 ? '$1 ' : '$1') // force whitespace after colon or comma, except inside `selector()`
+		.replaceAll(ATRULE_COLON_COMMA_RE, str_index_of('selector(', prelude) === -1 ? '$1 ' : '$1') // force whitespace after colon or comma, except inside `selector()`
 		.replaceAll(ATRULE_PAREN_TEXT_RE, ') $1') // force whitespace between closing parenthesis and following text (usually and|or)
 		.replaceAll(ATRULE_KEYWORD_PAREN_RE, '$1 (') // force whitespace between media/supports keywords and opening parenthesis
 		.replaceAll(ATRULE_ARROW_COMPARE_RE, `${optional_space}$1${optional_space}`) // add optional spacing around =>, >= and <=
