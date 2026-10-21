@@ -42,7 +42,6 @@ import {
 	type Atrule,
 	type StyleSheet,
 	type CSSNode,
-	type Url,
 } from '@projectwallace/css-parser'
 
 const SPACE = ' '
@@ -87,20 +86,10 @@ function print_identifier(name: string): string {
 	return name.startsWith('--') ? name : name.toLowerCase()
 }
 
-function print_string(str: string | number | null, quote?: '"' | "'"): string {
-	str = str?.toString() || ''
+function print_string(str: string): string {
 	let inner = unquote(str)
-	if (quote === undefined) {
-		quote = inner.includes('"') ? "'" : '"'
-	}
+	let quote = inner.includes('"') ? "'" : '"'
 	return quote + inner + quote
-}
-
-/** Prints a `url(...)`: lowercases the `url(` keyword but leaves quote style
- * untouched. A Url node's text always starts with `url(` (any casing) — it's
- * how the parser identifies the node as a Url in the first place. */
-function print_url(node: Url): string {
-	return 'url(' + node.text.slice(4)
 }
 
 function print_operator(node: Operator, optional_space = SPACE): string {
@@ -184,13 +173,6 @@ function print_if(node: Function, depth: number, minify: boolean, tab_size?: num
 	return 'if(\n' + lines.join('\n') + '\n' + outer_indent + CLOSE_PARENTHESES
 }
 
-/** An `if(...)` value function has `IfBranch` children instead of ordinary value nodes. */
-function is_if_function(node: Function): boolean {
-	return (
-		node.name.toLowerCase() === 'if' && node.first_child !== null && is_if_branch(node.first_child)
-	)
-}
-
 function print_list(
 	nodes: CSSNode[],
 	optional_space = SPACE,
@@ -201,7 +183,8 @@ function print_list(
 	let parts = []
 	for (let node of nodes) {
 		if (is_function(node)) {
-			if (is_if_function(node)) {
+			// An `if(...)` value function has `IfBranch` children instead of ordinary value nodes
+			if (node.name.toLowerCase() === 'if' && node.first_child && is_if_branch(node.first_child)) {
 				parts.push(print_if(node, depth, minify, tab_size))
 			} else {
 				let fn = print_identifier(node.name)
@@ -225,7 +208,9 @@ function print_list(
 				CLOSE_PARENTHESES,
 			)
 		} else if (is_url(node) && node.value) {
-			parts.push(print_url(node))
+			// Lowercase the `url(` keyword but leave quote style untouched. A Url node's text
+			// always starts with `url(` (any casing), that's how the parser identifies it.
+			parts.push('url(' + node.text.slice(4))
 		} else {
 			parts.push(node.text)
 		}
@@ -428,7 +413,7 @@ function print_selector_argument(node: CSSNode, optional_space = SPACE): string 
 	}
 
 	if (is_lang_selector(node)) {
-		return print_string(node.name)
+		return print_string(node.name ?? EMPTY_STRING)
 	}
 
 	return print_selector(node as Selector, optional_space)
@@ -590,18 +575,7 @@ export function format(
 		let lines = []
 		depth++
 
-		if (!node.has_children) {
-			let comment = get_comment(node.start, node.end)
-			if (comment) {
-				lines.push(indent(depth) + comment)
-				depth--
-				lines.push(indent(depth) + CLOSE_BRACE)
-				return lines.join(NEWLINE)
-			}
-		}
-
-		let first_child = node.first_child
-		let comment_before_first = get_comment(node.start, first_child?.start)
+		let comment_before_first = get_comment(node.start, node.first_child?.start ?? node.end)
 		if (comment_before_first) {
 			lines.push(indent(depth) + comment_before_first)
 		}
