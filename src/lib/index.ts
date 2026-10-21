@@ -1,7 +1,9 @@
 import {
 	parse,
+	parse_selector_list,
 	str_equals,
 	str_index_of,
+	str_starts_with,
 	is_custom,
 	is_function,
 	is_dimension,
@@ -25,6 +27,14 @@ import {
 	is_atrule,
 	is_if_branch,
 	is_if_condition,
+	is_media_query,
+	is_container_query,
+	is_media_feature,
+	is_feature_range,
+	is_supports_query,
+	is_prelude_operator,
+	is_supports_declaration,
+	is_prelude_selectorlist,
 	type Operator,
 	type Value,
 	type Declaration,
@@ -32,6 +42,14 @@ import {
 	type IfCondition,
 	type Function,
 	type Raw,
+	type Url,
+	type AtrulePrelude,
+	type MediaQuery,
+	type ContainerQuery,
+	type SupportsQuery,
+	type FeatureRange,
+	type MediaFeature,
+	type Function as CSSFunction,
 	type NthSelector,
 	type NthOfSelector,
 	type PseudoClassSelector,
@@ -69,6 +87,22 @@ const ATRULE_WHITESPACE_RE = /\s+/g
 const ATRULE_COLON_COMMA_SPACE_RE = /([:,]) /g
 const ATRULE_CALC_RE = /calc\(\s*([^()+\-*/]+)\s*([*/+-])\s*([^()+\-*/]+)\s*\)/g
 const ATRULE_FN_NAME_RE = /selector|url|supports|layer\(/gi
+// Quoted strings and unquoted url() contents must keep their exact text
+const ATRULE_PROTECTED_RE = /"[^"]*"|'[^']*'|(?<=url\()[^\s"')][^)]*(?=\))/gi
+// Marks where a protected string was cut out of a prelude: NUL, the string's index, NUL
+const ATRULE_PLACEHOLDER_RE = /\0(\d+)\0/g
+const ATRULE_COMMA_RE = /\s*,\s*/g
+/** Atrules whose prelude is not a media/supports-style condition, so it is only
+ * whitespace- and comma-normalized instead of being interpreted. */
+const OPAQUE_PRELUDE_ATRULES = new Set([
+	'page',
+	'namespace',
+	'document',
+	'-moz-document',
+	'custom-selector',
+	'function',
+	'font-feature-values',
+])
 
 export function unquote(str: string): string {
 	return str.replaceAll(UNQUOTE_RE, EMPTY_STRING)
@@ -84,6 +118,17 @@ function print_string(str: string): string {
 	let inner = unquote(str)
 	let quote = inner.includes('"') ? "'" : '"'
 	return quote + inner + quote
+}
+
+/** Lowercases a leading `url(` keyword but leaves quote style untouched. In value position a Url
+ * node's text always starts with `url(` (any casing), but an `@import` specifier can also be a
+ * bare string (`@import "foo";`) with no `url(` to lowercase. */
+function print_url(node: Url): string {
+	let text = node.text
+	if (str_starts_with('url(', text)) {
+		return 'url(' + text.slice(4)
+	}
+	return text
 }
 
 function print_operator(node: Operator, optional_space = SPACE): string {
@@ -192,10 +237,8 @@ function print_list(
 			parts.push(print_operator(node, optional_space))
 		} else if (is_parenthesis(node)) {
 			parts.push('(', print_list(node.children, optional_space, depth, minify, tab_size), ')')
-		} else if (is_url(node) && node.value) {
-			// Lowercase the `url(` keyword but leave quote style untouched. A Url node's text
-			// always starts with `url(` (any casing), that's how the parser identifies it.
-			parts.push('url(' + node.text.slice(4))
+		} else if (is_url(node)) {
+			parts.push(print_url(node))
 		} else {
 			parts.push(node.text)
 		}
@@ -472,6 +515,154 @@ export function format_atrule_prelude(
 		.replaceAll(ATRULE_FN_NAME_RE, (match) => match.toLowerCase()) // lowercase function names
 }
 
+/** Prints a two-sided (`200px < width < 1000px`) or one-sided (`width >
+ * 1000px`) media-feature range, reordering by source offset since the
+ * feature name isn't a child node. */
+function print_feature_range(node: FeatureRange, optional_space: string): string {
+	let name_offset = node.start + node.text.indexOf(node.name, 1)
+	let items: { offset: number; text: string }[] = [{ offset: name_offset, text: node.name }]
+
+	for (let child of node) {
+		let text = is_prelude_operator(child)
+			? optional_space + child.text + optional_space
+			: child.text
+		items.push({ offset: child.start, text })
+	}
+
+	items.sort((a, b) => a.offset - b.offset)
+	return '(' + items.map((item) => item.text).join(EMPTY_STRING) + ')'
+}
+
+/** Prints a single media/container feature, e.g. `(min-width: 768px)` or the
+ * boolean form `(hover)`. */
+function print_media_feature(node: MediaFeature, optional_space: string): string {
+	let property = print_identifier(node.property)
+	if (node.value === null) {
+		return '(' + property + ')'
+	}
+
+	return '(' + property + ':' + optional_space + print_list([node.value], optional_space) + ')'
+}
+
+/** Prints the condition inside a `SupportsQuery` or a `style()`/`supports()` Function: either a
+ * single declaration (`display: grid`) or `and`/`or`/`not`-joined nested conditions. */
+function print_condition(node: SupportsQuery | CSSFunction, minify: boolean): string {
+	let first = node.first_child
+	if (first === null) {
+		return node.value ?? EMPTY_STRING
+	}
+	if (is_supports_declaration(first)) {
+		return format_declaration(first.first_child, { minify })
+	}
+	return print_prelude_children(node, minify ? EMPTY_STRING : SPACE, minify)
+}
+
+/** Prints a `@supports` condition group, e.g. `(display: grid)` or `((a: b) and (c: d))`. */
+function print_supports_query(node: SupportsQuery, minify: boolean): string {
+	let condition = print_condition(node, minify)
+	// Inside `supports(...)` (@import) the query has no parentheses of its own
+	return node.text.startsWith('(') ? '(' + condition + ')' : condition
+}
+
+/** Prints a functional prelude condition, e.g. `style(--foo: bar)`, `selector(:hover)`,
+ * or @import's `layer(...)` and `supports(...)`. */
+function print_prelude_function(node: CSSFunction, minify: boolean): string {
+	let name = print_identifier(node.name)
+	// `selector(...)` takes a selector list, not a declaration.
+	if (str_equals('selector', name) && node.has_children && is_selector_list(node.first_child)) {
+		return name + '(' + format_selector_list(node.first_child, { minify }) + ')'
+	}
+	if (str_equals('layer', name)) {
+		return name + '(' + print_prelude_children(node, EMPTY_STRING, minify) + ')'
+	}
+	if (str_equals('style', name) || str_equals('supports', name)) {
+		return name + '(' + print_condition(node, minify) + ')'
+	}
+	return node.text
+}
+
+/** Prints one child of an AtrulePrelude/MediaQuery/ContainerQuery. Falls back
+ * to the node's raw text for anything the prelude parser doesn't specifically
+ * model (Identifier, String, Raw, ...). */
+function print_prelude_component(node: CSSNode, optional_space: string, minify: boolean): string {
+	if (is_media_query(node) || is_container_query(node)) {
+		return print_prelude_children(node, optional_space, minify)
+	}
+	if (is_media_feature(node)) {
+		return print_media_feature(node, optional_space)
+	}
+	if (is_feature_range(node)) {
+		return print_feature_range(node, optional_space)
+	}
+	if (is_supports_query(node)) {
+		return print_supports_query(node, minify)
+	}
+	if (is_prelude_selectorlist(node)) {
+		// A leaf node: the selector list inside the parentheses is only available as a string
+		return (
+			'(' + format_selector_list(parse_selector_list(node.value ?? EMPTY_STRING), { minify }) + ')'
+		)
+	}
+	if (is_function(node)) {
+		return print_prelude_function(node, minify)
+	}
+	if (is_url(node)) {
+		return print_url(node)
+	}
+	return node.text
+}
+
+/** Prints a `,`-or-space joined sequence of at-rule prelude components.
+ * Same-type siblings (e.g. multiple `MediaQuery`s in `screen, print`) are
+ * comma-separated; everything else gets a real space, always, since CSS
+ * doesn't allow gluing them together. */
+function print_prelude_children(
+	node: AtrulePrelude | MediaQuery | ContainerQuery | CSSFunction | SupportsQuery,
+	optional_space: string,
+	minify: boolean,
+): string {
+	let parts: string[] = []
+	for (let child of node) {
+		parts.push(print_prelude_component(child, optional_space, minify))
+		if (child.has_next) {
+			// adjacent functions (`layer(a) supports(b)` in @import) are not a comma-separated list
+			let is_list = child.type === child.next_sibling.type && !is_function(child)
+			parts.push(is_list ? ',' + optional_space : SPACE)
+		}
+	}
+	return parts.join(EMPTY_STRING)
+}
+
+/** Prints a prelude as plain text: collapses whitespace and normalizes commas, but never
+ * touches colons, `<`/`>`, strings or url() contents (`@page :first`, `@function --f(--a <length>)`). */
+function print_opaque_atrule_prelude(text: string, minify: boolean): string {
+	// 1. Cut every string and url() content out of the text and leave a numbered placeholder
+	//    (`\0<index>\0`) in its place, so the whitespace/comma cleanup below can't alter it
+	let protected_parts: string[] = []
+	let masked = text.replaceAll(
+		ATRULE_PROTECTED_RE,
+		(match) => `\0${protected_parts.push(match) - 1}\0`,
+	)
+	// 2. Clean up whitespace and commas in what is left
+	let cleaned = masked
+		.replaceAll(ATRULE_WHITESPACE_RE, SPACE)
+		.replaceAll(ATRULE_COMMA_RE, minify ? ',' : ',' + SPACE)
+		.trim()
+	// 3. Put the original strings back where their placeholders are
+	return cleaned.replaceAll(ATRULE_PLACEHOLDER_RE, (_, index) => protected_parts[Number(index)]!)
+}
+
+/** Prints a structured at-rule prelude node. Falls back to the regex-based
+ * `format_atrule_prelude` when the prelude parser doesn't recognize the
+ * at-rule or its shape (`@page :first`, `@starting-style`, ...). */
+function print_atrule_prelude_node(node: AtrulePrelude | Raw, minify: boolean): string {
+	if (is_raw(node) || !node.has_children) {
+		return format_atrule_prelude(node.text, { minify })
+	}
+	let optional_space = minify ? EMPTY_STRING : SPACE
+	return print_prelude_children(node, optional_space, minify)
+}
+
 /**
  * Format a string of CSS using some simple rules
  */
@@ -493,7 +684,6 @@ export function format(
 	// First pass: collect all comments
 	let comments: number[] = []
 	let ast = parse(css, {
-		parse_atrule_preludes: false,
 		on_comment: minify
 			? undefined
 			: ({ start, end }) => {
@@ -641,7 +831,11 @@ export function format(
 	function print_atrule(node: Atrule): string {
 		let name = '@' + print_identifier(node.name!)
 		if (node.prelude) {
-			name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
+			name +=
+				SPACE +
+				(OPAQUE_PRELUDE_ATRULES.has(node.name!.toLowerCase())
+					? print_opaque_atrule_prelude(node.prelude.text, minify)
+					: print_atrule_prelude_node(node.prelude, minify))
 		}
 
 		let block_has_content =
