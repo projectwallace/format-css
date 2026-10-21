@@ -4,7 +4,7 @@
 import { parseArgs, styleText } from 'node:util'
 import { readFileSync, realpathSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { text } from 'node:stream/consumers'
 
 // import from absolute package name instead of relative import (like ../lib/index.ts)
 // to prevent lib/index.js being bundled into cli.js, which would mean that indexjs
@@ -108,14 +108,6 @@ export async function run(args: string[], io: CliIO): Promise<void> {
 	}
 }
 
-async function read_stdin(): Promise<string> {
-	const chunks: Buffer[] = []
-	for await (const chunk of process.stdin) {
-		chunks.push(chunk)
-	}
-	return Buffer.concat(chunks).toString('utf-8')
-}
-
 // Guards against run() firing when this module is imported (e.g. in tests).
 // realpathSync is needed because pnpm's bin wrapper is a symlink, making process.argv[1]
 // a different path than import.meta.filename without resolving it first.
@@ -123,7 +115,7 @@ if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === import.me
 	try {
 		await run(process.argv.slice(2), {
 			readFile: (path) => readFileSync(path, 'utf-8'),
-			readStdin: read_stdin,
+			readStdin: () => text(process.stdin),
 			write: (output) => process.stdout.write(output),
 			isTTY: process.stdin.isTTY === true,
 		})
