@@ -298,23 +298,12 @@ function print_nth_of(node: NthOfSelector, optional_space = SPACE): string {
 	return result
 }
 
-/** True if the string is non-empty and consists solely of CSS whitespace. */
-function is_whitespace(str: string): boolean {
-	if (str.length === 0) return false
-	for (let i = 0; i < str.length; i++) {
-		let code = str.charCodeAt(i)
-		// space, tab, line feed, form feed, carriage return
-		if (code !== 32 && code !== 9 && code !== 10 && code !== 12 && code !== 13) return false
-	}
-	return true
-}
-
 /** Prints a combinator (` `, `>`, `+`, `~`, `||`) between two compound selectors. */
 function print_combinator(node: Combinator, optional_space: string, is_first: boolean): string {
 	let text = node.text
 	// A lone whitespace combinator (descendant combinator) always prints as one
 	// space, even when minifying: dropping it would merge two selectors into one.
-	if (is_whitespace(text)) {
+	if (/^\s+$/.test(text)) {
 		return SPACE
 	}
 	// Skip leading space if this is the first node in the selector
