@@ -49,15 +49,6 @@ import {
 
 const SPACE = ' '
 const EMPTY_STRING = ''
-const COLON = ':'
-const SEMICOLON = ';'
-const OPEN_PARENTHESES = '('
-const CLOSE_PARENTHESES = ')'
-const OPEN_BRACKET = '['
-const CLOSE_BRACKET = ']'
-const OPEN_BRACE = '{'
-const CLOSE_BRACE = '}'
-const COMMA = ','
 
 export type FormatOptions = {
 	/** Whether to minify the CSS or keep it formatted */
@@ -130,7 +121,7 @@ function print_if_condition(
 	if (is_function(condition)) {
 		let name = print_identifier(condition.name)
 		let inner = condition.value ?? ''
-		return name + OPEN_PARENTHESES + format_atrule_prelude(inner, { minify }) + CLOSE_PARENTHESES
+		return name + '(' + format_atrule_prelude(inner, { minify }) + ')'
 	}
 	if (is_if_condition(condition)) {
 		let parts = condition.children.map((child) => print_if_condition(child, minify))
@@ -151,10 +142,10 @@ function print_if_branch(
 	let node_value = node.value
 	let value = node_value ? format_value(node_value, { minify, tab_size }, depth) : EMPTY_STRING
 	if (value === EMPTY_STRING) {
-		return condition + COLON
+		return condition + ':'
 	}
 
-	return condition + COLON + optional_space + value
+	return condition + ':' + optional_space + value
 }
 
 /** Prints an `if(...)` value function, one condition/value branch per line. */
@@ -165,15 +156,15 @@ function print_if(node: Function, depth: number, minify: boolean, tab_size?: num
 		let parts = branches.map((branch) =>
 			print_if_branch(branch, EMPTY_STRING, depth, true, tab_size),
 		)
-		return 'if(' + parts.join(SEMICOLON) + ')'
+		return 'if(' + parts.join(';') + ')'
 	}
 
 	let inner_indent = print_indent(depth + 1, tab_size)
 	let outer_indent = print_indent(depth, tab_size)
 	let lines = branches.map((branch) => {
-		return inner_indent + print_if_branch(branch, SPACE, depth + 1, minify, tab_size) + SEMICOLON
+		return inner_indent + print_if_branch(branch, SPACE, depth + 1, minify, tab_size) + ';'
 	})
-	return 'if(\n' + lines.join('\n') + '\n' + outer_indent + CLOSE_PARENTHESES
+	return 'if(\n' + lines.join('\n') + '\n' + outer_indent + ')'
 }
 
 function print_list(
@@ -191,12 +182,7 @@ function print_list(
 				parts.push(print_if(node, depth, minify, tab_size))
 			} else {
 				let fn = print_identifier(node.name)
-				parts.push(
-					fn,
-					OPEN_PARENTHESES,
-					print_list(node.children, optional_space, depth, minify, tab_size),
-					CLOSE_PARENTHESES,
-				)
+				parts.push(fn, '(', print_list(node.children, optional_space, depth, minify, tab_size), ')')
 			}
 		} else if (is_dimension(node)) {
 			parts.push(node.value, node.unit?.toLowerCase())
@@ -205,11 +191,7 @@ function print_list(
 		} else if (is_operator(node)) {
 			parts.push(print_operator(node, optional_space))
 		} else if (is_parenthesis(node)) {
-			parts.push(
-				OPEN_PARENTHESES,
-				print_list(node.children, optional_space, depth, minify, tab_size),
-				CLOSE_PARENTHESES,
-			)
+			parts.push('(', print_list(node.children, optional_space, depth, minify, tab_size), ')')
 		} else if (is_url(node) && node.value) {
 			// Lowercase the `url(` keyword but leave quote style untouched. A Url node's text
 			// always starts with `url(` (any casing), that's how the parser identifies it.
@@ -250,7 +232,7 @@ export function format_declaration(
 		let text = node.text
 		let start = text.lastIndexOf('!')
 		important =
-			optional_space + text.slice(start, text.endsWith(SEMICOLON) ? -1 : undefined).toLowerCase()
+			optional_space + text.slice(start, text.endsWith(';') ? -1 : undefined).toLowerCase()
 	}
 	let value = format_value(node.value, { minify, tab_size }, depth)
 	let property = node.property!
@@ -266,7 +248,7 @@ export function format_declaration(
 	}
 
 	property = print_identifier(property)
-	return property + COLON + optional_space + value + important
+	return property + ':' + optional_space + value + important
 }
 
 /** Prints the An+B microsyntax used by `:nth-child()` and friends, e.g. `2n+1`. */
@@ -313,7 +295,7 @@ function print_combinator(node: Combinator, optional_space: string, is_first: bo
 
 /** Prints an attribute selector, e.g. `[href^="https://" i]`. */
 function print_attribute_selector(node: AttributeSelector): string {
-	let parts = [OPEN_BRACKET, print_identifier(node.name)]
+	let parts = ['[', print_identifier(node.name)]
 
 	if (node.attr_operator) {
 		parts.push(node.attr_operator)
@@ -326,7 +308,7 @@ function print_attribute_selector(node: AttributeSelector): string {
 		}
 	}
 
-	parts.push(CLOSE_BRACKET)
+	parts.push(']')
 	return parts.join(EMPTY_STRING)
 }
 
@@ -335,25 +317,25 @@ function print_pseudo_selector(
 	node: PseudoClassSelector | PseudoElementSelector,
 	optional_space = SPACE,
 ): string {
-	let parts = [COLON]
+	let parts = [':']
 	let name = print_identifier(node.name)
 
 	// Legacy pseudo-elements or actual pseudo-elements use double colon
 	if (name === 'before' || name === 'after' || is_pseudo_element_selector(node)) {
-		parts.push(COLON)
+		parts.push(':')
 	}
 
 	parts.push(name)
 
 	if (node.has_children) {
-		parts.push(OPEN_PARENTHESES)
+		parts.push('(')
 		if (name === 'highlight') {
 			// `::highlight()` takes a custom-ident, not a selector list
 			parts.push(print_list(node.children, optional_space))
 		} else {
 			parts.push(print_selector_list(node, optional_space))
 		}
-		parts.push(CLOSE_PARENTHESES)
+		parts.push(')')
 	}
 
 	return parts.join(EMPTY_STRING)
@@ -438,7 +420,7 @@ function print_selector_list(
 		} else {
 			parts.push(print_selector_argument(child, optional_space))
 			if (child.has_next) {
-				parts.push(COMMA, optional_space)
+				parts.push(',', optional_space)
 			}
 		}
 	}
@@ -506,7 +488,7 @@ export function format(
 
 	const NEWLINE = minify ? EMPTY_STRING : '\n'
 	const OPTIONAL_SPACE = minify ? EMPTY_STRING : SPACE
-	const LAST_SEMICOLON = minify ? EMPTY_STRING : SEMICOLON
+	const LAST_SEMICOLON = minify ? EMPTY_STRING : ';'
 
 	// First pass: collect all comments
 	let comments: number[] = []
@@ -566,7 +548,7 @@ export function format(
 
 			let printed = print_selector(selector, OPTIONAL_SPACE)
 			if (selector.has_next) {
-				printed += COMMA
+				printed += ','
 			}
 			lines.push(indent(depth) + printed)
 			prev_end = selector.end
@@ -596,7 +578,7 @@ export function format(
 			if (is_declaration(child)) {
 				let is_last = !child.has_next || !is_declaration(child.next_sibling)
 				let declaration = format_declaration(child, { minify, tab_size }, depth)
-				let semi = is_last ? LAST_SEMICOLON : SEMICOLON
+				let semi = is_last ? LAST_SEMICOLON : ';'
 				lines.push(indent(depth) + declaration + semi)
 			} else if (is_rule(child)) {
 				if (prev_end !== undefined && lines.length > 0) {
@@ -619,7 +601,7 @@ export function format(
 		}
 
 		depth--
-		lines.push(indent(depth) + CLOSE_BRACE)
+		lines.push(indent(depth) + '}')
 		return lines.join(NEWLINE)
 	}
 
@@ -642,9 +624,9 @@ export function format(
 				list += NEWLINE + indent(depth) + comment
 			}
 
-			list += OPTIONAL_SPACE + OPEN_BRACE
+			list += OPTIONAL_SPACE + '{'
 			if (!block_has_content) {
-				list += CLOSE_BRACE
+				list += '}'
 			}
 			lines.push(list)
 		}
@@ -665,12 +647,12 @@ export function format(
 		let block_has_content =
 			node.has_block && (!node.block.is_empty || !!get_comment(node.block.start, node.block.end))
 		if (node.has_block) {
-			name += OPTIONAL_SPACE + OPEN_BRACE
+			name += OPTIONAL_SPACE + '{'
 			if (!block_has_content) {
-				name += CLOSE_BRACE
+				name += '}'
 			}
 		} else {
-			name += SEMICOLON
+			name += ';'
 		}
 
 		if (block_has_content) {
