@@ -594,10 +594,9 @@ function print_prelude_function(node: CSSFunction, minify: boolean): string {
 		)
 	}
 	// style()'s condition is a SupportsDeclaration, same as @supports's own
-	// (see print_supports_query); Function's declared child type doesn't
-	// include it, hence the cast.
+	// (see print_supports_query).
 	if (node.has_children) {
-		let declaration = (node.first_child as unknown as SupportsDeclaration).first_child
+		let declaration = (node.first_child as SupportsDeclaration).first_child
 		return name + OPEN_PARENTHESES + format_declaration(declaration, { minify }) + CLOSE_PARENTHESES
 	}
 	if (node.value === null) {

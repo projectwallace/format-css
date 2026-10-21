@@ -81,7 +81,7 @@ describe('@font-feature-values', () => {
 		expect(format(`@font-feature-values Font One{}`)).toEqual(`@font-feature-values Font One {}`)
 	})
 	// oxlint-disable-next-line vitest/no-disabled-tests
-	test.skip('preserves nested @styleset block', () => {
+	test('preserves nested @styleset block', () => {
 		expect(format(`@font-feature-values Font One{@styleset{nice-style:12}}`)).toEqual(
 			`@font-feature-values Font One {
 	@styleset {
@@ -177,7 +177,7 @@ describe('@page', () => {
 		expect(format(`@page :first{margin:1in}`)).toEqual(`@page :first {\n\tmargin: 1in;\n}`)
 	})
 	// oxlint-disable-next-line vitest/no-disabled-tests
-	test.skip('preserves margin at-rules', () => {
+	test('preserves margin at-rules', () => {
 		expect(format(`@page{margin:1in;@top-left{content:"x"}}`)).toEqual(`@page {
 	margin: 1in;
 
