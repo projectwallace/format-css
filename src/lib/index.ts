@@ -2,6 +2,7 @@ import {
 	parse,
 	str_equals,
 	str_index_of,
+	str_starts_with,
 	is_custom,
 	is_function,
 	is_dimension,
@@ -130,7 +131,7 @@ function print_string(str: string): string {
  * bare string (`@import "foo";`) with no `url(` to lowercase. */
 function print_url(node: Url): string {
 	let text = node.text
-	if (/^url\(/i.test(text)) {
+	if (str_starts_with(text, 'url(')) {
 		return 'url(' + text.slice(4)
 	}
 	return text
