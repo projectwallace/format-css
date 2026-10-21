@@ -32,7 +32,6 @@ import {
 	is_supports_query,
 	is_prelude_operator,
 	is_prelude_selectorlist,
-	is_layer_name,
 	type Operator,
 	type Value,
 	type Declaration,
@@ -573,12 +572,10 @@ function print_supports_query(node: SupportsQuery, minify: boolean): string {
 	let condition = node.has_children
 		? format_declaration(node.first_child.first_child, { minify })
 		: format_atrule_prelude(node.value, { minify })
-	// Known limitation: the parser doesn't model `supports(...)` in @import as Function(name=supports) wrapping
-	// a SupportsQuery, it gives us a SupportsQuery whose text includes the `supports(` keyword
-	// (see css-parser#195). Until then, detect the functional notation from the text:
-	// @import needs the keyword, standalone @supports's bare `(...)` form doesn't.
-	let prefix = /^supports\(/i.test(node.text) ? 'supports' : EMPTY_STRING
-	return prefix + OPEN_PARENTHESES + condition + CLOSE_PARENTHESES
+	// Inside `supports(...)` (@import) the query has no parentheses of its own
+	return node.text.startsWith(OPEN_PARENTHESES)
+		? OPEN_PARENTHESES + condition + CLOSE_PARENTHESES
+		: condition
 }
 
 /** Prints a functional container-query condition, e.g. `style(--foo: bar)`. */
@@ -590,6 +587,15 @@ function print_prelude_function(node: CSSFunction, minify: boolean): string {
 			name +
 			OPEN_PARENTHESES +
 			format_selector_list(node.first_child, { minify }) +
+			CLOSE_PARENTHESES
+		)
+	}
+	// @import's `layer(...)` and `supports(...)` wrap Layer and SupportsQuery children
+	if (str_equals('layer', name) || str_equals('supports', name)) {
+		return (
+			name +
+			OPEN_PARENTHESES +
+			print_prelude_children(node, minify ? EMPTY_STRING : SPACE, minify) +
 			CLOSE_PARENTHESES
 		)
 	}
@@ -630,11 +636,6 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
 	if (is_url(node)) {
 		return print_url(node)
 	}
-	if (is_layer_name(node)) {
-		// @import's functional `layer(...)` notation has a keyword to
-		// lowercase; the standalone `@layer name;` statement form doesn't.
-		return /^layer\(/i.test(node.text) ? 'layer(' + node.text.slice(6) : node.text
-	}
 	return node.text
 }
 
@@ -643,7 +644,7 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
  * comma-separated; everything else gets a real space, always, since CSS
  * doesn't allow gluing them together. */
 function print_prelude_children(
-	node: AtrulePrelude | MediaQuery | ContainerQuery,
+	node: AtrulePrelude | MediaQuery | ContainerQuery | CSSFunction,
 	optional_space: string,
 	minify: boolean,
 ): string {
@@ -651,7 +652,9 @@ function print_prelude_children(
 	for (let child of node) {
 		parts.push(print_prelude_component(child, optional_space, minify))
 		if (child.has_next) {
-			parts.push(child.type === child.next_sibling.type ? COMMA + optional_space : SPACE)
+			// adjacent functions (`layer(a) supports(b)` in @import) are not a comma-separated list
+			let is_list = child.type === child.next_sibling.type && !is_function(child)
+			parts.push(is_list ? COMMA + optional_space : SPACE)
 		}
 	}
 	return parts.join(EMPTY_STRING)

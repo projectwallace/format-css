@@ -418,3 +418,37 @@ describe('strings and urls in preludes are left untouched', () => {
 		)
 	})
 })
+
+describe('@import functional notation', () => {
+	test('lowercases layer() and supports()', () => {
+		expect(format(`@import url(a.css) LAYER(a.b) SUPPORTS(display:grid) screen;`)).toEqual(
+			`@import url(a.css) layer(a.b) supports(display: grid) screen;`,
+		)
+	})
+	test('bare layer keyword followed by supports()', () => {
+		expect(format(`@import url(a.css) layer supports(display:grid);`)).toEqual(
+			`@import url(a.css) layer supports(display: grid);`,
+		)
+	})
+	test('nested boolean group in supports()', () => {
+		expect(format(`@import "a.css" supports((display:grid) and (display:flex)) screen;`)).toEqual(
+			`@import "a.css" supports((display: grid) and (display: flex)) screen;`,
+		)
+		expect(minify(`@import "a.css" supports((display:grid) and (display:flex)) screen;`)).toEqual(
+			`@import "a.css" supports((display:grid) and (display:flex)) screen;`,
+		)
+	})
+	test('not inside supports()', () => {
+		expect(format(`@import "a.css" supports(not (display:grid));`)).toEqual(
+			`@import "a.css" supports(not (display: grid));`,
+		)
+	})
+	test('selector() combined with a declaration inside supports()', () => {
+		expect(format(`@import "a.css" supports(selector(:hover) and (display:grid));`)).toEqual(
+			`@import "a.css" supports(selector(:hover) and (display: grid));`,
+		)
+	})
+	test('dotted layer() name', () => {
+		expect(format(`@import "a.css" layer(a.b.c);`)).toEqual(`@import "a.css" layer(a.b.c);`)
+	})
+})
