@@ -25,6 +25,19 @@ describe('parse_values: false', () => {
 		expect(format_declaration(first_declaration('a{COLOR:RGB(0,0,0)}'))).toBe('color: rgb(0, 0, 0)')
 	})
 
+	test.each([
+		'--x:',
+		'--Foo:  1px  2px',
+		'font: 12px / 1.5 Arial',
+		'color: if(media(print): black; else: red)',
+		'grid-template-areas: "a"  "b"',
+		'background: URL( a.png )',
+	])('formats %s the same as a parsed value', (declaration) => {
+		let parsed = parse(`a{${declaration}}`).first_child!.block!.first_child as Declaration
+		let raw = first_declaration(`a{${declaration}}`)
+		expect(format_declaration(raw)).toBe(format_declaration(parsed))
+	})
+
 	test('minified', () => {
 		expect(format_declaration(first_declaration('a{margin: 0   auto}'), { minify: true })).toBe(
 			'margin:0 auto',
