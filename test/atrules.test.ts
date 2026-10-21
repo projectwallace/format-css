@@ -447,19 +447,19 @@ test('does not corrupt a nested @container style() boolean group', () => {
 })
 
 test('formats multiple style() conditions joined by and/or', () => {
-	let actual = format(`@container name style(--theme: dark) and style(--size: large) {}`)
+	let actual = format(`@container  name   style(--theme:dark)  and style(--size:large) {}`)
 	let expected = `@container name style(--theme: dark) and style(--size: large) {}`
 	expect(actual).toEqual(expected)
 })
 
 test('preserves function calls inside media feature values', () => {
-	let actual = format(`@media (min-width: env(safe-area-inset-top)) {}`)
+	let actual = format(`@media (MIN-WIDTH:env(safe-area-inset-top)) {}`)
 	let expected = `@media (min-width: env(safe-area-inset-top)) {}`
 	expect(actual).toEqual(expected)
 })
 
 test('preserves function calls inside @supports condition values', () => {
-	let actual = format(`@supports (background: linear-gradient(red, blue)) {}`)
+	let actual = format(`@supports (BACKGROUND:linear-gradient(red,blue)) {}`)
 	let expected = `@supports (background: linear-gradient(red, blue)) {}`
 	expect(actual).toEqual(expected)
 })
