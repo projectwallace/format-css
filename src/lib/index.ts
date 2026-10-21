@@ -42,7 +42,6 @@ import {
 	type Atrule,
 	type StyleSheet,
 	type CSSNode,
-	type Url,
 } from '@projectwallace/css-parser'
 
 const SPACE = ' '
@@ -91,13 +90,6 @@ function print_string(str: string): string {
 	let inner = unquote(str)
 	let quote = inner.includes('"') ? "'" : '"'
 	return quote + inner + quote
-}
-
-/** Prints a `url(...)`: lowercases the `url(` keyword but leaves quote style
- * untouched. A Url node's text always starts with `url(` (any casing) — it's
- * how the parser identifies the node as a Url in the first place. */
-function print_url(node: Url): string {
-	return 'url(' + node.text.slice(4)
 }
 
 function print_operator(node: Operator, optional_space = SPACE): string {
@@ -222,7 +214,9 @@ function print_list(
 				CLOSE_PARENTHESES,
 			)
 		} else if (is_url(node) && node.value) {
-			parts.push(print_url(node))
+			// Lowercase the `url(` keyword but leave quote style untouched. A Url node's text
+			// always starts with `url(` (any casing), that's how the parser identifies it.
+			parts.push('url(' + node.text.slice(4))
 		} else {
 			parts.push(node.text)
 		}
