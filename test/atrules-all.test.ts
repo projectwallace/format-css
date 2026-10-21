@@ -495,3 +495,9 @@ describe('nested conditions in @supports and @container style()', () => {
 		)
 	})
 })
+
+describe('@scope empty parentheses', () => {
+	test('keeps empty root', () => {
+		expect(format(`@scope ( ) {}`)).toEqual(`@scope () {}`)
+	})
+})

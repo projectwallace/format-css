@@ -1,6 +1,5 @@
 import {
 	parse,
-	parse_selector_list,
 	str_equals,
 	str_index_of,
 	str_starts_with,
@@ -598,10 +597,9 @@ function print_prelude_component(node: CSSNode, optional_space: string, minify: 
 		return print_supports_query(node, minify)
 	}
 	if (is_prelude_selectorlist(node)) {
-		// A leaf node: the selector list inside the parentheses is only available as a string
-		return (
-			'(' + format_selector_list(parse_selector_list(node.value ?? EMPTY_STRING), { minify }) + ')'
-		)
+		// `@scope ()` has no selector to format
+		let selectors = node.has_children ? format_selector_list(node.first_child, { minify }) : ''
+		return '(' + selectors + ')'
 	}
 	if (is_function(node)) {
 		return print_prelude_function(node, minify)
