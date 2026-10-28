@@ -531,21 +531,16 @@ export function format_atrule_prelude(
 }
 
 /** Prints a two-sided (`200px < width < 1000px`) or one-sided (`width >
- * 1000px`) media-feature range, reordering by source offset since the
- * feature name isn't a child node. */
+ * 1000px`) media-feature range. The feature name is an Identifier child, so
+ * the children are already in source order. */
 function print_feature_range(node: FeatureRange, optional_space: string): string {
-	let name_offset = node.start + node.text.indexOf(node.name, 1)
-	let items: { offset: number; text: string }[] = [{ offset: name_offset, text: node.name }]
+	let result = OPEN_PARENTHESES
 
 	for (let child of node) {
-		let text = is_prelude_operator(child)
-			? optional_space + child.text + optional_space
-			: child.text
-		items.push({ offset: child.start, text })
+		result += is_prelude_operator(child) ? optional_space + child.text + optional_space : child.text
 	}
 
-	items.sort((a, b) => a.offset - b.offset)
-	return OPEN_PARENTHESES + items.map((item) => item.text).join(EMPTY_STRING) + CLOSE_PARENTHESES
+	return result + CLOSE_PARENTHESES
 }
 
 /** Prints a single media/container feature, e.g. `(min-width: 768px)` or the
@@ -708,6 +703,7 @@ export function format(
 	// First pass: collect all comments
 	let comments: number[] = []
 	let ast = parse(css, {
+		media_feature_range_name_as_child: true,
 		on_comment: minify
 			? undefined
 			: ({ start, end }) => {
