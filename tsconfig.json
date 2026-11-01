@@ -15,6 +15,7 @@
 		"moduleResolution": "bundler",
 		"lib": ["es2024", "DOM"],
 		"declaration": true,
+		"isolatedDeclarations": true,
 		"rootDir": "src",
 		"rootDirs": ["src/lib", "src/cli"],
 		"outDir": "dist",
