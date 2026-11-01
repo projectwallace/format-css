@@ -52,7 +52,7 @@
 		"@types/node": "^26.6.5",
 		"@vitest/coverage-v8": "^5.0.4",
 		"knip": "^6.41.0",
-		"oxfmt": "^0.70.0",
+		"oxfmt": "^0.74.0",
 		"oxlint": "^1.87.0",
 		"publint": "^0.3.25",
 		"tsdown": "^0.23.1",
