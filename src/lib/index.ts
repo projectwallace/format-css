@@ -149,19 +149,14 @@ function print_indent(size: number, tab_size?: number): string {
 /**
  * Prints an `if()` branch condition: `style()`/`supports()`/`media()`, the
  * `else` keyword, or a compound `not`/`and`/`or` condition combining several
- * of those. The function's argument list is the same grammar as a
- * `@supports`/`@media` prelude, so it's normalized through that same
- * string-based prelude formatter; only the function name itself is lowercased
- * separately, since `format_atrule_prelude` doesn't know to touch it.
+ * of those. The function arguments share the @media/@supports prelude grammar.
  */
 function print_if_condition(
 	condition: IfBranch['condition'] | IfCondition['children'][number],
 	minify: boolean,
 ): string {
 	if (is_function(condition)) {
-		let name = print_identifier(condition.name)
-		let inner = condition.value ?? ''
-		return name + '(' + format_atrule_prelude(inner, { minify }) + ')'
+		return print_prelude_function(condition, minify)
 	}
 	if (is_if_condition(condition)) {
 		let parts = condition.children.map((child) => print_if_condition(child, minify))
@@ -510,9 +505,14 @@ export function format_atrule_prelude(
 		.replaceAll(ATRULE_FN_NAME_RE, (match) => match.toLowerCase()) // lowercase function names
 }
 
+/** Wraps in parentheses only if the source did: features inside `if(media(...))` have none */
+function print_parenthesized(node: FeatureRange | MediaFeature, inner: string): string {
+	return str_starts_with('(', node.text) ? '(' + inner + ')' : inner
+}
+
 /** Prints `(200px < width < 1000px)`, ordered by source offset since the name is not a child */
 function print_feature_range(node: FeatureRange, optional_space: string): string {
-	let name_offset = node.start + node.text.indexOf(node.name, 1)
+	let name_offset = node.start + node.text.indexOf(node.name)
 	let items: { offset: number; text: string }[] = [{ offset: name_offset, text: node.name }]
 
 	for (let child of node) {
@@ -523,17 +523,19 @@ function print_feature_range(node: FeatureRange, optional_space: string): string
 	}
 
 	items.sort((a, b) => a.offset - b.offset)
-	return '(' + items.map((item) => item.text).join(EMPTY_STRING) + ')'
+	return print_parenthesized(node, items.map((item) => item.text).join(EMPTY_STRING))
 }
 
 /** Prints `(min-width: 768px)` or the boolean form `(hover)` */
 function print_media_feature(node: MediaFeature, optional_space: string): string {
 	let property = print_identifier(node.property)
 	if (node.value === null) {
-		return '(' + property + ')'
+		return print_parenthesized(node, property)
 	}
-
-	return '(' + property + ':' + optional_space + print_list([node.value], optional_space) + ')'
+	return print_parenthesized(
+		node,
+		property + ':' + optional_space + print_list([node.value], optional_space),
+	)
 }
 
 /** Prints a single declaration or `and`/`or`/`not`-joined nested conditions */
@@ -568,7 +570,33 @@ function print_prelude_function(node: CSSFunction, minify: boolean): string {
 	if (str_equals('style', name) || str_equals('supports', name)) {
 		return name + '(' + print_condition(node, minify) + ')'
 	}
+	// `media()` inside `if()`
+	if (str_equals('media', name)) {
+		return name + '(' + print_media_function_argument(node, minify) + ')'
+	}
 	return node.text
+}
+
+/**
+ * Prints the argument of `if()`'s `media()`. The parser only models a single bare
+ * feature here (`media(width >= 1px)`); a condition like `(a) and (b)` comes back
+ * as one malformed feature, so that is re-parsed as an `@media` prelude instead.
+ */
+function print_media_function_argument(node: CSSFunction, minify: boolean): string {
+	let first = node.first_child
+	let is_single_feature =
+		first !== null &&
+		!first.has_next &&
+		(is_feature_range(first) || is_media_feature(first)) &&
+		str_index_of('(', first.text) === -1
+	if (is_single_feature) {
+		return print_prelude_component(first, minify ? EMPTY_STRING : SPACE, minify)
+	}
+	let atrule = parse('@media ' + (node.value ?? EMPTY_STRING) + '{}').first_child
+	if (atrule !== null && is_atrule(atrule) && atrule.prelude) {
+		return print_atrule_prelude_node(atrule.prelude, minify)
+	}
+	return print_opaque_atrule_prelude(node.value ?? EMPTY_STRING, minify)
 }
 
 /** Prints one prelude child; unmodelled nodes fall back to their text */
@@ -645,10 +673,10 @@ function print_opaque_atrule_prelude(text: string, minify: boolean): string {
 	return parts.join(EMPTY_STRING)
 }
 
-/** Prints a structured prelude, falling back to the regex formatter for raw preludes */
+/** Prints a structured prelude; raw preludes (unknown atrules) only get whitespace normalized */
 function print_atrule_prelude_node(node: AtrulePrelude | Raw, minify: boolean): string {
 	if (is_raw(node) || !node.has_children) {
-		return format_atrule_prelude(node.text, { minify })
+		return print_opaque_atrule_prelude(node.text, minify)
 	}
 	let optional_space = minify ? EMPTY_STRING : SPACE
 	return print_prelude_children(node, optional_space, minify)

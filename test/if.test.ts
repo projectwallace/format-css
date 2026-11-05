@@ -56,6 +56,24 @@ test('formats style() and compound supports() conditions', () => {
 	expect(actual).toEqual(expected)
 })
 
+test('formats compound media() conditions', () => {
+	let actual = format(
+		`a { color: if(media((min-width:100px) and (max-width:200px)): green; media(not (hover)): red); }`,
+	)
+	let expected = `a {
+	color: if(
+		media((min-width: 100px) and (max-width: 200px)): green;
+		media(not (hover)): red;
+	);
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('minifies compound media() conditions', () => {
+	let actual = minify(`a { color: if(media( (min-width: 100px)  and  (hover) ): green); }`)
+	expect(actual).toBe('a{color:if(media((min-width:100px) and (hover)):green)}')
+})
+
 test('formats media() range conditions', () => {
 	let actual = format(`a { color: if(media(400px<=width<=700px): green; else: black); }`)
 	let expected = `a {
