@@ -63,7 +63,7 @@ test('format minified Vadims example', () => {
 
 	let expected = `@layer what {
 	@container (width > 0) {
-		@media (min-height: .001px) {
+		@media (min-height: 0.001px) {
 			ul:has(:nth-child(1 of li)):hover {
 				--is: this;
 			}
