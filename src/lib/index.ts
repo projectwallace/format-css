@@ -1,5 +1,9 @@
 import {
 	parse,
+	traverse,
+	SKIP,
+	is_stylesheet,
+	is_block,
 	str_equals,
 	str_index_of,
 	is_custom,
@@ -497,8 +501,6 @@ export function format(
 				},
 	})
 
-	let depth = 0
-
 	function indent(size: number) {
 		return minify ? EMPTY_STRING : print_indent(size, tab_size)
 	}
@@ -507,11 +509,11 @@ export function format(
 	 * Get and format comments from the CSS string within a range
 	 * @param after After which offset to look for comments
 	 * @param before Before which offset to look for comments
-	 * @param level Indentation level (uses current depth if not specified)
+	 * @param level Indentation level for continuation lines
 	 * @returns The formatted comment string, or empty string if no comment found
 	 */
-	function get_comment(after?: number, before?: number, level: number = depth): string {
-		if (minify || after === undefined || before === undefined) {
+	function get_comment(after: number, before: number, level: number): string {
+		if (minify) {
 			return EMPTY_STRING
 		}
 
@@ -531,12 +533,12 @@ export function format(
 	}
 
 	/** Prints a rule's selector list one selector per line, e.g. `.a,\n.b {`. */
-	function print_rule_selectors(node: SelectorList): string {
+	function print_rule_selectors(node: SelectorList, depth: number): string {
 		let lines = []
 		let prev_end: number | undefined
 		for (let selector of node) {
 			if (prev_end !== undefined) {
-				let comment = get_comment(prev_end, selector.start)
+				let comment = get_comment(prev_end, selector.start, depth)
 				if (comment) {
 					lines.push(indent(depth) + comment)
 				}
@@ -552,165 +554,129 @@ export function format(
 		return lines.join(NEWLINE)
 	}
 
-	function print_block(node: Block): string {
-		let lines = []
-		depth++
+	let lines: string[] = []
+	// Per open rule/at-rule: whether its block is printed (so `leave` knows to close it)
+	let open_blocks: boolean[] = []
 
-		let comment_before_first = get_comment(node.start, node.first_child?.start ?? node.end)
-		if (comment_before_first) {
-			lines.push(indent(depth) + comment_before_first)
-		}
+	// Per open container (stylesheet, rule or at-rule): where the previous child ended
+	let prev_ends: (number | undefined)[] = []
 
-		let prev_end: number | undefined
+	/** Pushes the comment (if any) between the previous sibling and this node. */
+	function push_comment_before(node: CSSNode, level: number): boolean {
+		let prev_end = prev_ends.at(-1)
+		prev_ends[prev_ends.length - 1] = node.end
+		if (prev_end === undefined) return false
+		let comment = get_comment(prev_end, node.start, level)
+		if (comment) lines.push(indent(level) + comment)
+		return comment !== EMPTY_STRING
+	}
 
-		for (let child of node) {
-			if (prev_end !== undefined) {
-				let comment = get_comment(prev_end, child.start)
-				if (comment) {
-					lines.push(indent(depth) + comment)
+	/** Opens a rule/at-rule block: prints comments leading up to the first child. */
+	function enter_block(block: Block, depth: number) {
+		let comment = get_comment(block.start, block.first_child?.start ?? block.end, depth + 1)
+		if (comment) lines.push(indent(depth + 1) + comment)
+	}
+
+	traverse(ast, {
+		enter(node, depth) {
+			if (is_stylesheet(node)) {
+				prev_ends.push(undefined)
+				if (node.child_count === 0) {
+					lines.push(get_comment(0, node.end, 0))
+					return SKIP
 				}
+				let comment = get_comment(0, node.first_child!.start, 0)
+				if (comment) lines.push(comment)
+				return
 			}
 
-			if (is_declaration(child)) {
-				let is_last = !child.has_next || !is_declaration(child.next_sibling)
+			if (is_declaration(node)) {
+				let is_last = !node.has_next || !is_declaration(node.next_sibling)
+				push_comment_before(node, depth)
 				// Multi-line values (`if()`) are printed relative to column 0; indent continuation lines
-				let declaration = format_declaration(child, { minify, tab_size }).replaceAll(
+				let declaration = format_declaration(node, { minify, tab_size }).replaceAll(
 					'\n',
 					'\n' + indent(depth),
 				)
-				let semi = is_last ? LAST_SEMICOLON : ';'
-				lines.push(indent(depth) + declaration + semi)
-			} else if (is_rule(child)) {
-				if (prev_end !== undefined && lines.length > 0) {
+				lines.push(indent(depth) + declaration + (is_last ? LAST_SEMICOLON : ';'))
+				return SKIP
+			}
+
+			if (is_rule(node) || is_atrule(node)) {
+				// Comments between siblings; top-level nodes are separated by a blank line
+				// unless a comment already sits between them.
+				let has_prev = prev_ends.at(-1) !== undefined
+				let had_comment = push_comment_before(node, depth)
+				if (has_prev && (depth > 0 || !had_comment)) {
 					lines.push(EMPTY_STRING)
 				}
-				lines.push(print_rule(child))
-			} else if (is_atrule(child)) {
-				if (prev_end !== undefined && lines.length > 0) {
-					lines.push(EMPTY_STRING)
+
+				let block = node.block
+				let block_has_content = is_rule(node)
+					? !!block && (block.has_children || !!get_comment(block.start, block.end, depth + 1))
+					: node.has_block &&
+						(!node.block.is_empty || !!get_comment(node.block.start, node.block.end, depth + 1))
+				open_blocks.push(block_has_content)
+				prev_ends.push(undefined)
+
+				if (is_rule(node)) {
+					if (node.has_prelude && is_selector_list(node.prelude)) {
+						let list = print_rule_selectors(node.prelude, depth)
+						// An empty selector list (malformed/unknown block) prints no selector
+						// lines, so the indentation has to be added here instead.
+						if (list === EMPTY_STRING) list = indent(depth)
+
+						let comment = get_comment(node.first_child?.end ?? 0, block?.start ?? 0, depth)
+						if (node.first_child && block && comment) {
+							list += NEWLINE + indent(depth) + comment
+						}
+
+						list += OPTIONAL_SPACE + '{'
+						if (!block_has_content) list += '}'
+						lines.push(list)
+					}
+				} else {
+					let header = '@' + print_identifier(node.name!)
+					if (node.prelude) {
+						header += SPACE + format_atrule_prelude(node.prelude.text, { minify })
+					}
+					if (node.has_block) {
+						header += OPTIONAL_SPACE + '{'
+						if (!block_has_content) header += '}'
+					} else {
+						header += ';'
+					}
+					lines.push(indent(depth) + header)
 				}
-				lines.push(indent(depth) + print_atrule(child))
+
+				if (!block_has_content) return SKIP
+				enter_block(block!, depth)
+				return
 			}
 
-			prev_end = child.end
-		}
-
-		let comment_after_last = get_comment(prev_end, node.end)
-		if (comment_after_last) {
-			lines.push(indent(depth) + comment_after_last)
-		}
-
-		depth--
-		lines.push(indent(depth) + '}')
-		return lines.join(NEWLINE)
-	}
-
-	function print_rule(node: Rule): string {
-		let block_has_content =
-			node.block && (node.block.has_children || get_comment(node.block.start, node.block.end))
-		let lines = []
-
-		if (node.has_prelude && is_selector_list(node.prelude)) {
-			let list = print_rule_selectors(node.prelude)
-			// An empty selector list (malformed/unknown block) prints no selector
-			// lines, so the indentation that print_rule_selectors would normally add
-			// per-selector has to be added here instead.
-			if (list === EMPTY_STRING) {
-				list = indent(depth)
-			}
-
-			let comment = get_comment(node.first_child?.end, node.block?.start)
-			if (comment) {
-				list += NEWLINE + indent(depth) + comment
-			}
-
-			list += OPTIONAL_SPACE + '{'
-			if (!block_has_content) {
-				list += '}'
-			}
-			lines.push(list)
-		}
-
-		if (block_has_content) {
-			lines.push(print_block(node.block!))
-		}
-
-		return lines.join(NEWLINE)
-	}
-
-	function print_atrule(node: Atrule): string {
-		let name = '@' + print_identifier(node.name!)
-		if (node.prelude) {
-			name += SPACE + format_atrule_prelude(node.prelude.text, { minify })
-		}
-
-		let block_has_content =
-			node.has_block && (!node.block.is_empty || !!get_comment(node.block.start, node.block.end))
-		if (node.has_block) {
-			name += OPTIONAL_SPACE + '{'
-			if (!block_has_content) {
-				name += '}'
-			}
-		} else {
-			name += ';'
-		}
-
-		if (block_has_content) {
-			return name + NEWLINE + print_block(node.block!)
-		}
-		return name
-	}
-
-	function print_stylesheet(node: StyleSheet): string {
-		let lines = []
-
-		if (node.child_count === 0) {
-			return get_comment(0, node.end, 0)
-		}
-
-		if (node.has_children) {
-			let comment_before_first = get_comment(0, node.first_child!.start, 0)
-			if (comment_before_first) {
-				lines.push(comment_before_first)
-			}
-		}
-
-		let prev_end: number | undefined
-
-		for (let child of node) {
-			if (prev_end !== undefined) {
-				let comment = get_comment(prev_end, child.start, 0)
-				if (comment) {
-					lines.push(comment)
+			// Blocks are traversed for their children; everything else (selectors, preludes) is printed above
+			if (!is_block(node)) return SKIP
+		},
+		leave(node, depth) {
+			if (is_rule(node) || is_atrule(node)) {
+				let prev_end = prev_ends.pop()
+				if (!open_blocks.pop()) return
+				if (prev_end !== undefined) {
+					let comment = get_comment(prev_end, node.block!.end, depth + 1)
+					if (comment) lines.push(indent(depth + 1) + comment)
+				}
+				lines.push(indent(depth) + '}')
+			} else if (is_stylesheet(node)) {
+				let prev_end = prev_ends.pop()
+				if (prev_end !== undefined) {
+					let comment = get_comment(prev_end, node.end, 0)
+					if (comment) lines.push(comment)
 				}
 			}
+		},
+	})
 
-			if (is_rule(child)) {
-				lines.push(print_rule(child))
-			} else if (is_atrule(child)) {
-				lines.push(print_atrule(child))
-			}
-
-			prev_end = child.end
-
-			if (child.has_next) {
-				let next_has_comment =
-					child.next_sibling && get_comment(child.end, child.next_sibling.start, 0)
-				if (!next_has_comment) {
-					lines.push(EMPTY_STRING)
-				}
-			}
-		}
-
-		let comment_after_last = get_comment(prev_end, node.end, 0)
-		if (comment_after_last) {
-			lines.push(comment_after_last)
-		}
-
-		return lines.join(NEWLINE)
-	}
-
-	return print_stylesheet(ast).trimEnd()
+	return lines.join(NEWLINE).trimEnd()
 }
 
 /**
