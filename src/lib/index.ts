@@ -134,13 +134,12 @@ function print_if_condition(
 function print_if_branch(
 	node: IfBranch,
 	optional_space: string,
-	depth: number,
 	minify: boolean,
 	tab_size?: number,
 ): string {
 	let condition = print_if_condition(node.condition, minify)
 	let node_value = node.value
-	let value = node_value ? format_value(node_value, { minify, tab_size }, depth) : EMPTY_STRING
+	let value = node_value ? format_value(node_value, { minify, tab_size }) : EMPTY_STRING
 	if (value === EMPTY_STRING) {
 		return condition + ':'
 	}
@@ -148,29 +147,30 @@ function print_if_branch(
 	return condition + ':' + optional_space + value
 }
 
-/** Prints an `if(...)` value function, one condition/value branch per line. */
-function print_if(node: Function, depth: number, minify: boolean, tab_size?: number): string {
+/** Prints an `if(...)` value function, one condition/value branch per line.
+ * Indentation is relative to the start of the declaration; callers re-indent continuation lines. */
+function print_if(node: Function, minify: boolean, tab_size?: number): string {
 	let branches = node.children as IfBranch[]
 
 	if (minify) {
-		let parts = branches.map((branch) =>
-			print_if_branch(branch, EMPTY_STRING, depth, true, tab_size),
-		)
+		let parts = branches.map((branch) => print_if_branch(branch, EMPTY_STRING, true, tab_size))
 		return 'if(' + parts.join(';') + ')'
 	}
 
-	let inner_indent = print_indent(depth + 1, tab_size)
-	let outer_indent = print_indent(depth, tab_size)
+	let inner_indent = print_indent(1, tab_size)
 	let lines = branches.map((branch) => {
-		return inner_indent + print_if_branch(branch, SPACE, depth + 1, minify, tab_size) + ';'
+		let printed = print_if_branch(branch, SPACE, minify, tab_size).replaceAll(
+			'\n',
+			'\n' + inner_indent,
+		)
+		return inner_indent + printed + ';'
 	})
-	return 'if(\n' + lines.join('\n') + '\n' + outer_indent + ')'
+	return 'if(\n' + lines.join('\n') + '\n)'
 }
 
 function print_list(
 	nodes: CSSNode[],
 	optional_space = SPACE,
-	depth = 0,
 	minify = false,
 	tab_size?: number,
 ): string {
@@ -179,10 +179,10 @@ function print_list(
 		if (is_function(node)) {
 			// An `if(...)` value function has `IfBranch` children instead of ordinary value nodes
 			if (str_equals('if', node.name) && node.first_child && is_if_branch(node.first_child)) {
-				parts.push(print_if(node, depth, minify, tab_size))
+				parts.push(print_if(node, minify, tab_size))
 			} else {
 				let fn = print_identifier(node.name)
-				parts.push(fn, '(', print_list(node.children, optional_space, depth, minify, tab_size), ')')
+				parts.push(fn, '(', print_list(node.children, optional_space, minify, tab_size), ')')
 			}
 		} else if (is_dimension(node)) {
 			parts.push(node.value, node.unit?.toLowerCase())
@@ -191,7 +191,7 @@ function print_list(
 		} else if (is_operator(node)) {
 			parts.push(print_operator(node, optional_space))
 		} else if (is_parenthesis(node)) {
-			parts.push('(', print_list(node.children, optional_space, depth, minify, tab_size), ')')
+			parts.push('(', print_list(node.children, optional_space, minify, tab_size), ')')
 		} else if (is_url(node) && node.value) {
 			// Lowercase the `url(` keyword but leave quote style untouched. A Url node's text
 			// always starts with `url(` (any casing), that's how the parser identifies it.
@@ -211,19 +211,15 @@ function print_list(
 export function format_value(
 	value: Value | Raw | null,
 	{ minify = false, tab_size = undefined }: Pick<FormatOptions, 'minify' | 'tab_size'> = {},
-	/** Indentation depth of the declaration this value belongs to; only relevant for
-	 * multi-line values like `if(...)`, which indent one level deeper than this. */
-	depth = 0,
 ): string {
 	if (value === null || is_raw(value)) return EMPTY_STRING
 	let optional_space = minify ? EMPTY_STRING : SPACE
-	return print_list(value.children, optional_space, depth, minify, tab_size)
+	return print_list(value.children, optional_space, minify, tab_size)
 }
 
 export function format_declaration(
 	node: Declaration,
 	{ minify = false, tab_size = undefined }: Pick<FormatOptions, 'minify' | 'tab_size'> = {},
-	depth = 0,
 ): string {
 	let optional_space = minify ? EMPTY_STRING : SPACE
 
@@ -234,7 +230,7 @@ export function format_declaration(
 		important =
 			optional_space + text.slice(start, text.endsWith(';') ? -1 : undefined).toLowerCase()
 	}
-	let value = format_value(node.value, { minify, tab_size }, depth)
+	let value = format_value(node.value, { minify, tab_size })
 	let property = node.property!
 
 	// Special case for `font` shorthand: remove whitespace around /
@@ -577,7 +573,11 @@ export function format(
 
 			if (is_declaration(child)) {
 				let is_last = !child.has_next || !is_declaration(child.next_sibling)
-				let declaration = format_declaration(child, { minify, tab_size }, depth)
+				// Multi-line values (`if()`) are printed relative to column 0; indent continuation lines
+				let declaration = format_declaration(child, { minify, tab_size }).replaceAll(
+					'\n',
+					'\n' + indent(depth),
+				)
 				let semi = is_last ? LAST_SEMICOLON : ';'
 				lines.push(indent(depth) + declaration + semi)
 			} else if (is_rule(child)) {
