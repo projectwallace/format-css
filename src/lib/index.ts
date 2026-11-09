@@ -413,8 +413,8 @@ function print_selector_list(
 	node: SelectorList | PseudoClassSelector | PseudoElementSelector,
 	optional_space = SPACE,
 ): string {
-	let parts = []
-	for (let child of node) {
+	let parts: string[] = []
+	node.for_each((child) => {
 		if (is_selector_list(child)) {
 			parts.push(print_selector_list(child, optional_space))
 		} else {
@@ -423,7 +423,7 @@ function print_selector_list(
 				parts.push(',', optional_space)
 			}
 		}
-	}
+	})
 	return parts.join(EMPTY_STRING)
 }
 
@@ -536,9 +536,9 @@ export function format(
 
 	/** Prints a rule's selector list one selector per line, e.g. `.a,\n.b {`. */
 	function print_rule_selectors(node: SelectorList): string {
-		let lines = []
+		let lines: string[] = []
 		let prev_end: number | undefined
-		for (let selector of node) {
+		node.for_each((selector) => {
 			if (prev_end !== undefined) {
 				let comment = get_comment(prev_end, selector.start)
 				if (comment) {
@@ -552,7 +552,7 @@ export function format(
 			}
 			lines.push(indent(depth) + printed)
 			prev_end = selector.end
-		}
+		})
 		return lines.join(NEWLINE)
 	}
 
@@ -567,7 +567,7 @@ export function format(
 
 		let prev_end: number | undefined
 
-		for (let child of node) {
+		node.for_each((child) => {
 			if (prev_end !== undefined) {
 				let comment = get_comment(prev_end, child.start)
 				if (comment) {
@@ -593,7 +593,7 @@ export function format(
 			}
 
 			prev_end = child.end
-		}
+		})
 
 		let comment_after_last = get_comment(prev_end, node.end)
 		if (comment_after_last) {
@@ -677,7 +677,7 @@ export function format(
 
 		let prev_end: number | undefined
 
-		for (let child of node) {
+		node.for_each((child) => {
 			if (prev_end !== undefined) {
 				let comment = get_comment(prev_end, child.start, 0)
 				if (comment) {
@@ -700,7 +700,7 @@ export function format(
 					lines.push(EMPTY_STRING)
 				}
 			}
-		}
+		})
 
 		let comment_after_last = get_comment(prev_end, node.end, 0)
 		if (comment_after_last) {
