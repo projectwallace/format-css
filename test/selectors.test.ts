@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { format } from '../src/lib/index.js'
+import { format, minify } from '../src/lib/index.js'
 
 test('A single selector is rendered without a trailing comma', () => {
 	let actual = format('a {}')
@@ -291,4 +291,27 @@ test('whitespace before a comma does not leave a trailing combinator', () => {
 	let actual = format('a > b , c {}')
 	let expected = 'a > b,\nc {}'
 	expect(actual).toEqual(expected)
+})
+
+test('formats :lang() with multiple identifiers', () => {
+	let actual = format(`:lang(en,nl),a:lang(en-US , nl){}`)
+	let expected = `:lang("en", "nl"),
+a:lang("en-US", "nl") {}`
+	expect(actual).toEqual(expected)
+})
+
+test('formats single-argument :lang()', () => {
+	expect(format(`:lang(en){}`)).toEqual(`:lang("en") {}`)
+})
+
+test('formats unknown pseudo with a single identifier argument', () => {
+	expect(format(`:unknown(foo.bar){}`)).toEqual(`:unknown(foo.bar) {}`)
+})
+
+test('minifies :lang() with multiple arguments', () => {
+	expect(minify(`:lang(en, nl) { color: red }`)).toEqual(`:lang("en","nl"){color:red}`)
+})
+
+test('minifies unknown pseudo with multiple arguments', () => {
+	expect(minify(`:unknown(a.b, c) {}`)).toEqual(`:unknown(a.b,c){}`)
 })
