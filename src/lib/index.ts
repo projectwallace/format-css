@@ -9,6 +9,7 @@ import {
 	is_url,
 	is_string,
 	is_operator,
+	is_identifier,
 	is_raw,
 	is_selector_list,
 	is_type_selector,
@@ -401,6 +402,11 @@ function print_selector_argument(node: CSSNode, optional_space = SPACE): string 
 		return print_string(node.name ?? EMPTY_STRING)
 	}
 
+	// Non-selector pseudo-class arguments, e.g. `:unknown(foo.bar)`
+	if (is_identifier(node)) {
+		return node.text
+	}
+
 	return print_selector(node as Selector, optional_space)
 }
 
@@ -415,6 +421,10 @@ function print_selector_list(
 ): string {
 	let parts: string[] = []
 	node.for_each((child) => {
+		if (is_operator(child)) {
+			// Commas between arguments are emitted below
+			return
+		}
 		if (is_selector_list(child)) {
 			parts.push(print_selector_list(child, optional_space))
 		} else {
