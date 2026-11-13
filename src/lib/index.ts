@@ -95,6 +95,8 @@ function print_operator(node: Operator, optional_space = SPACE): string {
 	let code = operator.charCodeAt(0)
 	// + or - require spaces; comma has no leading space; others use optional space
 	let space = code === 43 || code === 45 ? SPACE : optional_space
+	// `=` appears in the legacy IE `alpha(opacity=80)` filter, where spaces aren't valid
+	if (code === 61) return operator
 	return (code === 44 ? EMPTY_STRING : space) + operator + space
 }
 
