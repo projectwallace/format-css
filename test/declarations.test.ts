@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { format } from '../src/lib/index.js'
+import { format, minify } from '../src/lib/index.js'
 
 test('Declarations end with a semicolon (;)', () => {
 	let actual = format(`
@@ -100,4 +100,16 @@ test('browserhack !IE is lowercased', () => {
 	color: green !ie;
 }`
 	expect(actual).toEqual(expected)
+})
+
+test('keeps the = operator in legacy alpha() filter', () => {
+	let actual = format(`a { filter: alpha(opacity=80); }`)
+	let expected = `a {
+	filter: alpha(opacity=80);
+}`
+	expect(actual).toEqual(expected)
+})
+
+test('keeps the = operator in legacy alpha() filter when minifying', () => {
+	expect(minify(`a { filter: alpha(opacity=80); }`)).toEqual(`a{filter:alpha(opacity=80)}`)
 })
